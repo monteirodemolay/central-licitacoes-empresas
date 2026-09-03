@@ -1,0 +1,10 @@
+{
+  "name": "licitadoc-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MVP privado para gestão documental e participação em licitações",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check public/app.js"
+  }
+}
