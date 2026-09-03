@@ -6,6 +6,7 @@
   <meta name="color-scheme" content="light">
   <title>LicitaDoc — Central de Habilitação</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="reader.css">
 </head>
 <body>
   <aside class="sidebar">
@@ -44,6 +45,15 @@
 
     <section id="notices" class="view">
       <div class="toolbar"><p>Cadastre o edital e acompanhe os requisitos documentais.</p><button data-open="notice" class="primary">Novo edital</button></div>
+      <article class="card pdf-reader">
+        <div class="card-head"><div><h2>Leitor de edital em PDF</h2><p>O arquivo é processado neste navegador e não é enviado para nenhum servidor.</p></div><span class="badge ok">Leitura local</span></div>
+        <div class="reader-input">
+          <label>Selecionar edital ou termo de referência em PDF<input id="pdf-input" type="file" accept="application/pdf,.pdf"></label>
+          <button id="read-pdf" class="primary">Extrair e analisar</button>
+        </div>
+        <div id="pdf-progress" class="reader-progress" hidden></div>
+        <div id="pdf-result"></div>
+      </article>
       <div id="notice-list" class="cards"></div>
     </section>
 
@@ -54,6 +64,7 @@
 
   <dialog id="modal"><form method="dialog" id="modal-form"><div class="modal-head"><h2 id="modal-title"></h2><button value="cancel" class="icon">×</button></div><div id="modal-content"></div><div class="modal-actions"><button value="cancel" class="secondary">Cancelar</button><button id="save-modal" value="default" class="primary">Salvar</button></div></form></dialog>
   <div id="toast" role="status"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="app.js"></script>
 </body>
 </html>
