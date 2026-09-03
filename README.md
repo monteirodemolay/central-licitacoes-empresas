@@ -12,7 +12,7 @@ Sistema administrativo enxuto para controlar empresas, documentos e participaç�
 - autenticação serve somente para impedir acesso de pessoas não autorizadas;
 - prioridade para rapidez, conferência documental e preparação da participação.
 
-Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou importar edital → conferir requisitos → elaborar proposta → gerar pacote.
+Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou importar edital no assistente → classificar o processo → conferir a documentação exigível → acompanhar o que falta pela agenda → gerar pacote.
 
 ## O que já funciona
 
@@ -27,6 +27,14 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - organização privada por empresa, tipo, ano e histórico de versões;
 - classificação automática em regular, urgente e vencida;
 - links oficiais para Federal/PGFN, FGTS e CNDT;
+- assistente de habilitação em 8 passos, com a taxonomia da Lei 14.133/2021 (modalidade, forma de contratação direta, tipo de objeto, critério de julgamento, regime de execução e tratamento ME/EPP);
+- matriz automática dos documentos exigíveis por modalidade, tipo de objeto e valor (arts. 66 a 69);
+- vinculação automática de cada exigência ao acervo, às certidões e aos balanços já cadastrados;
+- crítica em tempo real de vigência, completude e consistência, com alerta de certidão que vence antes da sessão e de valor acima do teto de dispensa;
+- envio de documento direto pela linha do checklist, indo para o acervo da empresa;
+- item marcável como "não se aplica" com justificativa registrada;
+- agenda de interesse por edital, com contagem regressiva, prioridade, responsável e percentual de documentação pronta;
+- providências com prazo, geradas a partir das pendências do checklist e agrupadas em atrasadas, próximos 7 dias e mais adiante;
 - cadastro de editais e requisitos;
 - leitura local de editais em PDF, com extração de texto e análise preliminar;
 - identificação assistida de objeto, órgão, modalidade, abertura e documentos exigidos;
@@ -34,8 +42,15 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - importação de itens em XLS, XLSX ou CSV;
 - controle de balanços por exercício e orientação preliminar de exigibilidade;
 - pacotes vinculados a cada processo, preservando as versões utilizadas;
-- geração de ZIP com checklist, documentos, proposta, declarações e planilha XLSX;
+- geração de ZIP organizado por bloco de habilitação, criando somente as pastas exigidas para aquele processo;
+- checklist completo no pacote, com `[INCLUÍDO]`, `[PENDENTE]`, `[VENCIDO PARA A SESSÃO]`, `[GERADO PELO SISTEMA]` e `[NÃO SE APLICA — justificativa]`;
 - exportação do banco local em JSON.
+
+## Documentação de referência
+
+A especificação funcional do assistente e o mockup navegável estão em
+[`docs/wizard-licitacoes/`](docs/wizard-licitacoes/). O mockup é um HTML
+independente: basta abrir no navegador.
 
 ## Executar
 
@@ -68,10 +83,12 @@ Haverá somente dois perfis: administrador geral e proprietário da empresa. O a
 
 1. OCR para PDFs digitalizados;
 2. IA privada com citações por arquivo e página;
-3. notificações de vencimento;
+3. notificações de vencimento e de prazo da agenda por e-mail;
 4. integração PNCP;
 5. edição avançada da proposta antes da geração;
-6. histórico de alterações e backup ampliado.
+6. exportação do checklist consolidado em PDF;
+7. consulta assistida a CEIS, CNEP e CADICON antes do envio;
+8. histórico de alterações e backup ampliado.
 
 ## Fora do escopo
 
@@ -86,3 +103,9 @@ Haverá somente dois perfis: administrador geral e proprietário da empresa. O a
 ## Regra operacional
 
 Nenhuma análise automática substitui a conferência do edital, dos documentos originais, das assinaturas e da validade na data da sessão.
+
+A matriz de documentos do assistente é um guia de partida construído sobre o
+texto da Lei 14.133/2021: cada edital pode acrescentar ou flexibilizar exigências
+dentro dos limites legais, e todo item permanece editável. Os limites de dispensa
+por valor ficam em `public.parametros_legais`, com vigência e fonte, porque mudam
+por decreto todo ano — veja [CONFIGURACAO.md](CONFIGURACAO.md).

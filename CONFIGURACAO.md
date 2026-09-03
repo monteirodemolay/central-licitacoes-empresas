@@ -10,11 +10,31 @@
 
 Esse script cria as tabelas, os índices, o bucket privado e todas as políticas de acesso.
 
-Se a estrutura inicial já foi criada anteriormente, execute apenas o arquivo
-`supabase/atualizacao_documentos_processos.sql`. Ele acrescenta o acervo
-documental, os balanços, os campos de análise do edital e os pacotes vinculados
-aos processos sem apagar os dados existentes. O arquivo pode ser executado
-novamente com segurança para ativar atualizações posteriores.
+Se a estrutura inicial já foi criada anteriormente, execute os arquivos de
+atualização, na ordem, sem apagar os dados existentes:
+
+1. `supabase/atualizacao_documentos_processos.sql` — acervo documental, balanços,
+   campos de análise do edital e pacotes vinculados aos processos;
+2. `supabase/atualizacao_wizard_licitacoes.sql` — taxonomia da Lei 14.133/2021,
+   checklist por processo, agenda de interesse e a tabela de parâmetros legais.
+
+Os dois são idempotentes e podem ser executados novamente com segurança para
+ativar atualizações posteriores. Sem o segundo arquivo, o assistente de
+habilitação e a agenda avisam na tela que a migração ainda não foi aplicada.
+
+### Revisão anual dos valores legais
+
+A tabela `public.parametros_legais` guarda os limites de dispensa por valor com a
+data de vigência e a fonte. Os valores atuais são os do Decreto nº 12.807/2025
+(vigência 2026) e **mudam por decreto todo ano**: quando sair o decreto seguinte,
+atualize a tabela pelo SQL Editor em vez de mexer no código.
+
+```sql
+update public.parametros_legais
+   set valor = 000000.00, vigencia_inicio = '2027-01-01',
+       fonte = 'Decreto nº 00.000/2026', atualizado_em = now()
+ where chave = 'dispensa_art75_II';
+```
 
 ## 2. Configurar os endereços de autenticação
 
