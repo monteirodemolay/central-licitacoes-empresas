@@ -45,10 +45,11 @@ O proprietário passa a acessar somente a empresa vinculada.
 3. Escolha `monteirodemolay/central-licitacoes-empresas`.
 4. Branch de produção: `main`.
 5. Build command: deixe vazio.
-6. Build output directory: `public`.
-7. Salve e aguarde a publicação.
+6. Deploy command: `npx wrangler deploy`.
+7. Mantenha **Protect with Cloudflare Access** desligado, pois o sistema já possui autenticação própria.
+8. Clique em **Deploy** e aguarde a publicação.
 
-Os arquivos `_headers` e `_redirects` já estão preparados para o Cloudflare.
+O arquivo `wrangler.jsonc` já define a pasta `public`, o comportamento de aplicativo e os cabeçalhos de segurança.
 
 ## Segurança
 
