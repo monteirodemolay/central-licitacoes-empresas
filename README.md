@@ -21,6 +21,8 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - classificação automática em regular, urgente e vencida;
 - links oficiais para Federal/PGFN, FGTS e CNDT;
 - cadastro de editais e requisitos;
+- leitura local de editais em PDF, com extração de texto e análise preliminar;
+- identificação assistida de objeto, órgão, modalidade, abertura e documentos exigidos;
 - conferência preliminar entre empresa, certidões e edital;
 - exportação do banco local em JSON.
 
@@ -37,6 +39,8 @@ Abra `http://127.0.0.1:4173`.
 ## Privacidade desta versão
 
 O MVP não possui backend e guarda os registros no `localStorage` do navegador. O campo de arquivo permite selecionar documentos para validar o fluxo, mas o arquivo não é transmitido nem persistido. Não use esta versão como repositório definitivo de documentos empresariais.
+
+O leitor de PDF executa no navegador. PDFs que contenham texto podem ser analisados sem upload. Documentos formados somente por imagens são sinalizados para futura leitura por OCR. A extração é preliminar e deve ser conferida no edital original.
 
 ## Próxima etapa de produção
 
