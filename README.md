@@ -17,6 +17,9 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 ## O que já funciona
 
 - cadastro de múltiplas empresas;
+- acervo documental geral separado por empresa e categoria;
+- importação de pastas baixadas do Dropbox em ZIP, com leitura das subpastas;
+- identificação de duplicidades por hash antes do envio;
 - controle de certidões e validade;
 - importação simultânea de certidões com classificação e leitura de datas;
 - organização privada por empresa, tipo, ano e histórico de versões;

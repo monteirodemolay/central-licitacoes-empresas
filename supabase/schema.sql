@@ -41,6 +41,24 @@ create table if not exists public.certidoes (
   criado_em timestamptz not null default now()
 );
 
+create table if not exists public.documentos_empresa (
+  id uuid primary key default gen_random_uuid(),
+  empresa_id uuid not null references public.empresas(id) on delete cascade,
+  categoria text not null,
+  tipo text not null,
+  nome_original text not null,
+  arquivo_path text not null,
+  origem text,
+  pasta_origem text,
+  data_documento date,
+  validade date,
+  sha256 text,
+  metadados jsonb not null default '{}'::jsonb,
+  criado_por uuid references auth.users(id),
+  criado_em timestamptz not null default now(),
+  unique (empresa_id,sha256)
+);
+
 create table if not exists public.licitacoes (
   id uuid primary key default gen_random_uuid(),
   empresa_id uuid not null references public.empresas(id) on delete cascade,
@@ -94,6 +112,7 @@ create table if not exists public.pacotes (
 create index if not exists idx_perfis_empresa on public.perfis(empresa_id);
 create index if not exists idx_certidoes_empresa on public.certidoes(empresa_id);
 create index if not exists idx_certidoes_validade on public.certidoes(validade);
+create index if not exists idx_documentos_empresa_categoria on public.documentos_empresa(empresa_id,categoria);
 create index if not exists idx_licitacoes_empresa on public.licitacoes(empresa_id);
 create index if not exists idx_licitacoes_abertura on public.licitacoes(abertura);
 create index if not exists idx_balancos_empresa_exercicio on public.balancos(empresa_id,exercicio);
@@ -135,6 +154,7 @@ for each row execute procedure public.novo_usuario();
 alter table public.empresas enable row level security;
 alter table public.perfis enable row level security;
 alter table public.certidoes enable row level security;
+alter table public.documentos_empresa enable row level security;
 alter table public.licitacoes enable row level security;
 alter table public.balancos enable row level security;
 alter table public.pacotes enable row level security;
@@ -170,6 +190,20 @@ using (public.meu_perfil()='admin_geral' or empresa_id=public.minha_empresa())
 with check (public.meu_perfil()='admin_geral' or empresa_id=public.minha_empresa());
 drop policy if exists "certidoes exclusao" on public.certidoes;
 create policy "certidoes exclusao" on public.certidoes for delete to authenticated
+using (public.meu_perfil()='admin_geral' or empresa_id=public.minha_empresa());
+
+drop policy if exists "documentos empresa leitura" on public.documentos_empresa;
+create policy "documentos empresa leitura" on public.documentos_empresa for select to authenticated
+using (public.meu_perfil()='admin_geral' or empresa_id=public.minha_empresa());
+drop policy if exists "documentos empresa insercao" on public.documentos_empresa;
+create policy "documentos empresa insercao" on public.documentos_empresa for insert to authenticated
+with check (public.meu_perfil()='admin_geral' or empresa_id=public.minha_empresa());
+drop policy if exists "documentos empresa atualizacao" on public.documentos_empresa;
+create policy "documentos empresa atualizacao" on public.documentos_empresa for update to authenticated
+using (public.meu_perfil()='admin_geral' or empresa_id=public.minha_empresa())
+with check (public.meu_perfil()='admin_geral' or empresa_id=public.minha_empresa());
+drop policy if exists "documentos empresa exclusao" on public.documentos_empresa;
+create policy "documentos empresa exclusao" on public.documentos_empresa for delete to authenticated
 using (public.meu_perfil()='admin_geral' or empresa_id=public.minha_empresa());
 
 drop policy if exists "licitacoes leitura" on public.licitacoes;
@@ -215,8 +249,8 @@ create policy "pacotes exclusao" on public.pacotes for delete to authenticated
 using (public.meu_perfil()='admin_geral' or empresa_id=public.minha_empresa());
 
 insert into storage.buckets (id,name,public,file_size_limit,allowed_mime_types)
-values ('documentos','documentos',false,52428800,array['application/pdf','image/png','image/jpeg','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
-on conflict (id) do update set public=false;
+values ('documentos','documentos',false,52428800,array['application/pdf','image/png','image/jpeg','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','text/csv','text/plain'])
+on conflict (id) do update set public=false,file_size_limit=excluded.file_size_limit,allowed_mime_types=excluded.allowed_mime_types;
 
 drop policy if exists "documentos leitura" on storage.objects;
 create policy "documentos leitura" on storage.objects for select to authenticated
@@ -229,5 +263,5 @@ create policy "documentos exclusao" on storage.objects for delete to authenticat
 using (bucket_id='documentos' and (public.meu_perfil()='admin_geral' or (storage.foldername(name))[1]=public.minha_empresa()::text));
 
 grant usage on schema public to authenticated;
-grant select,insert,update,delete on public.empresas,public.certidoes,public.balancos,public.licitacoes,public.pacotes to authenticated;
+grant select,insert,update,delete on public.empresas,public.certidoes,public.documentos_empresa,public.balancos,public.licitacoes,public.pacotes to authenticated;
 grant select,update on public.perfis to authenticated;
