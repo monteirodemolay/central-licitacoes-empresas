@@ -12,7 +12,8 @@ Este é um repositório privado, mas documentos empresariais, certidões, editai
 - Manter somente os perfis `admin_geral` e `proprietario_empresa`.
 - Restringir o proprietário aos documentos, editais e propostas vinculados ao seu `empresaId`.
 - Aplicar a restrição nas regras do Firestore e do Storage, e não somente na interface.
-- Manter uma lista mínima e explícita de contas autorizadas no Firebase.
+- Manter no Supabase somente as contas efetivamente autorizadas.
+- Nunca publicar a chave secreta `sb_secret`, a chave legada `service_role` ou a senha do banco.
 
 ## Estado do MVP
 
