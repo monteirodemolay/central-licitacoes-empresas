@@ -21,6 +21,7 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - importação de pastas baixadas do Dropbox em ZIP ou já descompactadas, com leitura das subpastas;
 - suporte a ZIPs de até 1 GB e até 1.500 documentos por lote;
 - identificação de duplicidades por hash antes do envio;
+- indicação do arquivo original correspondente e relatório CSV de repetidos;
 - controle de certidões e validade;
 - importação simultânea de certidões com classificação e leitura de datas;
 - organização privada por empresa, tipo, ano e histórico de versões;

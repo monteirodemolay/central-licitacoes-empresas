@@ -59,11 +59,12 @@ function archiveCategoryOptions(selected){return archiveCategories.map(x=>`<opti
 function renderPendingArchive(){
   const root=$('#archive-result');if(!pendingArchive.length){root.innerHTML='';return}
   const selected=pendingArchive.filter(x=>x.include&&!x.duplicate&&!x.limitReason).length,duplicates=pendingArchive.filter(x=>x.duplicate).length,oversized=pendingArchive.filter(x=>x.limitReason).length;
-  root.innerHTML=`<div class="batch-review"><div class="card-head"><div><h3>Conferir acervo da empresa</h3><p>${pendingArchive.length} arquivo(s) localizado(s), ${duplicates} duplicidade(s), ${oversized} acima do limite individual e ${selected} selecionado(s) para importar.</p></div><button id="import-archive" class="primary" type="button" ${selected?'':'disabled'}>Importar ${selected} arquivo(s)</button></div>${pendingArchive.map((item,index)=>{
-    const blocked=item.duplicate||item.limitReason,label=item.duplicate?'Já arquivado':item.limitReason||'Importar';
-    return`<div class="archive-row ${blocked?'duplicate-row':''}" data-archive-index="${index}"><label class="archive-check"><input data-archive-field="include" type="checkbox" ${item.include&&!blocked?'checked':''} ${blocked?'disabled':''}>${esc(label)}</label><div class="batch-file"><strong>${esc(item.file.name)}</strong><small>${esc(item.relativePath)}</small>${item.scanned?'<small>PDF com pouco texto: confira a classificação e as datas.</small>':''}</div><label>Categoria<select data-archive-field="category" ${blocked?'disabled':''}>${archiveCategoryOptions(item.category)}</select></label><label>Tipo/descrição<input data-archive-field="type" value="${esc(item.type)}" ${blocked?'disabled':''}></label><label>Data do documento<input data-archive-field="documentDate" type="date" value="${item.documentDate||''}" ${blocked?'disabled':''}></label><label>Validade<input data-archive-field="validity" type="date" value="${item.validity||''}" ${blocked?'disabled':''}></label>${item.category==='Balanços'?`<label>Exercício<input data-archive-field="exercise" type="number" min="2000" max="${new Date().getFullYear()}" value="${item.exercise||''}" ${blocked?'disabled':''}></label>`:''}</div>`
+  root.innerHTML=`<div class="batch-review"><div class="card-head"><div><h3>Conferir acervo da empresa</h3><p>${pendingArchive.length} arquivo(s) localizado(s), ${duplicates} duplicidade(s), ${oversized} acima do limite individual e ${selected} selecionado(s) para importar.</p></div><div class="review-actions">${duplicates?'<button id="download-duplicates" class="secondary" type="button">Relatório de repetidos</button>':''}<button id="import-archive" class="primary" type="button" ${selected?'':'disabled'}>Importar ${selected} arquivo(s)</button></div></div>${pendingArchive.map((item,index)=>{
+    const blocked=item.duplicate||item.limitReason,label=item.duplicate?'Repetido':item.limitReason||'Importar';
+    return`<div class="archive-row ${blocked?'duplicate-row':''}" data-archive-index="${index}"><label class="archive-check"><input data-archive-field="include" type="checkbox" ${item.include&&!blocked?'checked':''} ${blocked?'disabled':''}>${esc(label)}</label><div class="batch-file"><strong>${esc(item.file.name)}</strong><small>${esc(item.relativePath)}</small>${item.duplicateOf?`<small class="duplicate-reference">Mesmo conteúdo de: ${esc(item.duplicateOf.name)}<br>${esc(item.duplicateOf.path||'Documento já arquivado no LiciDoc')}</small>`:''}${item.scanned?'<small>PDF com pouco texto: confira a classificação e as datas.</small>':''}</div><label>Categoria<select data-archive-field="category" ${blocked?'disabled':''}>${archiveCategoryOptions(item.category)}</select></label><label>Tipo/descrição<input data-archive-field="type" value="${esc(item.type)}" ${blocked?'disabled':''}></label><label>Data do documento<input data-archive-field="documentDate" type="date" value="${item.documentDate||''}" ${blocked?'disabled':''}></label><label>Validade<input data-archive-field="validity" type="date" value="${item.validity||''}" ${blocked?'disabled':''}></label>${item.category==='Balanços'?`<label>Exercício<input data-archive-field="exercise" type="number" min="2000" max="${new Date().getFullYear()}" value="${item.exercise||''}" ${blocked?'disabled':''}></label>`:''}</div>`
   }).join('')}</div>`
 }
+function downloadDuplicateReport(){const duplicates=pendingArchive.filter(x=>x.duplicate),cell=value=>`"${String(value||'').replace(/"/g,'""')}"`;if(!duplicates.length){toast('Nenhum arquivo repetido foi localizado.');return}const rows=[['Arquivo repetido','Caminho do repetido','Mesmo conteúdo de','Caminho do original','Já estava no LiciDoc'],...duplicates.map(x=>[x.file.name,x.relativePath,x.duplicateOf?.name,x.duplicateOf?.path,x.duplicateOf?.stored?'Sim':'Não, repetição no mesmo lote'])],csv='\ufeff'+rows.map(row=>row.map(cell).join(';')).join('\r\n');saveBlob(new Blob([csv],{type:'text/csv;charset=utf-8'}),`licidoc-arquivos-repetidos-${new Date().toISOString().slice(0,10)}.csv`)}
 async function analyzeArchiveZip(){
   const companyId=$('#archive-company').value,zipFile=$('#archive-zip').files[0],folderFiles=[...$('#archive-folder').files],button=$('#analyze-archive'),progress=$('#archive-progress');
   if(!companyId||(!zipFile&&!folderFiles.length)){toast('Selecione a empresa e um ZIP ou uma pasta descompactada.');return}
@@ -80,18 +81,18 @@ async function analyzeArchiveZip(){
     }
     if(entries.length>1500)throw new Error('Foram encontrados mais de 1.500 arquivos. Divida o acervo em partes menores.');
     let extractedSize=0,oversized=0;
-    const hashes=new Set(state.documents.filter(d=>d.companyId===companyId&&d.hash).map(d=>d.hash));
+    const hashes=new Map(state.documents.filter(d=>d.companyId===companyId&&d.hash).map(d=>[d.hash,{name:d.name,path:d.sourceFolder||d.filePath,stored:true}]));
     for(let i=0;i<entries.length;i++){
       const source=entries[i];progress.textContent=`Analisando ${i+1} de ${entries.length}: ${source.name}`;
       const name=source.name.split('/').pop(),documentFile=source.file||new File([await source.entry.async('blob')],name,{type:archiveMime(name),lastModified:zipFile.lastModified});
       extractedSize+=documentFile.size;
       if(extractedSize>2*1024*1024*1024)throw new Error('O conteúdo total ultrapassa 2 GB. Divida o acervo em lotes menores.');
       if(documentFile.size>50*1024*1024){pendingArchive.push({file:documentFile,relativePath:source.name,hash:'',duplicate:false,include:false,category:'Outros',type:'Arquivo acima do limite individual',documentDate:'',validity:'',exercise:'',scanned:false,limitReason:'Arquivo maior que 50 MB'});oversized++;continue}
-      const hash=await fileHash(documentFile),duplicate=hashes.has(hash);hashes.add(hash);
+      const hash=await fileHash(documentFile),duplicateOf=hashes.get(hash),duplicate=Boolean(duplicateOf);if(!duplicate)hashes.set(hash,{name:documentFile.name,path:source.name,stored:false});
       let text='',pages=0;
       if(/\.pdf$/i.test(name)){try{const result=await extractPdfText(documentFile);text=result.text;pages=result.pages}catch(error){text=''}}
       const classification=archiveClassification(text,source.name),dates=certificateDates(text),yearMatch=`${source.name}\n${text.slice(0,3000)}`.match(/(?:exerc[ií]cio|balan[cç]o|dre|ecd)?[^0-9]{0,15}(20\d{2})/i);
-      pendingArchive.push({file:documentFile,relativePath:source.name,hash,duplicate,include:!duplicate,category:classification.category,type:classification.type,documentDate:dates.issued,validity:dates.validity,exercise:classification.category==='Balanços'?(yearMatch?.[1]||''):'',scanned:/\.pdf$/i.test(name)&&text.trim().length<Math.max(200,pages*50)});
+      pendingArchive.push({file:documentFile,relativePath:source.name,hash,duplicate,duplicateOf,include:!duplicate,category:classification.category,type:classification.type,documentDate:dates.issued,validity:dates.validity,exercise:classification.category==='Balanços'?(yearMatch?.[1]||''):'',scanned:/\.pdf$/i.test(name)&&text.trim().length<Math.max(200,pages*50)});
     }
     renderPendingArchive();
     const total=(extractedSize/1024/1024).toLocaleString('pt-BR',{maximumFractionDigits:1});
@@ -132,7 +133,7 @@ $('#batch-result').addEventListener('change',e=>{const row=e.target.closest('[da
 $('#analyze-archive').addEventListener('click',analyzeArchiveZip);
 $('#archive-zip').addEventListener('change',()=>{if($('#archive-zip').files.length)$('#archive-folder').value=''});
 $('#archive-folder').addEventListener('change',()=>{if($('#archive-folder').files.length)$('#archive-zip').value=''});
-$('#archive-result').addEventListener('click',e=>{if(e.target.closest('#import-archive'))importArchive()});
+$('#archive-result').addEventListener('click',e=>{if(e.target.closest('#import-archive'))importArchive();if(e.target.closest('#download-duplicates'))downloadDuplicateReport()});
 $('#archive-result').addEventListener('change',e=>{const row=e.target.closest('[data-archive-index]'),field=e.target.dataset.archiveField;if(row&&field){const item=pendingArchive[Number(row.dataset.archiveIndex)];item[field]=field==='include'?e.target.checked:e.target.value;if(field==='category'||field==='include')renderPendingArchive()}});
 $('#archive-filter').addEventListener('change',renderArchive);
 $('#check-balance').addEventListener('click',balanceGuidance);

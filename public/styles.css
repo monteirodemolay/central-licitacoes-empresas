@@ -254,6 +254,15 @@ h2 {
   opacity: 0.62;
   background: #f8fafc;
 }
+.duplicate-reference {
+  color: var(--red) !important;
+  font-weight: 600;
+}
+.review-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
 .batch-file {
   display: grid;
   gap: 4px;
