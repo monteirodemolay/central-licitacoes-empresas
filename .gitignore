@@ -1,0 +1,36 @@
+# Dependências e builds
+node_modules/
+dist/
+coverage/
+
+# Variáveis e segredos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Bancos e dados locais
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+data/
+uploads/
+backups/
+
+# Documentos empresariais e licitatórios
+documentos/
+certidoes/
+editais/
+pacotes/
+*.zip
+
+# Sistema e editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
