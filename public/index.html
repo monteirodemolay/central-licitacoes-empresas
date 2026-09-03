@@ -7,8 +7,28 @@
   <title>LicitaDoc — Central de Habilitação</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="reader.css">
+  <link rel="stylesheet" href="auth.css">
 </head>
 <body>
+  <section id="auth-screen" class="auth-screen">
+    <form id="auth-form" class="auth-card">
+      <div class="auth-brand">LD</div>
+      <h1>LicitaDoc</h1>
+      <p>Entre para acessar as licitações da sua empresa.</p>
+      <label>Nome completo<input id="auth-name" autocomplete="name" placeholder="Exigido somente no primeiro cadastro"></label>
+      <label>E-mail<input id="auth-email" type="email" autocomplete="email" required></label>
+      <label>Senha<input id="auth-password" type="password" autocomplete="current-password" minlength="6" required></label>
+      <div id="auth-message"></div>
+      <button id="login-btn" class="primary" type="submit">Entrar</button>
+      <button id="signup-btn" class="secondary" type="button">Criar primeiro acesso</button>
+      <button id="reset-btn" class="link" type="button">Esqueci minha senha</button>
+    </form>
+  </section>
+
+  <section id="pending-screen" class="auth-screen" hidden>
+    <div class="auth-card"><div class="auth-brand">LD</div><h1>Acesso aguardando liberação</h1><p>Seu cadastro foi recebido. O administrador geral precisa vinculá-lo à sua empresa.</p><button id="pending-logout" class="secondary">Sair</button></div>
+  </section>
+
   <aside class="sidebar">
     <div class="brand"><span>LD</span><div>LicitaDoc<small>Controle de licitações</small></div></div>
     <nav id="nav">
@@ -17,12 +37,13 @@
       <button data-view="certificates">Certidões</button>
       <button data-view="notices">Editais</button>
       <button data-view="packages">Pacotes</button>
+      <button id="access-nav" data-view="access" hidden>Acessos</button>
     </nav>
     <div class="privacy">🔒 Administrador geral e proprietário da empresa. Dados deste MVP permanecem neste navegador.</div>
   </aside>
 
   <main>
-    <header><div><p class="eyebrow">CONTROLE DE LICITAÇÕES</p><h1 id="page-title">Visão geral</h1></div><button id="export-btn" class="secondary">Exportar backup</button></header>
+    <header><div><p class="eyebrow">CONTROLE DE LICITAÇÕES</p><h1 id="page-title">Visão geral</h1></div><div class="header-actions"><span id="user-label"></span><button id="export-btn" class="secondary">Exportar backup</button><button id="logout-btn" class="secondary">Sair</button></div></header>
 
     <section id="dashboard" class="view active">
       <div id="metrics" class="metrics"></div>
@@ -60,10 +81,16 @@
     <section id="packages" class="view">
       <article class="card package-builder"><h2>Preparar pacote de participação</h2><p>Selecione uma empresa e um edital. O sistema cruzará certidões e exigências cadastradas.</p><div class="form-row"><label>Empresa<select id="package-company"></select></label><label>Edital<select id="package-notice"></select></label></div><button id="build-package" class="primary">Gerar conferência</button><div id="package-result"></div></article>
     </section>
+
+    <section id="access" class="view">
+      <article class="card"><div class="card-head"><div><h2>Acessos dos proprietários</h2><p>Vincule cada proprietário somente à empresa correspondente.</p></div></div><div id="access-list"></div></article>
+    </section>
   </main>
 
   <dialog id="modal"><form method="dialog" id="modal-form"><div class="modal-head"><h2 id="modal-title"></h2><button value="cancel" class="icon">×</button></div><div id="modal-content"></div><div class="modal-actions"><button value="cancel" class="secondary">Cancelar</button><button id="save-modal" value="default" class="primary">Salvar</button></div></form></dialog>
   <div id="toast" role="status"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="app.js"></script>
 </body>
