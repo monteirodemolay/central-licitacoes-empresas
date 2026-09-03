@@ -9,6 +9,10 @@ Este é um repositório privado, mas documentos empresariais, certidões, editai
 - Revogar imediatamente qualquer segredo enviado por engano.
 - Usar dados fictícios nos testes e nas demonstrações.
 - Manter confirmação humana para assinatura, envio de proposta e acesso a portais oficiais.
+- Manter somente os perfis `admin_geral` e `proprietario_empresa`.
+- Restringir o proprietário aos documentos, editais e propostas vinculados ao seu `empresaId`.
+- Aplicar a restrição nas regras do Firestore e do Storage, e não somente na interface.
+- Manter uma lista mínima e explícita de contas autorizadas no Firebase.
 
 ## Estado do MVP
 
