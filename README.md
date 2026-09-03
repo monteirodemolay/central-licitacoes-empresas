@@ -42,21 +42,25 @@ O MVP não possui backend e guarda os registros no `localStorage` do navegador. 
 
 O leitor de PDF executa no navegador. PDFs que contenham texto podem ser analisados sem upload. Documentos formados somente por imagens são sinalizados para futura leitura por OCR. A extração é preliminar e deve ser conferida no edital original.
 
-## Próxima etapa de produção
+## Infraestrutura
 
-1. Firebase Authentication para o administrador geral e os proprietários;
-2. Cloud Firestore com estrutura direta e regras que separam rigorosamente os dados por empresa;
-3. Firebase Storage para documentos, com acesso autenticado e regras restritivas;
-4. OCR e extração estruturada em fila;
-5. IA privada com citações por arquivo e página;
-6. notificações de vencimento;
-7. integração PNCP;
-8. geração de DOCX, XLSX e ZIP;
-9. histórico essencial de alterações, backup e recuperação.
+- GitHub: código-fonte;
+- Cloudflare Pages: publicação do frontend;
+- Supabase Auth: cadastro, login e recuperação de senha;
+- Supabase PostgreSQL: empresas, certidões, licitações e acessos;
+- Supabase Storage: PDFs em bucket privado;
+- RLS: separação dos dados por empresa diretamente no banco.
 
-## Publicação futura
+Haverá somente dois perfis: administrador geral e proprietário da empresa. O administrador geral tem acesso global; o proprietário fica restrito à empresa vinculada. Consulte [CONFIGURACAO.md](CONFIGURACAO.md) para ativar o sistema.
 
-O frontend será preparado para publicação no GitHub Pages. O Firebase cuidará de autenticação, dados e documentos. Haverá somente dois perfis: administrador geral e proprietário da empresa. O administrador geral terá acesso global; o proprietário ficará restrito à empresa vinculada ao seu usuário. O repositório não deve conter dados reais, chaves administrativas, contas de serviço ou segredos. As regras do Firestore e do Storage deverão negar acesso por padrão e aplicar essa separação também no servidor, nunca apenas na interface.
+## Próximas funcionalidades
+
+1. OCR para PDFs digitalizados;
+2. IA privada com citações por arquivo e página;
+3. notificações de vencimento;
+4. integração PNCP;
+5. geração de DOCX, XLSX e ZIP;
+6. histórico essencial e backup ampliado.
 
 ## Fora do escopo
 
