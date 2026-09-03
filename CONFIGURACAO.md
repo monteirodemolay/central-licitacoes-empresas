@@ -1,4 +1,4 @@
-# Ativação do LicitaDoc
+# Ativação do LiciDoc
 
 ## 1. Criar a estrutura no Supabase
 
@@ -9,6 +9,11 @@
 5. Clique em **Run** e confirme que não houve erro.
 
 Esse script cria as tabelas, os índices, o bucket privado e todas as políticas de acesso.
+
+Se a estrutura inicial já foi criada anteriormente, execute apenas o arquivo
+`supabase/atualizacao_documentos_processos.sql`. Ele acrescenta os balanços,
+os campos de análise do edital e os pacotes vinculados aos processos sem apagar
+os dados existentes.
 
 ## 2. Configurar os endereços de autenticação
 

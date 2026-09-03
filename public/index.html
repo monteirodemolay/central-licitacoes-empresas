@@ -35,6 +35,7 @@
       <button class="active" data-view="dashboard">Visão geral</button>
       <button data-view="companies">Empresas</button>
       <button data-view="certificates">Certidões</button>
+      <button data-view="balances">Balanços</button>
       <button data-view="notices">Editais</button>
       <button data-view="packages">Pacotes</button>
       <button id="access-nav" data-view="access" hidden>Acessos</button>
@@ -61,7 +62,24 @@
 
     <section id="certificates" class="view">
       <div class="toolbar"><select id="certificate-filter"><option value="all">Todas as situações</option><option value="expired">Vencidas</option><option value="urgent">Urgentes</option><option value="ok">Regulares</option></select><button data-open="certificate" class="primary">Adicionar certidão</button></div>
+      <article class="card batch-import">
+        <div class="card-head"><div><h2>Importar certidões em lote</h2><p>Selecione vários PDFs. O sistema sugere o tipo, a emissão e a validade para sua conferência.</p></div><span class="badge ok">Importação múltipla</span></div>
+        <div class="batch-controls"><label>Empresa<select id="batch-company"><option value="">Selecione</option></select></label><label>Arquivos PDF<input id="batch-files" type="file" accept="application/pdf,.pdf" multiple></label><button id="analyze-certificates" class="primary" type="button">Ler arquivos</button></div>
+        <div id="batch-progress" class="reader-progress" hidden></div>
+        <div id="batch-result"></div>
+      </article>
       <div class="card table-wrap"><table><thead><tr><th>Empresa</th><th>Certidão</th><th>Órgão</th><th>Validade</th><th>Situação</th><th>Ação</th></tr></thead><tbody id="certificate-list"></tbody></table></div>
+    </section>
+
+    <section id="balances" class="view">
+      <div class="toolbar"><p>Controle os exercícios contábeis e confira o que poderá ser exigido no edital.</p><button data-open="balance" class="primary">Adicionar balanço</button></div>
+      <article class="card balance-checker">
+        <div class="card-head"><div><h2>Conferência de exigibilidade</h2><p>A conclusão é orientativa e deve ser confirmada no edital e com o contador.</p></div></div>
+        <div class="form-row"><label>Empresa<select id="balance-company"><option value="">Selecione</option></select></label><label>Situação da contratação<select id="balance-scenario"><option value="geral">Regra geral</option><option value="pronta_entrega">Bens para pronta entrega</option><option value="locacao_materiais">Locação de materiais</option></select></label></div>
+        <button id="check-balance" class="secondary" type="button">Verificar exercícios necessários</button>
+        <div id="balance-rule"></div>
+      </article>
+      <div id="balance-list" class="cards"></div>
     </section>
 
     <section id="notices" class="view">
@@ -75,11 +93,17 @@
         <div id="pdf-progress" class="reader-progress" hidden></div>
         <div id="pdf-result"></div>
       </article>
+      <article class="card item-import">
+        <div class="card-head"><div><h2>Planilha de itens</h2><p>Importe XLS, XLSX ou CSV para vincular os itens diretamente ao processo.</p></div></div>
+        <div class="batch-controls"><label>Processo/Edital<select id="items-notice"><option value="">Selecione</option></select></label><label>Planilha<input id="items-file" type="file" accept=".xls,.xlsx,.csv"></label><button id="import-items" class="primary" type="button">Importar itens</button></div>
+        <div id="items-result"></div>
+      </article>
       <div id="notice-list" class="cards"></div>
     </section>
 
     <section id="packages" class="view">
-      <article class="card package-builder"><h2>Preparar pacote de participação</h2><p>Selecione uma empresa e um edital. O sistema cruzará certidões e exigências cadastradas.</p><div class="form-row"><label>Empresa<select id="package-company"></select></label><label>Edital<select id="package-notice"></select></label></div><button id="build-package" class="primary">Gerar conferência</button><div id="package-result"></div></article>
+      <article class="card package-builder"><h2>Preparar pacote de participação</h2><p>Selecione uma empresa e um edital. O sistema vinculará as versões documentais utilizadas e apontará pendências.</p><div class="form-row"><label>Empresa<select id="package-company"></select></label><label>Edital<select id="package-notice"></select></label></div><button id="build-package" class="primary">Criar pacote do processo</button><div id="package-result"></div></article>
+      <div id="saved-packages" class="cards"></div>
     </section>
 
     <section id="access" class="view">
@@ -90,6 +114,8 @@
   <dialog id="modal"><form method="dialog" id="modal-form"><div class="modal-head"><h2 id="modal-title"></h2><button value="cancel" class="icon">×</button></div><div id="modal-content"></div><div class="modal-actions"><button value="cancel" class="secondary">Cancelar</button><button id="save-modal" value="default" class="primary">Salvar</button></div></form></dialog>
   <div id="toast" role="status"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="app.js"></script>

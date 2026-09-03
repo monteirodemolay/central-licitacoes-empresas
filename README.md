@@ -1,4 +1,4 @@
-# LicitaDoc — Controle de Licitações
+# LiciDoc — Controle de Licitações
 
 Sistema administrativo enxuto para controlar empresas, documentos e participações em licitações.
 
@@ -18,12 +18,18 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 
 - cadastro de múltiplas empresas;
 - controle de certidões e validade;
+- importação simultânea de certidões com classificação e leitura de datas;
+- organização privada por empresa, tipo, ano e histórico de versões;
 - classificação automática em regular, urgente e vencida;
 - links oficiais para Federal/PGFN, FGTS e CNDT;
 - cadastro de editais e requisitos;
 - leitura local de editais em PDF, com extração de texto e análise preliminar;
 - identificação assistida de objeto, órgão, modalidade, abertura e documentos exigidos;
-- conferência preliminar entre empresa, certidões e edital;
+- identificação de requisitos da proposta, declarações e itens do edital;
+- importação de itens em XLS, XLSX ou CSV;
+- controle de balanços por exercício e orientação preliminar de exigibilidade;
+- pacotes vinculados a cada processo, preservando as versões utilizadas;
+- geração de ZIP com checklist, documentos, proposta, declarações e planilha XLSX;
 - exportação do banco local em JSON.
 
 ## Executar
@@ -38,14 +44,14 @@ Abra `http://127.0.0.1:4173`.
 
 ## Privacidade desta versão
 
-O MVP não possui backend e guarda os registros no `localStorage` do navegador. O campo de arquivo permite selecionar documentos para validar o fluxo, mas o arquivo não é transmitido nem persistido. Não use esta versão como repositório definitivo de documentos empresariais.
+Os cadastros ficam no Supabase PostgreSQL e os arquivos no bucket privado `documentos`. O acesso é protegido por autenticação e políticas RLS por empresa. Chaves administrativas não ficam no navegador.
 
 O leitor de PDF executa no navegador. PDFs que contenham texto podem ser analisados sem upload. Documentos formados somente por imagens são sinalizados para futura leitura por OCR. A extração é preliminar e deve ser conferida no edital original.
 
 ## Infraestrutura
 
 - GitHub: código-fonte;
-- Cloudflare Pages: publicação do frontend;
+- Cloudflare Workers: publicação do frontend estático;
 - Supabase Auth: cadastro, login e recuperação de senha;
 - Supabase PostgreSQL: empresas, certidões, licitações e acessos;
 - Supabase Storage: PDFs em bucket privado;
@@ -59,8 +65,8 @@ Haverá somente dois perfis: administrador geral e proprietário da empresa. O a
 2. IA privada com citações por arquivo e página;
 3. notificações de vencimento;
 4. integração PNCP;
-5. geração de DOCX, XLSX e ZIP;
-6. histórico essencial e backup ampliado.
+5. edição avançada da proposta antes da geração;
+6. histórico de alterações e backup ampliado.
 
 ## Fora do escopo
 
