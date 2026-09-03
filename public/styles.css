@@ -203,6 +203,19 @@ h2 {
   align-items: end;
   margin-top: 16px;
 }
+.archive-source-controls {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(220px, 1fr) auto minmax(220px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 16px;
+}
+.source-divider {
+  align-self: center;
+  color: var(--muted);
+  font-weight: 700;
+  padding-top: 18px;
+}
 .batch-review {
   margin-top: 18px;
   border-top: 1px solid var(--line);
@@ -521,6 +534,15 @@ dialog::backdrop {
   .batch-controls {
     grid-template-columns: 1fr 1fr;
   }
+  .archive-source-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+  .archive-source-controls .source-divider {
+    display: none;
+  }
+  .archive-source-controls button {
+    grid-column: 1/-1;
+  }
   .batch-controls button {
     grid-column: 1/-1;
   }
@@ -576,6 +598,7 @@ dialog::backdrop {
   }
   .input-action,
   .batch-controls,
+  .archive-source-controls,
   .batch-row,
   .archive-row,
   .archive-row:has(label:last-child:nth-child(7)) {

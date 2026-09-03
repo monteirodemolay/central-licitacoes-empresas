@@ -65,7 +65,8 @@
       <div class="toolbar"><select id="archive-filter"><option value="all">Todas as categorias</option></select><span id="archive-count"></span></div>
       <article class="card batch-import">
         <div class="card-head"><div><h2>Importar pasta do Dropbox</h2><p>No Dropbox, baixe a pasta como ZIP. O LiciDoc abre as subpastas, identifica os documentos e permite revisar antes de arquivar.</p></div><span class="badge ok">Migração assistida</span></div>
-        <div class="batch-controls"><label>Empresa<select id="archive-company"><option value="">Selecione</option></select></label><label>Pasta compactada (.zip)<input id="archive-zip" type="file" accept="application/zip,.zip"></label><button id="analyze-archive" class="primary" type="button">Ler pasta ZIP</button></div>
+        <div class="archive-source-controls"><label>Empresa<select id="archive-company"><option value="">Selecione</option></select></label><label>Pasta compactada (.zip)<input id="archive-zip" type="file" accept="application/zip,.zip"></label><span class="source-divider">ou</span><label>Pasta já descompactada<input id="archive-folder" type="file" webkitdirectory directory multiple></label><button id="analyze-archive" class="primary" type="button">Ler documentos</button></div>
+        <p class="field-message">Para acervos grandes, prefira a pasta descompactada. Limites: ZIP de 1 GB, até 1.500 documentos e 50 MB por arquivo.</p>
         <div id="archive-progress" class="reader-progress" hidden></div>
         <div id="archive-result"></div>
       </article>
