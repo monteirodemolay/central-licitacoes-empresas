@@ -227,6 +227,98 @@ async function organizarAcervo(){
   }catch(error){toast(friendlyError(error))}
   finally{setBusy(botao,false)}
 }
+
+/* ---------------------------------------------------------------------------
+   Revisão de classificação em lote.
+
+   O modal de edição resolve uma certidão de cada vez; quem tem dezenas erradas
+   ou não reconhecidas precisa de outra coisa. Esta tela lista certidões e
+   documentos do acervo (todas as empresas, ou uma só) numa tabela com o tipo do
+   catálogo e a validade direto na linha, acumula as mudanças em memória e só
+   grava quando o usuário manda salvar — nada é gravado tecla a tecla.
+--------------------------------------------------------------------------- */
+let loteEdicoes=new Map(); // `${origem}:${id}` -> {tipoChave?, validade?}
+
+function registrosParaRevisao(){
+  const certs=state.certificates.map(c=>({origem:'certidoes',id:c.id,companyId:c.companyId,
+    rotulo:c.type,detalhe:c.issuer||'',path:c.filePath,chave:chaveAtualDe('certificate',c),validade:c.validity||''}));
+  const docs=state.documents.map(d=>({origem:'documentos_empresa',id:d.id,companyId:d.companyId,
+    rotulo:d.type||d.name,detalhe:d.name!==(d.type||d.name)?d.name:(d.category||''),path:d.filePath,
+    chave:chaveAtualDe('document',d),validade:d.validity||''}));
+  return [...certs,...docs];
+}
+function valorAtualDoCampo(reg,campo){
+  const edicao=loteEdicoes.get(`${reg.origem}:${reg.id}`);
+  if(edicao&&campo in edicao)return edicao[campo];
+  return campo==='tipoChave'?reg.chave:reg.validade;
+}
+function renderRevisaoLote(){
+  const raiz=$('#revisao-lote-linhas');
+  if(!raiz)return;
+  const empresaId=$('#revisao-lote-empresa')?.value||'';
+  const mostrar=$('#revisao-lote-mostrar')?.value||'nao_reconhecidos';
+  const busca=($('#revisao-lote-busca')?.value||'').toLowerCase().trim();
+  let registros=registrosParaRevisao();
+  if(empresaId)registros=registros.filter(r=>r.companyId===empresaId);
+  // A decisão de entrar na lista usa a chave ORIGINAL, não a editada: senão a
+  // linha desaparece assim que o usuário corrige o tipo, antes de dar tempo de
+  // ver a própria correção ou de salvar. Ela só some depois que loadData()
+  // trouxer o valor novo do banco.
+  if(mostrar==='nao_reconhecidos')registros=registros.filter(r=>r.chave==='outros'||loteEdicoes.has(`${r.origem}:${r.id}`));
+  if(busca)registros=registros.filter(r=>`${r.rotulo} ${r.detalhe}`.toLowerCase().includes(busca));
+  registros.sort((a,b)=>companyName(a.companyId).localeCompare(companyName(b.companyId),'pt-BR')||a.rotulo.localeCompare(b.rotulo,'pt-BR'));
+
+  $('#revisao-lote-meta').innerHTML=`<span class="wz-chip">${registros.length} registro(s)</span>${loteEdicoes.size?`<span class="wz-chip warn"><b>${loteEdicoes.size}</b> alteração(ões) pendente(s)</span>`:''}`;
+
+  raiz.innerHTML=registros.length?registros.map(r=>{
+    const chaveAtual=valorAtualDoCampo(r,'tipoChave'),validade=valorAtualDoCampo(r,'validade');
+    const situacao=Regras.situacaoDoDocumento({validade},Regras.hojeIso());
+    const alterado=loteEdicoes.has(`${r.origem}:${r.id}`);
+    return `<tr data-origem="${r.origem}" data-id="${r.id}"${alterado?' class="lote-alterado"':''}>
+      <td>${esc(companyName(r.companyId))}</td>
+      <td><strong>${esc(r.rotulo)}</strong>${r.detalhe?`<br><small>${esc(r.detalhe)}</small>`:''}${r.path?`<br><button type="button" class="link" data-document="${esc(r.path)}">Abrir arquivo</button>`:''}</td>
+      <td><select data-lote-campo="tipoChave">${opcoesCatalogo(chaveAtual)}</select></td>
+      <td><input type="date" data-lote-campo="validade" value="${esc(validade)}"></td>
+      <td><span class="badge ${SIT_CLASSE[situacao]}">${SIT_ACERVO[situacao]}</span></td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="5" class="empty">Nenhum registro nesta situação.</td></tr>';
+}
+function abrirRevisaoLote(){
+  loteEdicoes=new Map();
+  $('#revisao-lote-empresa').innerHTML='<option value="">Todas as empresas</option>'
+    +state.companies.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  $('#revisao-lote-mostrar').value='nao_reconhecidos';
+  $('#revisao-lote-busca').value='';
+  renderRevisaoLote();
+  $('#revisao-lote').showModal();
+}
+async function salvarRevisaoLote(){
+  const botao=$('#revisao-lote-salvar');
+  if(!loteEdicoes.size){toast('Nenhuma alteração para salvar.');return}
+  for(const [chave,alteracoes] of loteEdicoes)
+    if(chave.startsWith('certidoes:')&&'validade' in alteracoes&&!alteracoes.validade){
+      toast('Uma certidão ficou sem validade. Preencha antes de salvar — o campo é obrigatório.');
+      return;
+    }
+  setBusy(botao,true,'Salvando...');
+  let n=0;
+  try{
+    for(const [chave,alteracoes] of loteEdicoes){
+      const [origem,id]=chave.split(':'),payload={};
+      if('tipoChave' in alteracoes)payload.tipo_chave=alteracoes.tipoChave;
+      if('validade' in alteracoes)payload.validade=alteracoes.validade||null;
+      const {error}=await client.from(origem).update(payload).eq('id',id);
+      if(error)throw error;
+      n++;
+    }
+    loteEdicoes=new Map();
+    await loadData();
+    renderRevisaoLote();
+    toast(`${n} registro(s) atualizado(s).`);
+  }catch(error){toast(friendlyError(error))}
+  finally{setBusy(botao,false)}
+}
+
 function renderCertificates(){const filter=$('#certificate-filter')?.value||'all',all=[...state.certificates].sort((a,b)=>companyName(a.companyId).localeCompare(companyName(b.companyId),'pt-BR')||a.type.localeCompare(b.type,'pt-BR')||(b.validity||'').localeCompare(a.validity||'')),list=all.filter(c=>filter==='all'||status(c.validity)===filter),latest=new Set();all.forEach(c=>{const key=`${c.companyId}:${c.type}`;c.isLatest=!latest.has(key);latest.add(key)});$('#certificate-list').innerHTML=list.length?list.map(c=>`<tr><td>${esc(companyName(c.companyId))}</td><td><strong>${esc(c.type)}</strong><br><small>${c.isLatest?'Versão atual':'Histórico preservado'}</small></td><td>${esc(c.issuer||'—')}</td><td>${fmt(c.validity)}</td><td><span class="badge ${status(c.validity)}">${statusLabel(status(c.validity))}</span></td><td>${c.filePath?`<button class="link" data-document="${esc(c.filePath)}">Abrir PDF</button> · `:''}${c.link?`<a href="${esc(c.link)}" target="_blank" rel="noopener">Emitir nova ↗</a> · `:''}<button class="link" data-editar="certificate" data-editar-id="${c.id}">Editar</button> ${deleteButton('certificate',c.id,'Excluir')}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Nenhuma certidão nessa situação.</td></tr>'}
 function renderNotices(){$('#notice-list').innerHTML=state.notices.length?state.notices.map(n=>{const itens=state.checklist.filter(c=>c.noticeId===n.id&&c.aplicavel!==false),r=window.Regras?Regras.contar(itens):{total:0,prontos:0,criticos:0};const st=n.statusProcesso||'rascunho';return`<article class="card notice-card"><div class="card-head"><div><h3>${esc(n.number)}</h3><div class="meta">${esc(companyName(n.companyId))} · ${esc(n.agency)} · Sessão ${fmt(n.opening)}${n.horaSessao?` às ${esc(String(n.horaSessao).slice(0,5))}`:''}</div></div><span class="badge ${st==='pronto'?'ok':st==='em_conferencia'?'pendente':'nao_aplicavel'}">${esc(STATUS_PROCESSO[st]||st)}</span></div><p class="notice-class">${esc(classificacaoLabel(n))}</p><p>${esc((n.object||'').slice(0,240))}${(n.object||'').length>240?'…':''}</p><div class="notice-stats"><span>${r.total?`${r.prontos}/${r.total} documentos`:'checklist não calculado'}</span>${r.criticos?`<span class="pend">${r.criticos} pendência(s)</span>`:''}<span>${(n.items||[]).length} itens</span><span>${esc(window.rotuloInteresse?rotuloInteresse(n.interesse):'')}</span></div><div class="record-actions"><button class="primary" data-wizard="${n.id}">Abrir assistente</button><button class="secondary" data-notice-detail="${n.id}">Ver detalhes</button>${n.filePath?`<button class="link" data-document="${esc(n.filePath)}">Abrir PDF original</button>`:''}<button class="link" data-go="agenda">Ver na agenda</button>${deleteButton('notice',n.id)}</div></article>`}).join(''):'<div class="empty">Nenhum edital cadastrado. Use o assistente para cadastrar o primeiro.</div>';renderSelects()}
 function renderBalances(){$('#balance-list').innerHTML=state.balances.length?state.balances.map(b=>`<article class="card balance-card"><div class="card-head"><div><h3>${esc(companyName(b.companyId))}</h3><p>Exercício ${esc(b.year)} · ${esc(b.documentType||'Balanço anual')}</p></div><span class="badge ok">Arquivado</span></div><p>Período: ${fmt(b.periodStart)} a ${fmt(b.periodEnd)}<br>Registro/autenticação: ${fmt(b.registrationDate)}${b.registrationOffice?' · '+esc(b.registrationOffice):''}</p><div class="record-actions"><small>${esc(b.notes||'Balanço e demonstrações contábeis')}</small>${b.filePath?`<button class="link" data-document="${esc(b.filePath)}">Abrir arquivo</button> · `:''}<button class="link" data-editar="balance" data-editar-id="${b.id}">Editar</button>${deleteButton('balance',b.id)}</div></article>`).join(''):'<div class="empty">Nenhum balanço patrimonial arquivado.</div>'}
@@ -801,6 +893,30 @@ $('#archive-folder').addEventListener('change',()=>{if($('#archive-folder').file
 $('#archive-result').addEventListener('click',e=>{if(e.target.closest('#import-archive'))importArchive();if(e.target.closest('#download-duplicates'))downloadDuplicateReport()});
 $('#archive-result').addEventListener('change',e=>{const row=e.target.closest('[data-archive-index]'),field=e.target.dataset.archiveField;if(row&&field){const item=pendingArchive[Number(row.dataset.archiveIndex)];item[field]=field==='include'?e.target.checked:e.target.value;if(field==='category'||field==='include')renderPendingArchive()}});
 $('#archive-filter').addEventListener('change',renderArchive);$('#archive-view-company').addEventListener('change',renderArchive);$('#organizar-acervo').addEventListener('click',organizarAcervo);
+$('#revisar-lote').addEventListener('click',abrirRevisaoLote);
+$('#revisao-lote-empresa').addEventListener('change',renderRevisaoLote);
+$('#revisao-lote-mostrar').addEventListener('change',renderRevisaoLote);
+$('#revisao-lote-busca').addEventListener('input',renderRevisaoLote);
+$('#revisao-lote-salvar').addEventListener('click',salvarRevisaoLote);
+$('#revisao-lote-linhas').addEventListener('change',e=>{
+  const campo=e.target.dataset.loteCampo;
+  if(!campo)return;
+  const tr=e.target.closest('tr'),origem=tr.dataset.origem,id=tr.dataset.id;
+  const reg=registrosParaRevisao().find(r=>r.origem===origem&&r.id===id);
+  if(!reg)return;
+  const chaveMapa=`${origem}:${id}`,atual={...(loteEdicoes.get(chaveMapa)||{})};
+  const original=campo==='tipoChave'?reg.chave:reg.validade,valor=e.target.value;
+  if(valor===original)delete atual[campo];else atual[campo]=valor;
+  if(Object.keys(atual).length)loteEdicoes.set(chaveMapa,atual);else loteEdicoes.delete(chaveMapa);
+  renderRevisaoLote();
+});
+function fecharRevisaoLote(){
+  if(loteEdicoes.size&&!confirm(`Descartar ${loteEdicoes.size} alteração(ões) não salva(s)?`))return;
+  loteEdicoes=new Map();
+  $('#revisao-lote').close();
+}
+$('#revisao-lote-fechar').addEventListener('click',fecharRevisaoLote);
+$('#revisao-lote-cancelar').addEventListener('click',fecharRevisaoLote);
 $('#check-balance').addEventListener('click',balanceGuidance);
 $('#import-items').addEventListener('click',importItemsSpreadsheet);
 $('#build-package').addEventListener('click',createProcessPackage);

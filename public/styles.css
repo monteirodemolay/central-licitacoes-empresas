@@ -1501,3 +1501,66 @@ dialog.wizard::backdrop {
     grid-template-columns: 1fr auto;
   }
 }
+
+/* Revisão de classificação em lote ---------------------------------------- */
+
+dialog.revisao-lote {
+  width: min(1240px, 96vw);
+}
+.revisao-lote-toolbar {
+  flex: 0 0 auto;
+  padding: 0 26px 12px;
+}
+.revisao-lote-body {
+  overflow: auto;
+}
+.revisao-lote-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.revisao-lote-tabela th {
+  position: sticky;
+  top: 0;
+  background: var(--white);
+  z-index: 1;
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.revisao-lote-tabela td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.revisao-lote-tabela small {
+  display: block;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.revisao-lote-tabela select,
+.revisao-lote-tabela input[type="date"] {
+  font: 400 12px Inter, Segoe UI, Arial, sans-serif;
+  padding: 6px 7px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text);
+  min-width: 190px;
+}
+.revisao-lote-tabela input[type="date"] {
+  min-width: 130px;
+}
+tr.lote-alterado td {
+  background: #eaf0fe;
+}
+@media (max-width: 900px) {
+  .revisao-lote-tabela select,
+  .revisao-lote-tabela input[type="date"] {
+    min-width: 140px;
+  }
+}

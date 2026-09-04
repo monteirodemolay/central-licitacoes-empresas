@@ -83,6 +83,7 @@
         </select></label>
         <span id="archive-count"></span>
         <button id="organizar-acervo" class="secondary" type="button" title="Classifica no catálogo o que foi importado antes">Organizar acervo</button>
+        <button id="revisar-lote" class="secondary" type="button" title="Corrige várias certidões e documentos de uma vez">Revisar classificação em lote</button>
       </div>
       <div id="archive-prontidao"></div>
       <div id="archive-list" class="acervo-lista"></div>
@@ -197,6 +198,38 @@
         <button id="wizard-voltar" class="secondary" type="button">Voltar</button>
         <button id="wizard-avancar" class="primary" type="button">Avançar</button>
         <button id="wizard-finalizar" class="primary" type="button" hidden>Salvar e gerar pacote</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="revisao-lote" class="wizard revisao-lote">
+    <div class="wz-head">
+      <div>
+        <p class="eyebrow">ACERVO · CRITÉRIO DE ARQUIVAMENTO</p>
+        <h2>Revisão de classificação em lote</h2>
+      </div>
+      <button id="revisao-lote-fechar" class="icon" type="button" title="Fechar">×</button>
+    </div>
+    <div id="revisao-lote-meta" class="wz-meta"></div>
+    <div class="toolbar revisao-lote-toolbar">
+      <label>Empresa<select id="revisao-lote-empresa"><option value="">Todas as empresas</option></select></label>
+      <label>Mostrar<select id="revisao-lote-mostrar">
+        <option value="nao_reconhecidos">Não reconhecidos</option>
+        <option value="todos">Todos</option>
+      </select></label>
+      <label>Buscar<input id="revisao-lote-busca" placeholder="Nome do arquivo, tipo..."></label>
+    </div>
+    <div class="wz-body revisao-lote-body">
+      <table class="revisao-lote-tabela">
+        <thead><tr><th>Empresa</th><th>Documento</th><th>Tipo no catálogo</th><th>Validade</th><th>Situação</th></tr></thead>
+        <tbody id="revisao-lote-linhas"></tbody>
+      </table>
+    </div>
+    <div class="wz-foot">
+      <div id="revisao-lote-rodape">Corrija o tipo e a validade direto na linha; nada é gravado até clicar em Salvar.</div>
+      <div class="wz-foot-acoes">
+        <button id="revisao-lote-cancelar" class="secondary" type="button">Fechar</button>
+        <button id="revisao-lote-salvar" class="primary" type="button">Salvar alterações</button>
       </div>
     </div>
   </dialog>

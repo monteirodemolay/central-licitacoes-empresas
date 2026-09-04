@@ -22,6 +22,7 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - veredito objetivo de prontidão por empresa (apto / apto com ressalva / não apto), calculado sobre a base documental mínima, com o que falta e o que vence em até 30 dias;
 - ação de organizar o acervo, que classifica no catálogo o que foi importado antes de existir critério;
 - edição de certidões, documentos e balanços já cadastrados, inclusive para corrigir a classificação divergente ou reconhecida errado, com troca de arquivo opcional;
+- revisão de classificação em lote, para corrigir de uma vez várias certidões e documentos não reconhecidos ou divergentes, com tipo e validade editáveis direto na linha;
 - importação de pastas baixadas do Dropbox em ZIP ou já descompactadas, com leitura das subpastas;
 - suporte a ZIPs de até 1 GB e até 1.500 documentos por lote;
 - identificação de duplicidades por hash antes do envio;
@@ -131,6 +132,15 @@ Quando a leitura automática erra — e ela erra —, o botão **Editar** em cad
 certidão, documento ou balanço abre os campos para correção, incluindo o tipo do
 catálogo. A correção manual é definitiva: o "Organizar acervo" só preenche o que
 ainda está sem classificação e nunca sobrescreve o que você ajustou.
+
+Para corrigir muitas de uma vez — típico logo depois de importar uma pasta
+grande do Dropbox —, o botão **Revisar classificação em lote** abre uma tabela
+com todas as certidões e documentos (de uma empresa ou de todas), tipo e
+validade editáveis direto na linha. Por padrão mostra só os **não
+reconhecidos**; dá para trocar para "Todos", filtrar por empresa e buscar por
+nome. Nada é gravado enquanto você mexe: as alterações ficam destacadas na
+tabela e só vão para o banco quando você clica em **Salvar alterações**, tudo
+de uma vez.
 
 ## Regra operacional
 
