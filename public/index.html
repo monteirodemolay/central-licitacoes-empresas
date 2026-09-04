@@ -52,7 +52,7 @@
 
     <section id="dashboard" class="view active">
       <div id="metrics" class="metrics"></div>
-      <article class="card company-overview"><div class="card-head"><div><h2>Situação por empresa</h2><p>Consulte rapidamente as certidões vencidas e próximas do vencimento.</p></div><div class="review-actions"><select id="dashboard-company"><option value="">Todas as empresas</option></select><button id="open-company-review" class="secondary" type="button">Abrir central</button></div></div><div id="company-dashboard" class="company-dashboard"></div></article>
+      <article class="card company-overview"><div class="card-head"><div><h2>Regularidade do dia</h2><p>As certidões fiscais que praticamente todo edital exige, vigentes ou não, por empresa.</p></div><div class="review-actions"><select id="dashboard-company"><option value="">Todas as empresas</option></select><button id="open-company-review" class="secondary" type="button">Abrir central</button></div></div><div id="company-dashboard" class="company-dashboard"></div></article>
       <div class="grid two">
         <article class="card"><div class="card-head"><h2>Alertas de validade</h2><button data-go="certificates" class="link">Ver todas</button></div><div id="alerts"></div></article>
         <article class="card"><div class="card-head"><h2>Próximas licitações</h2><button data-go="notices" class="link">Ver editais</button></div><div id="upcoming"></div></article>
@@ -267,7 +267,7 @@
     </div>
   </dialog>
 
-  <dialog id="modal"><form method="dialog" id="modal-form"><div class="modal-head"><h2 id="modal-title"></h2><button value="cancel" class="icon">×</button></div><div id="modal-content"></div><div class="modal-actions"><button value="cancel" class="secondary">Cancelar</button><button id="save-modal" value="default" class="primary">Salvar</button></div></form></dialog>
+  <dialog id="modal"><form method="dialog" id="modal-form"><div class="modal-head"><h2 id="modal-title"></h2><button value="cancel" formnovalidate class="icon">×</button></div><div id="modal-content"></div><div class="modal-actions"><button value="cancel" formnovalidate class="secondary">Cancelar</button><button id="save-modal" value="default" class="primary">Salvar</button></div></form></dialog>
   <div id="toast" role="status"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>

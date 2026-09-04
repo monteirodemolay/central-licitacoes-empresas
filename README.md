@@ -20,6 +20,8 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - acervo documental organizado por tipo de documento, e não por arquivo solto: cada tipo mostra o que vale hoje e recolhe as versões anteriores;
 - catálogo fechado de tipos, cada um com a regra que decide a vigência — vale até a validade, o mais recente substitui os anteriores, ou todos somam;
 - veredito objetivo de prontidão por empresa (apto / apto com ressalva / não apto), calculado sobre a base documental mínima, com o que falta e o que vence em até 30 dias;
+- painel de regularidade do dia na Visão geral, por empresa: as certidões fiscais que praticamente todo edital exige, com a validade da vigente ou "Ausente"/"Vencida" e um atalho para mandar a atualizada na hora;
+- prontidão projetada para uma data futura — não só hoje —, usada na tela do edital para responder objetivamente "a empresa vai ter documento apto na data da sessão?";
 - ação de organizar o acervo, que classifica no catálogo o que foi importado antes de existir critério;
 - edição de certidões, documentos e balanços já cadastrados, inclusive para corrigir a classificação divergente ou reconhecida errado, com troca de arquivo opcional;
 - revisão de classificação em lote, para corrigir de uma vez várias certidões e documentos não reconhecidos ou divergentes, com tipo e validade editáveis direto na linha;
@@ -39,7 +41,7 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - matriz automática dos documentos exigíveis por modalidade, tipo de objeto e valor (arts. 66 a 69);
 - vinculação automática de cada exigência ao acervo, às certidões e aos balanços já cadastrados;
 - crítica em tempo real de vigência, completude e consistência, com alerta de certidão que vence antes da sessão e de valor acima do teto de dispensa;
-- envio de documento direto pela linha do checklist, indo para o acervo da empresa;
+- envio de documento direto pela linha do checklist — no assistente e também na tela de detalhes do edital —, indo para o acervo da empresa e ficando vinculado ao item;
 - item marcável como "não se aplica" com justificativa registrada;
 - agenda de interesse por edital, com contagem regressiva, prioridade, responsável e percentual de documentação pronta;
 - providências com prazo, geradas a partir das pendências do checklist e agrupadas em atrasadas, próximos 7 dias e mais adiante;

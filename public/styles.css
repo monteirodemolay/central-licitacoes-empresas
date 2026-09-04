@@ -1648,3 +1648,19 @@ dialog.revisao-guiada { width: min(980px, 96vw); }
     border-bottom: 1px solid var(--line);
   }
 }
+
+/* Regularidade do dia (Visão geral) e upload direto no checklist do edital -- */
+.card-head-acoes { display: flex; align-items: center; gap: 10px; }
+.regularidade-dia { display: flex; flex-direction: column; gap: 2px; margin-top: 14px; }
+.regularidade-linha {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+}
+.regularidade-linha:last-child { border-bottom: 0; }
+.pront-projetada { color: var(--amber); font-weight: 400; }
+.det-item-upload { grid-column: 1 / -1; max-width: none; justify-content: flex-start; }
