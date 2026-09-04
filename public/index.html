@@ -34,15 +34,17 @@
     <nav id="nav">
       <button class="active" data-view="dashboard">Visão geral</button>
       <button data-view="companies">Empresas</button>
+      <button data-view="review">Central por empresa</button>
       <button data-view="archive">Acervo</button>
       <button data-view="certificates">Certidões</button>
       <button data-view="balances">Balanços</button>
       <button data-view="notices">Editais</button>
       <button data-view="agenda">Agenda</button>
       <button data-view="packages">Pacotes</button>
+      <button data-view="trash">Lixeira</button>
       <button id="access-nav" data-view="access" hidden>Acessos</button>
     </nav>
-    <div class="privacy">🔒 Administrador geral e proprietário da empresa. Dados deste MVP permanecem neste navegador.</div>
+    <div class="privacy">🔒 Administrador geral e proprietário da empresa. Arquivos protegidos no armazenamento privado.</div>
   </aside>
 
   <main>
@@ -50,6 +52,7 @@
 
     <section id="dashboard" class="view active">
       <div id="metrics" class="metrics"></div>
+      <article class="card company-overview"><div class="card-head"><div><h2>Situação por empresa</h2><p>Consulte rapidamente as certidões vencidas e próximas do vencimento.</p></div><div class="review-actions"><select id="dashboard-company"><option value="">Todas as empresas</option></select><button id="open-company-review" class="secondary" type="button">Abrir central</button></div></div><div id="company-dashboard" class="company-dashboard"></div></article>
       <div class="grid two">
         <article class="card"><div class="card-head"><h2>Alertas de validade</h2><button data-go="certificates" class="link">Ver todas</button></div><div id="alerts"></div></article>
         <article class="card"><div class="card-head"><h2>Próximas licitações</h2><button data-go="notices" class="link">Ver editais</button></div><div id="upcoming"></div></article>
@@ -60,6 +63,11 @@
     <section id="companies" class="view">
       <div class="toolbar"><input id="company-search" placeholder="Buscar por nome ou CNPJ"><button data-open="company" class="primary">Nova empresa</button></div>
       <div id="company-list" class="cards"></div>
+    </section>
+
+    <section id="review" class="view">
+      <div class="toolbar"><div><h2>Central de revisão documental</h2><p>Confira todos os documentos, certidões, balanços, editais e pacotes de uma empresa.</p></div><select id="review-company"><option value="">Selecione a empresa</option></select></div>
+      <div id="review-content"></div>
     </section>
 
     <section id="archive" class="view">
@@ -78,7 +86,7 @@
       <div class="toolbar"><select id="certificate-filter"><option value="all">Todas as situações</option><option value="expired">Vencidas</option><option value="urgent">Urgentes</option><option value="ok">Regulares</option></select><button data-open="certificate" class="primary">Adicionar certidão</button></div>
       <article class="card batch-import">
         <div class="card-head"><div><h2>Importar certidões em lote</h2><p>Selecione vários PDFs. O sistema sugere o tipo, a emissão e a validade para sua conferência.</p></div><span class="badge ok">Importação múltipla</span></div>
-        <div class="batch-controls"><label>Empresa<select id="batch-company"><option value="">Selecione</option></select></label><label>Arquivos PDF<input id="batch-files" type="file" accept="application/pdf,.pdf" multiple></label><button id="analyze-certificates" class="primary" type="button">Ler arquivos</button></div>
+        <div class="batch-controls"><label>Empresa<select id="batch-company"><option value="">Selecione</option></select></label><label>Arquivos PDF<input id="batch-files" type="file" accept="application/pdf,.pdf" multiple></label><div class="review-actions"><button id="analyze-certificates" class="primary" type="button">Ler arquivos</button><button id="reclassify-certificates" class="secondary" type="button">Reclassificar importadas</button></div></div>
         <div id="batch-progress" class="reader-progress" hidden></div>
         <div id="batch-result"></div>
       </article>
@@ -115,6 +123,11 @@
       <div id="notice-list" class="cards"></div>
     </section>
 
+    <section id="notice-detail" class="view">
+      <div class="toolbar"><button id="back-to-notices" class="secondary" type="button">← Voltar aos editais</button></div>
+      <div id="notice-detail-content"></div>
+    </section>
+
     <section id="agenda" class="view">
       <div class="toolbar">
         <p>Marque o interesse num edital mesmo sem ter toda a documentação: o sistema mostra o que falta e até quando providenciar.</p>
@@ -146,6 +159,11 @@
 
     <section id="access" class="view">
       <article class="card"><div class="card-head"><div><h2>Acessos dos proprietários</h2><p>Vincule cada proprietário somente à empresa correspondente.</p></div></div><div id="access-list"></div></article>
+    </section>
+
+    <section id="trash" class="view">
+      <div class="toolbar"><div><h2>Lixeira</h2><p>Os registros permanecem por 30 dias e podem ser restaurados ou apagados definitivamente.</p></div><button id="empty-trash" class="secondary danger" type="button">Esvaziar lixeira</button></div>
+      <div id="trash-list" class="cards"></div>
     </section>
   </main>
 

@@ -26,6 +26,7 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - importação simultânea de certidões com classificação e leitura de datas;
 - organização privada por empresa, tipo, ano e histórico de versões;
 - classificação automática em regular, urgente e vencida;
+- painel inicial e central de revisão completa por empresa;
 - links oficiais para Federal/PGFN, FGTS e CNDT;
 - assistente de habilitação em 8 passos, com a taxonomia da Lei 14.133/2021 (modalidade, forma de contratação direta, tipo de objeto, critério de julgamento, regime de execução e tratamento ME/EPP);
 - matriz automática dos documentos exigíveis por modalidade, tipo de objeto e valor (arts. 66 a 69);
@@ -39,12 +40,14 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - leitura local de editais em PDF, com extração de texto e análise preliminar;
 - identificação assistida de objeto, órgão, modalidade, abertura e documentos exigidos;
 - identificação de requisitos da proposta, declarações e itens do edital;
+- tela própria de cada edital, com objeto, requisitos, declarações, itens e pacotes vinculados;
 - importação de itens em XLS, XLSX ou CSV;
 - controle de balanços por exercício e orientação preliminar de exigibilidade;
 - pacotes vinculados a cada processo, preservando as versões utilizadas;
 - geração de ZIP organizado por bloco de habilitação, criando somente as pastas exigidas para aquele processo;
 - checklist consolidado em PDF, pronto para imprimir e levar para conferência, com a situação de cada item, a base legal de cada bloco e a contagem regressiva até a sessão;
 - checklist completo no pacote, com `[INCLUÍDO]`, `[PENDENTE]`, `[VENCIDO PARA A SESSÃO]`, `[GERADO PELO SISTEMA]` e `[NÃO SE APLICA — justificativa]`;
+- lixeira para todos os registros operacionais, com restauração, exclusão imediata e limpeza após 30 dias;
 - exportação do banco local em JSON.
 
 ## Documentação de referência

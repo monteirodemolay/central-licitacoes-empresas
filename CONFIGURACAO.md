@@ -14,7 +14,8 @@ Se a estrutura inicial já foi criada anteriormente, execute os arquivos de
 atualização, na ordem, sem apagar os dados existentes:
 
 1. `supabase/atualizacao_documentos_processos.sql` — acervo documental, balanços,
-   campos de análise do edital e pacotes vinculados aos processos;
+   campos de análise do edital, pacotes vinculados aos processos e, agora, a
+   Central por Empresa e a lixeira de 30 dias;
 2. `supabase/atualizacao_wizard_licitacoes.sql` — taxonomia da Lei 14.133/2021,
    checklist por processo, agenda de interesse e a tabela de parâmetros legais.
 
