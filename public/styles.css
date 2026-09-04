@@ -1267,3 +1267,66 @@ dialog.wizard::backdrop {
     align-items: flex-start;
   }
 }
+
+/* Checklist e providências na tela do edital ---------------------------- */
+
+.hero-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.det-bloco {
+  margin-top: 14px;
+}
+.det-bloco-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--line);
+}
+.det-bloco-head h4 {
+  margin: 0;
+  font-size: 12.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--blue);
+}
+.det-bloco-head span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.det-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.det-item:last-child {
+  border-bottom: 0;
+}
+.det-item.inativo {
+  opacity: 0.6;
+}
+.det-item strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.det-item small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.detail-section .ag-barra {
+  margin: 10px 0 4px;
+}
+@media (max-width: 900px) {
+  .det-item {
+    grid-template-columns: 1fr auto;
+  }
+}

@@ -76,7 +76,79 @@ function renderCertificates(){const filter=$('#certificate-filter')?.value||'all
 function renderNotices(){$('#notice-list').innerHTML=state.notices.length?state.notices.map(n=>{const itens=state.checklist.filter(c=>c.noticeId===n.id&&c.aplicavel!==false),r=window.Regras?Regras.contar(itens):{total:0,prontos:0,criticos:0};const st=n.statusProcesso||'rascunho';return`<article class="card notice-card"><div class="card-head"><div><h3>${esc(n.number)}</h3><div class="meta">${esc(companyName(n.companyId))} · ${esc(n.agency)} · Sessão ${fmt(n.opening)}${n.horaSessao?` às ${esc(String(n.horaSessao).slice(0,5))}`:''}</div></div><span class="badge ${st==='pronto'?'ok':st==='em_conferencia'?'pendente':'nao_aplicavel'}">${esc(STATUS_PROCESSO[st]||st)}</span></div><p class="notice-class">${esc(classificacaoLabel(n))}</p><p>${esc((n.object||'').slice(0,240))}${(n.object||'').length>240?'…':''}</p><div class="notice-stats"><span>${r.total?`${r.prontos}/${r.total} documentos`:'checklist não calculado'}</span>${r.criticos?`<span class="pend">${r.criticos} pendência(s)</span>`:''}<span>${(n.items||[]).length} itens</span><span>${esc(window.rotuloInteresse?rotuloInteresse(n.interesse):'')}</span></div><div class="record-actions"><button class="primary" data-wizard="${n.id}">Abrir assistente</button><button class="secondary" data-notice-detail="${n.id}">Ver detalhes</button>${n.filePath?`<button class="link" data-document="${esc(n.filePath)}">Abrir PDF original</button>`:''}<button class="link" data-go="agenda">Ver na agenda</button>${deleteButton('notice',n.id)}</div></article>`}).join(''):'<div class="empty">Nenhum edital cadastrado. Use o assistente para cadastrar o primeiro.</div>';renderSelects()}
 function renderBalances(){$('#balance-list').innerHTML=state.balances.length?state.balances.map(b=>`<article class="card balance-card"><div class="card-head"><div><h3>${esc(companyName(b.companyId))}</h3><p>Exercício ${esc(b.year)} · ${esc(b.documentType||'Balanço anual')}</p></div><span class="badge ok">Arquivado</span></div><p>Período: ${fmt(b.periodStart)} a ${fmt(b.periodEnd)}<br>Registro/autenticação: ${fmt(b.registrationDate)}${b.registrationOffice?' · '+esc(b.registrationOffice):''}</p><div class="record-actions"><small>${esc(b.notes||'Balanço e demonstrações contábeis')}</small>${b.filePath?`<button class="link" data-document="${esc(b.filePath)}">Abrir arquivo</button>`:''}${deleteButton('balance',b.id)}</div></article>`).join(''):'<div class="empty">Nenhum balanço patrimonial arquivado.</div>'}
 function renderPackages(){$('#saved-packages').innerHTML=state.packages.length?state.packages.map(p=>{const notice=state.notices.find(n=>n.id===p.noticeId),missing=(p.documents||[]).filter(d=>!d.path).length;return`<article class="card package-card"><div class="card-head"><div><h3>${esc(p.name)}</h3><p>${esc(companyName(p.companyId))} · ${esc(notice?.agency||'Órgão')}</p></div><span class="badge ${missing?'urgent':'ok'}">${missing?`${missing} pendência(s)`:'Completo'}</span></div><p>${p.documents.length} documento(s) vinculados · ${p.items.length} item(ns) na proposta</p><details><summary>Consultar documentos deste processo</summary>${p.documents.map(d=>`<div class="list-row"><span>${esc(d.title)}</span>${d.path?`<button class="link" data-document="${esc(d.path)}">Abrir</button>`:'<span class="badge missing">Pendente</span>'}</div>`).join('')}</details><div class="record-actions"><button class="primary" data-download-package="${p.id}">Baixar pacote ZIP</button>${deleteButton('package',p.id)}</div></article>`}).join(''):'<div class="empty">Nenhum pacote de processo criado.</div>'}
-function renderNoticeDetail(){const root=$('#notice-detail-content'),n=state.notices.find(x=>x.id===state.selectedNoticeId);if(!n){root.innerHTML='<div class="empty">Selecione um edital na lista para abrir sua tela.</div>';return}const list=(title,items,empty)=>`<article class="card detail-section"><h3>${title}</h3>${items.length?`<ol>${items.map(item=>`<li>${esc(typeof item==='string'?item:item.descricao||item.description||JSON.stringify(item))}</li>`).join('')}</ol>`:`<p class="empty">${empty}</p>`}</article>`,packages=state.packages.filter(p=>p.noticeId===n.id);root.innerHTML=`<article class="card notice-hero"><div><span class="eyebrow">${esc(n.modality||'PROCESSO LICITATÓRIO')}</span><h2>${esc(n.number)}</h2><p>${esc(n.agency)} · ${esc(companyName(n.companyId))}</p></div><div><span class="badge ${n.opening&&new Date(`${n.opening}T23:59:59`)<new Date()?'expired':'ok'}">Abertura ${fmt(n.opening)}</span></div></article><article class="card"><h3>Objeto</h3><p>${esc(n.object)}</p><div class="record-actions">${n.filePath?`<button class="primary" data-document="${esc(n.filePath)}">Abrir edital original</button>`:''}<button class="secondary" data-go="packages">Preparar pacote</button>${deleteButton('notice',n.id)}</div></article><div class="notice-detail-grid">${list('Documentos e habilitação',n.requirements,'Nenhum requisito documental identificado.')}${list('Proposta de preços',n.proposalRequirements,'Nenhuma exigência de proposta identificada.')}${list('Declarações',n.declarations,'Nenhuma declaração identificada.')}${list('Itens da disputa',n.items,'Nenhum item importado ou identificado.')}${list('Pacotes deste processo',packages.map(p=>`${p.name} — ${p.documents.length} documento(s)`),'Nenhum pacote criado para este edital.')}</div>`}
+/* Bloco do checklist na tela do edital: leitura rápida do que está pronto e do
+   que falta. O ajuste fino de cada item continua no assistente. */
+const ROTULO_CHECKLIST={ok:'Em dia',vencido:'Vencido para a sessão',pendente:'Pendente',ausente:'Ausente',gerado:'Gerado',nao_aplicavel:'Não se aplica'};
+function checklistDoEdital(n){
+  const itens=state.checklist.filter(c=>c.noticeId===n.id).sort((a,b)=>(a.ordem??0)-(b.ordem??0));
+  if(!itens.length||!window.Regras)
+    return `<article class="card detail-section"><h3>Checklist de habilitação</h3>
+      <p class="empty">Ainda não calculado. Abra o assistente e classifique o processo para o sistema montar a documentação exigível pela Lei 14.133/2021.</p>
+      <div class="record-actions"><button class="primary" data-wizard="${n.id}">Abrir assistente</button></div></article>`;
+  const aplicaveis=itens.filter(i=>i.aplicavel!==false),r=Regras.contar(aplicaveis);
+  const critica=Regras.criticarProcesso(processoDaLicitacao(n),aplicaveis,{});
+  const pct=r.total?Math.round(r.prontos/r.total*100):0;
+  const grupos=Object.entries(Regras.blocos).filter(([chave])=>itens.some(i=>i.bloco===chave));
+  return `<article class="card detail-section">
+    <div class="card-head"><div><h3>Checklist de habilitação</h3>
+      <p>${r.prontos} de ${r.total} documentos prontos${critica.pendencias.length?` · ${critica.pendencias.length} pendência(s) crítica(s)`:''}</p></div>
+      <span class="badge ${critica.pendencias.length?'pendente':'ok'}">${pct}%</span></div>
+    <div class="ag-barra"><div class="ag-barra-fill${pct>=100?' full':pct>=60?' meio':''}" style="width:${pct}%"></div></div>
+    ${grupos.map(([chave,bloco])=>`<div class="det-bloco">
+      <div class="det-bloco-head"><h4>${esc(bloco.n)}</h4><span>${esc(bloco.base)}</span></div>
+      ${itens.filter(i=>i.bloco===chave).map(i=>`<div class="det-item${i.aplicavel===false?' inativo':''}">
+        <span><strong>${esc(i.titulo)}</strong>${i.validade?`<small>válido até ${fmt(i.validade)}</small>`:''}${i.aplicavel===false&&i.justificativa?`<small>${esc(i.justificativa)}</small>`:''}</span>
+        ${i.documentoRefPath?`<button class="link" data-document="${esc(i.documentoRefPath)}">Abrir</button>`:'<span></span>'}
+        <span class="badge ${i.status}">${esc(ROTULO_CHECKLIST[i.status]||i.status)}</span></div>`).join('')}
+    </div>`).join('')}
+    ${critica.alertas.length?`<div class="warning"><strong>${esc(Regras.rotuloTipo(critica.alertas[0].tipo))}:</strong> ${esc(critica.alertas[0].texto)}${critica.alertas.length>1?` (e mais ${critica.alertas.length-1} alerta(s) no assistente)`:''}</div>`:''}
+    <div class="record-actions"><button class="primary" data-wizard="${n.id}">Abrir assistente</button>
+      <button class="secondary" data-checklist-edital="${n.id}">Baixar checklist em PDF</button></div>
+  </article>`;
+}
+
+function providenciasDoEdital(n){
+  const tarefas=state.agenda.filter(t=>t.noticeId===n.id&&!t.concluida)
+    .sort((a,b)=>(a.prazo||'9999-12-31').localeCompare(b.prazo||'9999-12-31'));
+  const hoje=new Date().toISOString().slice(0,10);
+  return `<article class="card detail-section"><div class="card-head"><div><h3>Providências</h3>
+    <p>O que precisa ser resolvido até a sessão.</p></div><button class="link" data-go="agenda">Ver na agenda</button></div>
+    ${tarefas.length?tarefas.map(t=>`<div class="det-item">
+      <span><strong>${esc(t.titulo)}</strong>${t.detalhe?`<small>${esc(t.detalhe)}</small>`:''}</span><span></span>
+      <span class="badge ${t.prazo&&t.prazo<hoje?'vencido':'pendente'}">${t.prazo?`${t.prazo<hoje?'atrasada desde':'até'} ${fmt(t.prazo)}`:'sem prazo'}</span>
+      </div>`).join(''):'<p class="empty">Nenhuma providência em aberto para este processo.</p>'}
+  </article>`;
+}
+
+function renderNoticeDetail(){
+  const root=$('#notice-detail-content'),n=state.notices.find(x=>x.id===state.selectedNoticeId);
+  if(!n){root.innerHTML='<div class="empty">Selecione um edital na lista para abrir sua tela.</div>';return}
+  const list=(title,items,empty)=>`<article class="card detail-section"><h3>${title}</h3>${items.length?`<ol>${items.map(item=>`<li>${esc(typeof item==='string'?item:item.descricao||item.description||JSON.stringify(item))}</li>`).join('')}</ol>`:`<p class="empty">${empty}</p>`}</article>`;
+  const packages=state.packages.filter(p=>p.noticeId===n.id);
+  const dias=n.opening&&window.Regras?Regras.diasEntre(Regras.hojeIso(),n.opening):null;
+  const st=n.statusProcesso||'rascunho';
+  root.innerHTML=`<article class="card notice-hero">
+    <div><span class="eyebrow">${esc(window.classificacaoLabel?classificacaoLabel(n):(n.modality||'PROCESSO LICITATÓRIO'))}</span>
+      <h2>${esc(n.number)}</h2><p>${esc(n.agency)} · ${esc(companyName(n.companyId))}</p></div>
+    <div class="hero-badges">
+      <span class="badge ${dias!=null&&dias<0?'vencido':dias!=null&&dias<=7?'pendente':'ok'}">Sessão ${fmt(n.opening)}${n.horaSessao?` às ${esc(String(n.horaSessao).slice(0,5))}`:''}${dias!=null&&dias>=0?` · ${dias} dia(s)`:''}</span>
+      <span class="badge ${st==='pronto'?'ok':st==='em_conferencia'?'pendente':'nao_aplicavel'}">${esc(STATUS_PROCESSO[st]||st)}</span>
+      ${window.rotuloInteresse?`<span class="badge ${corInteresse(n.interesse)}">${esc(rotuloInteresse(n.interesse))}</span>`:''}
+    </div></article>
+  <article class="card"><h3>Objeto</h3><p>${esc(n.object)}</p>
+    <div class="record-actions"><button class="primary" data-wizard="${n.id}">Abrir assistente</button>
+      ${n.filePath?`<button class="secondary" data-document="${esc(n.filePath)}">Abrir edital original</button>`:''}
+      <button class="secondary" data-go="packages">Preparar pacote</button>${deleteButton('notice',n.id)}</div></article>
+  ${checklistDoEdital(n)}
+  ${providenciasDoEdital(n)}
+  <div class="notice-detail-grid">
+    ${list('Documentos e habilitação identificados no PDF',n.requirements,'Nenhum requisito documental identificado na leitura do edital.')}
+    ${list('Proposta de preços',n.proposalRequirements,'Nenhuma exigência de proposta identificada.')}
+    ${list('Declarações',n.declarations,'Nenhuma declaração identificada.')}
+    ${list('Itens da disputa',n.items,'Nenhum item importado ou identificado.')}
+    ${list('Pacotes deste processo',packages.map(p=>`${p.name} — ${p.documents.length} documento(s)`),'Nenhum pacote criado para este edital.')}
+  </div>`;
+}
 function renderTrash(){const labels={company:'Empresa',certificate:'Certidão',document:'Documento',balance:'Balanço',notice:'Edital',package:'Pacote'},now=Date.now();$('#trash-list').innerHTML=state.trash.length?state.trash.sort((a,b)=>(b.deletedAt||'').localeCompare(a.deletedAt||'')).map(item=>{const elapsed=Math.floor((now-new Date(item.deletedAt).getTime())/86400000),remaining=Math.max(0,30-elapsed),owner=item.entity==='company'?item.title:(state.companies.find(c=>c.id===item.companyId)?.name||state.trash.find(x=>x.entity==='company'&&x.id===item.companyId)?.title||'Empresa não localizada');return`<article class="card trash-card"><div><span class="badge missing">${labels[item.entity]}</span><h3>${esc(item.title)}</h3><p>${esc(item.subtitle||'')} · ${esc(owner)}</p><small>Excluído em ${fmt(item.deletedAt?.slice(0,10))} · ${remaining} dia(s) até a limpeza automática</small></div><div class="trash-actions"><button class="secondary" data-restore-entity="${item.entity}" data-restore-id="${item.id}">Restaurar</button><button class="secondary danger" data-delete-entity="${item.entity}" data-delete-id="${item.id}">Apagar agora</button></div></article>`}).join(''):'<div class="empty">A lixeira está vazia.</div>'}
 function keepSelectValue(selector,placeholder,options){const element=$(selector);if(!element)return;const previous=element.value;element.innerHTML=`<option value="">${placeholder}</option>`+options;if([...element.options].some(option=>option.value===previous))element.value=previous}
 function renderSelects(){const opts=state.companies.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join(''),noticeOptions=state.notices.map(n=>`<option value="${n.id}">${esc(n.number)} — ${esc(n.agency)}</option>`).join('');keepSelectValue('#package-company','Selecione',opts);keepSelectValue('#batch-company','Selecione',opts);keepSelectValue('#archive-company','Selecione',opts);keepSelectValue('#balance-company','Selecione',opts);keepSelectValue('#dashboard-company','Todas as empresas',opts);keepSelectValue('#review-company','Selecione a empresa',opts);keepSelectValue('#package-notice','Selecione',noticeOptions);keepSelectValue('#items-notice','Selecione',noticeOptions)}
@@ -471,7 +543,7 @@ $('#archive-filter').addEventListener('change',renderArchive);
 $('#check-balance').addEventListener('click',balanceGuidance);
 $('#import-items').addEventListener('click',importItemsSpreadsheet);
 $('#build-package').addEventListener('click',createProcessPackage);
-document.body.addEventListener('click',e=>{const button=e.target.closest('[data-download-package]');if(button)downloadProcessPackage(button.dataset.downloadPackage);const pdfBtn=e.target.closest('[data-checklist-pdf]');if(pdfBtn){const pkg=state.packages.find(p=>p.id===pdfBtn.dataset.checklistPdf),company=state.companies.find(c=>c.id===pkg?.companyId),notice=state.notices.find(n=>n.id===pkg?.noticeId);if(pkg&&company&&notice)baixarChecklistPdf(company,notice,pkg.documents);else toast('Pacote não localizado.')}});
+document.body.addEventListener('click',e=>{const button=e.target.closest('[data-download-package]');if(button)downloadProcessPackage(button.dataset.downloadPackage);const pdfEdital=e.target.closest('[data-checklist-edital]');if(pdfEdital){const n=state.notices.find(x=>x.id===pdfEdital.dataset.checklistEdital),company=state.companies.find(c=>c.id===n?.companyId);if(n&&company)baixarChecklistPdf(company,n,documentosDoChecklist(n,state.checklist.filter(c=>c.noticeId===n.id).sort((a,b)=>(a.ordem??0)-(b.ordem??0))));else toast('Processo não localizado.')}const pdfBtn=e.target.closest('[data-checklist-pdf]');if(pdfBtn){const pkg=state.packages.find(p=>p.id===pdfBtn.dataset.checklistPdf),company=state.companies.find(c=>c.id===pkg?.companyId),notice=state.notices.find(n=>n.id===pkg?.noticeId);if(pkg&&company&&notice)baixarChecklistPdf(company,notice,pkg.documents);else toast('Pacote não localizado.')}});
 $('#export-btn').addEventListener('click',()=>{const backup={exportadoEm:new Date().toISOString(),empresas:state.companies,acervo:state.documents,certidoes:state.certificates,balancos:state.balances,licitacoes:state.notices,pacotes:state.packages},blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`licidoc-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)});
 
 function firstMatch(text,patterns){for(const pattern of patterns){const match=text.match(pattern);if(match?.[1])return match[1].replace(/\s+/g,' ').trim()}return''}

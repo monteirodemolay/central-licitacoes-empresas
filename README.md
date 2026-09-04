@@ -40,7 +40,7 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - leitura local de editais em PDF, com extração de texto e análise preliminar;
 - identificação assistida de objeto, órgão, modalidade, abertura e documentos exigidos;
 - identificação de requisitos da proposta, declarações e itens do edital;
-- tela própria de cada edital, com objeto, requisitos, declarações, itens e pacotes vinculados;
+- tela própria de cada edital, com o checklist de habilitação agrupado por bloco e base legal, as providências em aberto, objeto, requisitos, declarações, itens e pacotes vinculados;
 - importação de itens em XLS, XLSX ou CSV;
 - controle de balanços por exercício e orientação preliminar de exigibilidade;
 - pacotes vinculados a cada processo, preservando as versões utilizadas;
