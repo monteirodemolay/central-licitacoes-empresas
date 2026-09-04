@@ -349,8 +349,10 @@ function renderPassoRevisao(){
   </div>
   ${pend.length?`<div class="wz-bloco"><div class="wz-bloco-head"><h3>Pendências críticas</h3><span>${pend.length}</span></div>
     ${pend.map(x=>`<div class="wz-pend"><span class="badge ausente">${esc(Regras.rotuloTipo(x.tipo))}</span><span><strong>${esc(x.titulo)}</strong><br><small>${esc(x.texto)}</small></span></div>`).join('')}
-    <div class="wz-acoes-bloco"><button type="button" class="secondary" id="wz-agendar-tudo">Lançar todas as pendências na agenda</button></div></div>`
-    :'<div class="success-box"><strong>Nenhuma pendência crítica.</strong> Confira o edital original, as assinaturas e a validade na data da sessão antes de enviar.</div>'}
+    <div class="wz-acoes-bloco"><button type="button" class="secondary" id="wz-agendar-tudo">Lançar todas as pendências na agenda</button>
+    <button type="button" class="secondary" id="wz-checklist-pdf">Baixar checklist em PDF</button></div></div>`
+    :`<div class="success-box"><strong>Nenhuma pendência crítica.</strong> Confira o edital original, as assinaturas e a validade na data da sessão antes de enviar.</div>
+      <div class="wz-acoes-bloco"><button type="button" class="secondary" id="wz-checklist-pdf">Baixar checklist em PDF</button></div>`}
   ${alertas.length?`<div class="wz-bloco"><div class="wz-bloco-head"><h3>Alertas</h3><span>conferir</span></div>
     ${alertas.map(x=>`<div class="wz-pend"><span class="badge pendente">${esc(Regras.rotuloTipo(x.tipo))}</span><span><strong>${esc(x.titulo)}</strong><br><small>${esc(x.texto)}</small></span></div>`).join('')}</div>`:''}
   <div class="wz-bloco"><div class="wz-bloco-head"><h3>Estrutura do pacote a gerar</h3><span>pré-visualização</span></div>
@@ -565,6 +567,13 @@ function ligarEventos(){
     }
 
     if(alvo.id==='wz-revincular'){revincular();return}
+
+    if(alvo.id==='wz-checklist-pdf'){
+      const company=state.companies.find(c=>c.id===wiz.notice.companyId);
+      if(!company){toast('Selecione a empresa primeiro.');return}
+      baixarChecklistPdf(company,wiz.notice,documentosDoChecklist(wiz.notice,wiz.itens));
+      return;
+    }
 
     if(alvo.id==='wz-agendar-tudo'){
       setBusy(alvo,true,'Lançando...');

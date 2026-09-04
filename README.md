@@ -43,6 +43,7 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - controle de balanços por exercício e orientação preliminar de exigibilidade;
 - pacotes vinculados a cada processo, preservando as versões utilizadas;
 - geração de ZIP organizado por bloco de habilitação, criando somente as pastas exigidas para aquele processo;
+- checklist consolidado em PDF, pronto para imprimir e levar para conferência, com a situação de cada item, a base legal de cada bloco e a contagem regressiva até a sessão;
 - checklist completo no pacote, com `[INCLUÍDO]`, `[PENDENTE]`, `[VENCIDO PARA A SESSÃO]`, `[GERADO PELO SISTEMA]` e `[NÃO SE APLICA — justificativa]`;
 - exportação do banco local em JSON.
 
@@ -86,9 +87,8 @@ Haverá somente dois perfis: administrador geral e proprietário da empresa. O a
 3. notificações de vencimento e de prazo da agenda por e-mail;
 4. integração PNCP;
 5. edição avançada da proposta antes da geração;
-6. exportação do checklist consolidado em PDF;
-7. consulta assistida a CEIS, CNEP e CADICON antes do envio;
-8. histórico de alterações e backup ampliado.
+6. consulta assistida a CEIS, CNEP e CADICON antes do envio;
+7. histórico de alterações e backup ampliado.
 
 ## Fora do escopo
 

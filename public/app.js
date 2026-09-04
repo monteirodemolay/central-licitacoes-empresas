@@ -40,7 +40,7 @@ const STATUS_PROCESSO={rascunho:'Rascunho',em_conferencia:'Em conferência',pron
 function classificacaoLabel(n){if(!window.Regras)return n.modality||'';const partes=[];if(n.temCertame===false)partes.push(Regras.rotulo(Regras.formasDiretas,n.formaDireta)||'Contratação direta');else if(n.modalidadePadrao)partes.push(Regras.rotulo(Regras.modalidades,n.modalidadePadrao));if(n.fundamentoLegal)partes.push(n.fundamentoLegal);if(n.tipoObjeto)partes.push(Regras.rotulo(Regras.tiposObjeto,n.tipoObjeto));if(n.valorEstimado)partes.push(Regras.moeda(n.valorEstimado));return partes.join(' · ')||n.modality||'Classificação pendente'}
 function renderNotices(){$('#notice-list').innerHTML=state.notices.length?state.notices.map(n=>{const itens=state.checklist.filter(c=>c.noticeId===n.id&&c.aplicavel!==false),r=window.Regras?Regras.contar(itens):{total:0,prontos:0,criticos:0};const st=n.statusProcesso||'rascunho';return`<article class="card notice-card"><div class="card-head"><div><h3>${esc(n.number)}</h3><div class="meta">${esc(companyName(n.companyId))} · ${esc(n.agency)} · Sessão ${fmt(n.opening)}${n.horaSessao?` às ${esc(String(n.horaSessao).slice(0,5))}`:''}</div></div><span class="badge ${st==='pronto'?'ok':st==='em_conferencia'?'pendente':'nao_aplicavel'}">${esc(STATUS_PROCESSO[st]||st)}</span></div><p class="notice-class">${esc(classificacaoLabel(n))}</p><p>${esc((n.object||'').slice(0,240))}${(n.object||'').length>240?'…':''}</p><div class="notice-stats"><span>${r.total?`${r.prontos}/${r.total} documentos`:'checklist não calculado'}</span>${r.criticos?`<span class="pend">${r.criticos} pendência(s)</span>`:''}<span>${(n.items||[]).length} itens</span><span>${esc(window.rotuloInteresse?rotuloInteresse(n.interesse):'')}</span></div><div class="list-row"><div class="notice-actions"><button class="primary" data-wizard="${n.id}">Abrir assistente</button>${n.filePath?`<button class="link" data-document="${esc(n.filePath)}">Abrir edital</button>`:''}<button class="link" data-go="agenda">Ver na agenda</button></div></div></article>`}).join(''):'<div class="empty">Nenhum edital cadastrado. Use o assistente para cadastrar o primeiro.</div>';renderSelects()}
 function renderBalances(){$('#balance-list').innerHTML=state.balances.length?state.balances.map(b=>`<article class="card balance-card"><div class="card-head"><div><h3>${esc(companyName(b.companyId))}</h3><p>Exercício ${esc(b.year)} · ${esc(b.documentType||'Balanço anual')}</p></div><span class="badge ok">Arquivado</span></div><p>Período: ${fmt(b.periodStart)} a ${fmt(b.periodEnd)}<br>Registro/autenticação: ${fmt(b.registrationDate)}${b.registrationOffice?' · '+esc(b.registrationOffice):''}</p><div class="list-row"><small>${esc(b.notes||'Balanço e demonstrações contábeis')}</small>${b.filePath?`<button class="link" data-document="${esc(b.filePath)}">Abrir arquivo</button>`:''}</div></article>`).join(''):'<div class="empty">Nenhum balanço patrimonial arquivado.</div>'}
-function renderPackages(){$('#saved-packages').innerHTML=state.packages.length?state.packages.map(p=>{const notice=state.notices.find(n=>n.id===p.noticeId),missing=(p.documents||[]).filter(d=>!d.path).length;return`<article class="card package-card"><div class="card-head"><div><h3>${esc(p.name)}</h3><p>${esc(companyName(p.companyId))} · ${esc(notice?.agency||'Órgão')}</p></div><span class="badge ${missing?'urgent':'ok'}">${missing?`${missing} pendência(s)`:'Completo'}</span></div><p>${p.documents.length} documento(s) vinculados · ${p.items.length} item(ns) na proposta</p><details><summary>Consultar documentos deste processo</summary>${p.documents.map(d=>`<div class="list-row"><span>${esc(d.title)}</span>${d.path?`<button class="link" data-document="${esc(d.path)}">Abrir</button>`:'<span class="badge missing">Pendente</span>'}</div>`).join('')}</details><button class="primary" data-download-package="${p.id}">Baixar pacote ZIP</button></article>`}).join(''):'<div class="empty">Nenhum pacote de processo criado.</div>'}
+function renderPackages(){$('#saved-packages').innerHTML=state.packages.length?state.packages.map(p=>{const notice=state.notices.find(n=>n.id===p.noticeId),missing=(p.documents||[]).filter(d=>!d.path).length;return`<article class="card package-card"><div class="card-head"><div><h3>${esc(p.name)}</h3><p>${esc(companyName(p.companyId))} · ${esc(notice?.agency||'Órgão')}</p></div><span class="badge ${missing?'urgent':'ok'}">${missing?`${missing} pendência(s)`:'Completo'}</span></div><p>${p.documents.length} documento(s) vinculados · ${p.items.length} item(ns) na proposta</p><details><summary>Consultar documentos deste processo</summary>${p.documents.map(d=>`<div class="list-row"><span>${esc(d.title)}</span>${d.path?`<button class="link" data-document="${esc(d.path)}">Abrir</button>`:'<span class="badge missing">Pendente</span>'}</div>`).join('')}</details><div class="notice-actions"><button class="primary" data-download-package="${p.id}">Baixar pacote ZIP</button><button class="secondary" data-checklist-pdf="${p.id}">Checklist em PDF</button></div></article>`}).join(''):'<div class="empty">Nenhum pacote de processo criado.</div>'}
 function renderSelects(){const opts=state.companies.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join(''),noticeOptions=state.notices.map(n=>`<option value="${n.id}">${esc(n.number)} — ${esc(n.agency)}</option>`).join('');$('#package-company').innerHTML='<option value="">Selecione</option>'+opts;$('#batch-company').innerHTML='<option value="">Selecione</option>'+opts;$('#archive-company').innerHTML='<option value="">Selecione</option>'+opts;$('#balance-company').innerHTML='<option value="">Selecione</option>'+opts;$('#package-notice').innerHTML='<option value="">Selecione</option>'+noticeOptions;$('#items-notice').innerHTML='<option value="">Selecione</option>'+noticeOptions}
 function renderAccess(){if(!isAdmin())return;$('#access-list').innerHTML=state.profiles.length?state.profiles.map(p=>`<div class="access-row"><p><strong>${esc(p.name||p.email)}</strong><br><small>${esc(p.email)} · ${p.role==='admin_geral'?'Administrador geral':p.role==='proprietario_empresa'?'Proprietário':'Aguardando liberação'}</small></p><label>Empresa<select data-access-company="${p.id}" ${p.role==='admin_geral'?'disabled':''}><option value="">Selecione</option>${state.companies.map(c=>`<option value="${c.id}" ${c.id===p.companyId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><button class="primary" data-authorize="${p.id}" ${p.role==='admin_geral'?'disabled':''}>Autorizar</button></div>`).join(''):'<div class="empty">Nenhum usuário cadastrado.</div>'}
 function renderAll(){renderMetrics();renderAlerts();renderUpcoming();renderCompanies();renderArchive();renderCertificates();renderBalances();renderNotices();renderPackages();renderAccess();if(window.renderAgenda)renderAgenda()}
@@ -129,10 +129,169 @@ async function createProcessPackage(){
 }
 /* Cria o pacote a partir do checklist calculado pela matriz, e não mais do
    cruzamento ad-hoc de requisitos em texto livre. */
-async function criarPacoteDoChecklist(notice,itens){
-  const aplicaveis=itens.filter(i=>i.aplicavel!==false);
+/* Checklist consolidado em PDF. Sem plugin de tabela: o layout é desenhado à
+   mão para não acrescentar uma segunda dependência ao projeto. */
+const PDF_STATUS={
+  incluido:{t:'INCLUÍDO',c:[2,122,72]},
+  gerado:{t:'GERADO',c:[36,87,214]},
+  vencido:{t:'VENCIDO',c:[180,35,24]},
+  pendente:{t:'PENDENTE',c:[181,71,8]},
+  nao_aplicavel:{t:'NÃO SE APLICA',c:[102,112,133]}
+};
+function situacaoDoDocumento(d){
+  if(d.aplicavel===false)return'nao_aplicavel';
+  if(d.status==='gerado')return'gerado';
+  if(d.status==='vencido')return'vencido';
+  return d.path?'incluido':'pendente';
+}
+function checklistPdf(company,notice,documentos){
+  if(!window.jspdf?.jsPDF)return null;
+  const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
+  const M=14,LARGURA=210-M*2,FIM=297-18;
+  let y=M;
+  const cinza=[102,112,133],texto=[28,39,55],linha=[223,228,235];
+
+  const quebra=altura=>{if(y+altura>FIM){doc.addPage();y=M}};
+  const escreve=(txt,x,tamanho,estilo,cor,largura)=>{
+    doc.setFont('helvetica',estilo).setFontSize(tamanho).setTextColor(...cor);
+    const linhas=doc.splitTextToSize(String(txt??''),largura||LARGURA);
+    linhas.forEach(l=>{doc.text(l,x,y);y+=tamanho*0.42+1.2});
+    return linhas.length;
+  };
+
+  doc.setFillColor(36,87,214).rect(0,0,210,4,'F');
+  y=M+6;
+  escreve('CHECKLIST DE HABILITAÇÃO',M,16,'bold',texto);
+  y+=1;
+  escreve(notice.number||'Processo sem número',M,11,'normal',cinza);
+  y+=4;
+
+  const dias=notice.opening?Regras.diasEntre(Regras.hojeIso(),notice.opening):null;
+  const sessao=notice.opening
+    ?`${fmt(notice.opening)}${notice.horaSessao?` às ${String(notice.horaSessao).slice(0,5)}`:''}${dias!=null&&dias>=0?` — faltam ${dias} dia(s)`:dias!=null?' — já realizada':''}`
+    :'Não informada';
+  [['Empresa',company.name],['CNPJ',company.cnpj],['Órgão',notice.agency],
+   ['Sessão',sessao],['Classificação',classificacaoLabel(notice)]].forEach(([rotulo,valor])=>{
+    quebra(6);
+    doc.setFont('helvetica','bold').setFontSize(8.5).setTextColor(...cinza).text(rotulo.toUpperCase(),M,y);
+    const antes=y;
+    doc.setFont('helvetica','normal').setFontSize(9.5).setTextColor(...texto);
+    doc.splitTextToSize(String(valor||'—'),LARGURA-32).forEach((l,i)=>doc.text(l,M+32,antes+i*4.2));
+    y=antes+Math.max(4.6,doc.splitTextToSize(String(valor||'—'),LARGURA-32).length*4.2);
+  });
+
+  y+=3;
+  const contagem={incluido:0,gerado:0,vencido:0,pendente:0,nao_aplicavel:0};
+  documentos.forEach(d=>contagem[situacaoDoDocumento(d)]++);
+  quebra(14);
+  doc.setFillColor(248,249,251).setDrawColor(...linha).roundedRect(M,y,LARGURA,11,2,2,'FD');
+  let cx=M+5;
+  Object.entries(PDF_STATUS).forEach(([chave,cfg])=>{
+    doc.setFillColor(...cfg.c).circle(cx,y+5.6,1.4,'F');
+    doc.setFont('helvetica','bold').setFontSize(9).setTextColor(...texto).text(String(contagem[chave]),cx+3,y+6.6);
+    const largura=doc.getTextWidth(String(contagem[chave]));
+    doc.setFont('helvetica','normal').setFontSize(8).setTextColor(...cinza).text(cfg.t.toLowerCase(),cx+4.5+largura,y+6.6);
+    cx+=10+largura+doc.getTextWidth(cfg.t.toLowerCase());
+  });
+  y+=17;
+
+  const usados=new Set();
+  Object.entries(Regras.blocos).forEach(([chave,bloco])=>{
+    const itens=documentos.filter(d=>d.bloco===chave);
+    if(!itens.length)return;
+    quebra(18);
+    doc.setFillColor(234,240,254).rect(M,y-4,LARGURA,7,'F');
+    doc.setFont('helvetica','bold').setFontSize(9.5).setTextColor(36,87,214).text(bloco.n.toUpperCase(),M+2,y+0.8);
+    doc.setFont('helvetica','normal').setFontSize(8.5).setTextColor(...cinza)
+       .text(bloco.base,M+LARGURA-2,y+0.8,{align:'right'});
+    y+=9;
+    itens.forEach(d=>{
+      usados.add(d);
+      const cfg=PDF_STATUS[situacaoDoDocumento(d)];
+      const detalhes=[];
+      if(d.aplicavel===false)detalhes.push(`justificativa: ${d.justificativa||'não informada'}`);
+      else{
+        if(d.validity)detalhes.push(`válido até ${fmt(d.validity)}`);
+        if(d.obrigatorio===false)detalhes.push('exigível conforme o edital');
+      }
+      const corpo=doc.splitTextToSize(d.title,LARGURA-36);
+      const extra=detalhes.length?doc.splitTextToSize(detalhes.join(' · '),LARGURA-36):[];
+      quebra(corpo.length*4.2+extra.length*3.8+7);
+      doc.setFillColor(...cfg.c).roundedRect(M,y-3.2,31,4.6,1.2,1.2,'F');
+      doc.setFont('helvetica','bold').setFontSize(6.4).setTextColor(255,255,255)
+         .text(cfg.t,M+15.5,y-0.1,{align:'center'});
+      doc.setFont('helvetica','normal').setFontSize(9.5).setTextColor(...texto);
+      corpo.forEach((l,i)=>doc.text(l,M+36,y+i*4.2));
+      y+=corpo.length*4.2;
+      if(extra.length){
+        doc.setFont('helvetica','italic').setFontSize(8).setTextColor(...cinza);
+        extra.forEach((l,i)=>doc.text(l,M+36,y+i*3.8-0.8));
+        y+=extra.length*3.8;
+      }
+      /* 5.2 de avanço com a linha em y-3.4 deixa a separadora 1 mm acima do topo
+         do texto seguinte: sem colisão e sem desperdiçar meia página. */
+      y+=5.2;
+      doc.setDrawColor(...linha).line(M,y-3.4,M+LARGURA,y-3.4);
+    });
+    y+=5;
+  });
+
+  const soltos=documentos.filter(d=>!usados.has(d));
+  if(soltos.length){
+    quebra(16);
+    doc.setFillColor(234,240,254).rect(M,y-4,LARGURA,7,'F');
+    doc.setFont('helvetica','bold').setFontSize(9.5).setTextColor(36,87,214).text('OUTROS DOCUMENTOS DO PACOTE',M+2,y+0.8);
+    y+=9;
+    soltos.forEach(d=>{
+      const cfg=PDF_STATUS[situacaoDoDocumento(d)];
+      quebra(7);
+      doc.setFillColor(...cfg.c).roundedRect(M,y-3.2,31,4.6,1.2,1.2,'F');
+      doc.setFont('helvetica','bold').setFontSize(6.4).setTextColor(255,255,255).text(cfg.t,M+15.5,y-0.1,{align:'center'});
+      doc.setFont('helvetica','normal').setFontSize(9.5).setTextColor(...texto).text(d.title,M+36,y);
+      y+=6;
+    });
+  }
+
+  const pendentes=documentos.filter(d=>d.aplicavel!==false&&!d.path&&d.status!=='gerado').length;
+  quebra(16);
+  y+=2;
+  doc.setFillColor(pendentes?254:209,pendentes?240:250,pendentes?199:223).setDrawColor(...linha).roundedRect(M,y,LARGURA,9,2,2,'FD');
+  doc.setFont('helvetica','bold').setFontSize(9).setTextColor(pendentes?181:2,pendentes?71:122,pendentes?8:72)
+     .text(pendentes?`${pendentes} item(ns) pendente(s) neste pacote.`:'Nenhuma pendência registrada neste pacote.',M+4,y+5.8);
+
+  const paginas=doc.getNumberOfPages();
+  for(let i=1;i<=paginas;i++){
+    doc.setPage(i);
+    doc.setDrawColor(...linha).line(M,297-14,M+LARGURA,297-14);
+    doc.setFont('helvetica','normal').setFontSize(7).setTextColor(...cinza);
+    doc.text('Confira o edital original, os documentos, os valores, as assinaturas e a validade na data da sessão antes do envio.',M,297-10);
+    doc.text(`LiciDoc · gerado em ${new Date().toLocaleString('pt-BR')} · página ${i} de ${paginas}`,M,297-6.5);
+  }
+  return doc.output('arraybuffer');
+}
+
+function baixarChecklistPdf(company,notice,documentos){
+  const bytes=checklistPdf(company,notice,documentos);
+  if(!bytes){
+    saveBlob(new Blob([checklistCompleto(company,notice,documentos)],{type:'text/plain;charset=utf-8'}),`checklist-${safeFolder(notice.number)}.txt`);
+    toast('Gerador de PDF indisponível: o checklist saiu em texto.');
+    return;
+  }
+  saveBlob(new Blob([bytes],{type:'application/pdf'}),`checklist-${safeFolder(notice.number)}-${safeFolder(company.name)}.pdf`);
+  toast('Checklist em PDF gerado.');
+}
+
+/* Normaliza o checklist do assistente no formato usado pelo pacote, pelo ZIP e
+   pelo checklist em PDF. */
+function documentosDoChecklist(notice,itens){
   const documentos=itens.map(i=>({chave:i.chave,bloco:i.bloco,categoria:Regras.blocos[i.bloco].pasta,type:i.titulo,title:i.titulo,id:i.documentoRefId||null,path:i.documentoRefPath||null,validity:i.validade||null,status:i.status,obrigatorio:i.obrigatorio,aplicavel:i.aplicavel!==false,justificativa:i.justificativa||'',baseLegal:i.baseLegal||''}));
   if(notice.filePath)documentos.push({chave:'edital',bloco:null,categoria:'99-edital-e-anexos',type:'Edital',title:`Edital ${notice.number}`,id:notice.id,path:notice.filePath,validity:null,status:'ok',obrigatorio:true,aplicavel:true,justificativa:'',baseLegal:''});
+  return documentos;
+}
+
+async function criarPacoteDoChecklist(notice,itens){
+  const aplicaveis=itens.filter(i=>i.aplicavel!==false);
+  const documentos=documentosDoChecklist(notice,itens);
   const pendentes=documentos.filter(d=>d.aplicavel&&!d.path&&d.status!=='gerado').length;
   const {data,error}=await client.from('pacotes').insert({empresa_id:notice.companyId,licitacao_id:notice.id,
     nome:`Processo ${notice.number}`,status:pendentes?'pendente':'pronto',documentos,
@@ -175,13 +334,16 @@ async function downloadProcessPackage(packageId){
     XLSX.utils.book_append_sheet(workbook,sheet,'Itens');
     root.file(`${pastaProposta}/planilha-de-itens.xlsx`,XLSX.write(workbook,{bookType:'xlsx',type:'array'}));
   }
-  root.file('00-checklist-completo.txt',checklistCompleto(company,notice,pkg));
+  const checklistBytes=checklistPdf(company,notice,pkg.documents);
+  if(checklistBytes)root.file('00-checklist-completo.pdf',checklistBytes);
+  else root.file('00-checklist-completo.txt',checklistCompleto(company,notice,pkg.documents));
+
   saveBlob(await zip.generateAsync({type:'blob'}),`${safeFolder(pkg.name)}-${safeFolder(company.name)}.zip`);
   toast('Pacote gerado para download.');
 }
 
 /* Checklist do ZIP: todos os itens da matriz, com o status de cada um. */
-function checklistCompleto(company,notice,pkg){
+function checklistCompleto(company,notice,documentos){
   const linhas=[`Empresa: ${company.name}`,`CNPJ: ${company.cnpj}`,`Processo: ${notice.number}`,`Órgão: ${notice.agency}`,
     `Sessão: ${fmt(notice.opening)}${notice.horaSessao?` às ${String(notice.horaSessao).slice(0,5)}`:''}`,
     `Classificação: ${window.classificacaoLabel?classificacaoLabel(notice):(notice.modality||'—')}`,
@@ -189,7 +351,7 @@ function checklistCompleto(company,notice,pkg){
   const grupos=window.Regras?Object.entries(Regras.blocos):[];
   const usados=new Set();
   grupos.forEach(([chave,bloco])=>{
-    const itens=pkg.documents.filter(d=>d.bloco===chave);
+    const itens=documentos.filter(d=>d.bloco===chave);
     if(!itens.length)return;
     linhas.push(`${bloco.pasta.toUpperCase()} — ${bloco.n} (${bloco.base})`);
     itens.forEach(d=>{
@@ -202,13 +364,13 @@ function checklistCompleto(company,notice,pkg){
     });
     linhas.push('');
   });
-  const soltos=pkg.documents.filter(d=>!usados.has(d));
+  const soltos=documentos.filter(d=>!usados.has(d));
   if(soltos.length){
     linhas.push('OUTROS DOCUMENTOS DO PACOTE');
     soltos.forEach(d=>linhas.push(`  ${d.path?'[INCLUÍDO]':'[PENDENTE]'} ${d.title}`));
     linhas.push('');
   }
-  const pendentes=pkg.documents.filter(d=>d.aplicavel!==false&&!d.path&&d.status!=='gerado').length;
+  const pendentes=documentos.filter(d=>d.aplicavel!==false&&!d.path&&d.status!=='gerado').length;
   linhas.push(pendentes?`ATENÇÃO: ${pendentes} item(ns) pendente(s) neste pacote.`:'Nenhuma pendência registrada neste pacote.');
   linhas.push('ATENÇÃO: confira o edital original, os documentos, os valores, as assinaturas e a validade na data da sessão antes do envio.');
   return linhas.join('\n');
@@ -238,7 +400,7 @@ $('#archive-filter').addEventListener('change',renderArchive);
 $('#check-balance').addEventListener('click',balanceGuidance);
 $('#import-items').addEventListener('click',importItemsSpreadsheet);
 $('#build-package').addEventListener('click',createProcessPackage);
-document.body.addEventListener('click',e=>{const button=e.target.closest('[data-download-package]');if(button)downloadProcessPackage(button.dataset.downloadPackage)});
+document.body.addEventListener('click',e=>{const button=e.target.closest('[data-download-package]');if(button)downloadProcessPackage(button.dataset.downloadPackage);const pdfBtn=e.target.closest('[data-checklist-pdf]');if(pdfBtn){const pkg=state.packages.find(p=>p.id===pdfBtn.dataset.checklistPdf),company=state.companies.find(c=>c.id===pkg?.companyId),notice=state.notices.find(n=>n.id===pkg?.noticeId);if(pkg&&company&&notice)baixarChecklistPdf(company,notice,pkg.documents);else toast('Pacote não localizado.')}});
 $('#export-btn').addEventListener('click',()=>{const backup={exportadoEm:new Date().toISOString(),empresas:state.companies,acervo:state.documents,certidoes:state.certificates,balancos:state.balances,licitacoes:state.notices,pacotes:state.packages},blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`licidoc-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)});
 
 function firstMatch(text,patterns){for(const pattern of patterns){const match=text.match(pattern);if(match?.[1])return match[1].replace(/\s+/g,' ').trim()}return''}
