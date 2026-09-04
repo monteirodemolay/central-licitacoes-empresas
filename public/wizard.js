@@ -80,45 +80,14 @@ function montarTodoAcervo(companyId){
   return [...certs,...bals,...docs].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).slice(0,300);
 }
 
-function statusDoVinculo(vinculo,dataAlvo){
-  if(!vinculo)return'ausente';
-  if(vinculo.validade&&dataAlvo&&vinculo.validade<dataAlvo)return'vencido';
-  return'ok';
-}
-
-/* Itens cujo tipo do catálogo é "acumulativo" (representante legal,
-   responsável técnico, atestados, ART/RRT...) aceitam mais de um documento
-   vinculado ao mesmo tempo — uma empresa pode ter vários sócios, vários
-   responsáveis técnicos. Os demais continuam com um vínculo só. */
-function itemAcumulativo(item){
-  const tipos=Regras.tiposQueAtendem(item.chave);
-  return tipos.some(t=>t.vigencia==='acumulativo');
-}
-/* Lê a lista de vínculos do item, com um jeito de resgatar um item salvo no
-   formato antigo (um vínculo só, nos campos documentoRef*) que ainda não
-   passou pelo formato de lista. */
-function vinculosDoItem(item){
-  if(item.documentosVinculados&&item.documentosVinculados.length)return item.documentosVinculados;
-  return item.documentoRefId?[{tabela:item.documentoRefTabela,id:item.documentoRefId,path:item.documentoRefPath,validade:item.validade}]:[];
-}
-/* "ok" se pelo menos um vínculo da lista estiver em dia — não precisa que
-   todos estejam, já que cada um pode ser de uma pessoa diferente. */
-function statusDosVinculos(lista,dataAlvo){
-  if(!lista||!lista.length)return'ausente';
-  return lista.some(v=>!v.validade||!dataAlvo||v.validade>=dataAlvo)?'ok':'vencido';
-}
-/* Grava a lista de vínculos no item e mantém os campos antigos (documentoRef*)
-   espelhando o primeiro da lista, para o que ainda lê só esse formato (o
-   "Abrir" do PDF do checklist, por exemplo). */
-function aplicarVinculos(item,lista,dataAlvo){
-  item.documentosVinculados=lista;
-  const primeiro=lista[0]||null;
-  item.documentoRefTabela=primeiro?.tabela||null;
-  item.documentoRefId=primeiro?.id||null;
-  item.documentoRefPath=primeiro?.path||null;
-  item.validade=primeiro?.validade||null;
-  item.status=item.aplicavel===false?'nao_aplicavel':(item.gerado?'gerado':statusDosVinculos(lista,dataAlvo));
-}
+/* Critério de item acumulativo, leitura/gravação de vínculos e status —
+   compartilhado com app.js, que precisa exatamente da mesma lógica para a
+   tela do edital. Vive em Regras (regras-licitacao.js) para não duplicar. */
+const statusDoVinculo=Regras.statusDoVinculo;
+const itemAcumulativo=Regras.itemAcumulativo;
+const vinculosDoItem=Regras.vinculosDoItem;
+const statusDosVinculos=Regras.statusDosVinculos;
+const aplicarVinculos=Regras.aplicarVinculos;
 
 /* Monta o checklist do processo: matriz calculada + o que já estava salvo.
    Não sobrescreve vínculo existente nem decisão manual do usuário. */
@@ -304,7 +273,7 @@ function renderPassoClassificacao(){
   <p class="wz-hint">A matriz é sugestão de partida. Cada edital pode acrescentar ou flexibilizar exigências dentro dos limites legais.</p>`;
 }
 
-const ROTULO_STATUS={ok:'Em dia',vencido:'Vencido para a sessão',pendente:'Pendente',ausente:'Ausente',gerado:'Gerado pelo sistema',nao_aplicavel:'Não se aplica'};
+const ROTULO_STATUS=Regras.rotuloChecklist;
 
 /* Itens acumulativos (representante legal, responsável técnico, atestados...)
    aceitam vários documentos ao mesmo tempo: cada sócio, cada profissional tem
@@ -676,7 +645,7 @@ function ligarEventos(){
     if(alvo.id==='wz-checklist-pdf'){
       const company=state.companies.find(c=>c.id===wiz.notice.companyId);
       if(!company){toast('Selecione a empresa primeiro.');return}
-      baixarChecklistPdf(company,wiz.notice,documentosDoChecklist(wiz.notice,wiz.itens));
+      baixarChecklistPdf(company,wiz.notice,Regras.documentosDoChecklist(wiz.notice,wiz.itens));
       return;
     }
 
@@ -803,9 +772,7 @@ function categoriaDoItem(item){
   if(b?.certidao)return'Certidões';
   if(b?.balanco)return'Balanços';
   if(b?.categoria)return b.categoria;
-  return({juridica:'Societários',fiscal_trabalhista:'Certidões',economico_financeira:'Balanços',
-    tecnica:'Atestados técnicos',proposta:'Propostas',declaracoes:'Declarações',
-    processo_contratacao_direta:'Editais e processos'})[item.bloco]||'Outros';
+  return Regras.categoriaDoBloco[item.bloco]||'Outros';
 }
 
 document.addEventListener('DOMContentLoaded',ligarEventos);

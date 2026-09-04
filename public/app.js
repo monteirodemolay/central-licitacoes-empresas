@@ -557,19 +557,14 @@ function renderPackages(){$('#saved-packages').innerHTML=state.packages.length?s
 /* Bloco do checklist na tela do edital: leitura rápida do que está pronto e do
    que falta. O ajuste fino segue no assistente, mas dá pra mandar um documento
    avulso direto na linha, sem precisar abrir o assistente inteiro pra isso. */
-const ROTULO_CHECKLIST={ok:'Em dia',vencido:'Vencido para a sessão',pendente:'Pendente',ausente:'Ausente',gerado:'Gerado',nao_aplicavel:'Não se aplica'};
+const ROTULO_CHECKLIST=Regras.rotuloChecklist;
 let itemUploadAberto=null; // id do item do checklist com o painel de envio aberto, na tela do edital
-// Mesma noção de wizard.js: itens cujo tipo do catálogo é "acumulativo"
-// (representante legal, responsável técnico, atestados...) aceitam mais de
-// um documento vinculado ao mesmo tempo.
-function itemAcumulativo(item){
-  const tipos=Regras.tiposQueAtendem(item.chave);
-  return tipos.some(t=>t.vigencia==='acumulativo');
-}
-function vinculosDoItemChecklist(item){
-  return item.documentosVinculados?.length?item.documentosVinculados
-    :(item.documentoRefId?[{tabela:item.documentoRefTabela,id:item.documentoRefId,path:item.documentoRefPath,validade:item.validade}]:[]);
-}
+// Mesma lógica do assistente (wizard.js): itens cujo tipo do catálogo é
+// "acumulativo" (representante legal, responsável técnico, atestados...)
+// aceitam mais de um documento vinculado ao mesmo tempo. Vive em Regras para
+// não duplicar entre os dois arquivos.
+const itemAcumulativo=Regras.itemAcumulativo;
+const vinculosDoItemChecklist=Regras.vinculosDoItem;
 function checklistDoEdital(n){
   const itens=state.checklist.filter(c=>c.noticeId===n.id).sort((a,b)=>(a.ordem??0)-(b.ordem??0));
   if(!itens.length||!window.Regras)
@@ -626,15 +621,11 @@ async function salvarUploadItem(itemId){
       origem:'Tela do edital',validade,criado_por:state.user.id}).select().single();
     if(error)throw error;
     const notice=state.notices.find(x=>x.id===item.noticeId);
-    // Mesma regra do assistente (statusDoVinculo, em wizard.js): sem vínculo é
-    // "ausente"; com validade menor que a data da sessão, "vencido"; senão "ok".
     const dataAlvo=notice?.opening||Regras.hojeIso();
     const acumulativo=itemAcumulativo(item);
     const novoVinculo={tabela:'documentos_empresa',id:data.id,path,validade,nome:file.name};
     const vinculos=acumulativo?[...vinculosDoItemChecklist(item),novoVinculo]:[novoVinculo];
-    // Mesma regra do assistente: "ok" se pelo menos um vínculo estiver em dia
-    // — não precisa que todos estejam, já que cada um pode ser de uma pessoa.
-    const status=vinculos.some(v=>!v.validade||!dataAlvo||v.validade>=dataAlvo)?'ok':'vencido';
+    const status=Regras.statusDosVinculos(vinculos,dataAlvo);
     const primeiro=vinculos[0];
     const {error:erroItem}=await client.from('licitacao_checklist_itens').update({
       documento_ref_tabela:primeiro.tabela,documento_ref_id:primeiro.id,documento_ref_path:primeiro.path,
@@ -818,7 +809,11 @@ const PDF_STATUS={
   pendente:{t:'PENDENTE',c:[181,71,8]},
   nao_aplicavel:{t:'NÃO SE APLICA',c:[102,112,133]}
 };
-function situacaoDoDocumento(d){
+// Nome deliberadamente diferente de Regras.situacaoDoDocumento: aquela decide
+// vigência de um documento do acervo (sem_validade/vencido/vence_logo/vigente);
+// esta decide o status de uma linha de documento dentro de um PACOTE/PDF de
+// checklist (nao_aplicavel/gerado/vencido/incluido/pendente) — coisas diferentes.
+function situacaoDoItemPacote(d){
   if(d.aplicavel===false)return'nao_aplicavel';
   if(d.status==='gerado')return'gerado';
   if(d.status==='vencido')return'vencido';
@@ -862,7 +857,7 @@ function checklistPdf(company,notice,documentos){
 
   y+=3;
   const contagem={incluido:0,gerado:0,vencido:0,pendente:0,nao_aplicavel:0};
-  documentos.forEach(d=>contagem[situacaoDoDocumento(d)]++);
+  documentos.forEach(d=>contagem[situacaoDoItemPacote(d)]++);
   quebra(14);
   doc.setFillColor(248,249,251).setDrawColor(...linha).roundedRect(M,y,LARGURA,11,2,2,'FD');
   let cx=M+5;
@@ -887,7 +882,7 @@ function checklistPdf(company,notice,documentos){
     y+=9;
     itens.forEach(d=>{
       usados.add(d);
-      const cfg=PDF_STATUS[situacaoDoDocumento(d)];
+      const cfg=PDF_STATUS[situacaoDoItemPacote(d)];
       const detalhes=[];
       if(d.aplicavel===false)detalhes.push(`justificativa: ${d.justificativa||'não informada'}`);
       else{
@@ -923,7 +918,7 @@ function checklistPdf(company,notice,documentos){
     doc.setFont('helvetica','bold').setFontSize(9.5).setTextColor(36,87,214).text('OUTROS DOCUMENTOS DO PACOTE',M+2,y+0.8);
     y+=9;
     soltos.forEach(d=>{
-      const cfg=PDF_STATUS[situacaoDoDocumento(d)];
+      const cfg=PDF_STATUS[situacaoDoItemPacote(d)];
       quebra(7);
       doc.setFillColor(...cfg.c).roundedRect(M,y-3.2,31,4.6,1.2,1.2,'F');
       doc.setFont('helvetica','bold').setFontSize(6.4).setTextColor(255,255,255).text(cfg.t,M+15.5,y-0.1,{align:'center'});
@@ -962,21 +957,9 @@ function baixarChecklistPdf(company,notice,documentos){
 }
 
 /* Normaliza o checklist do assistente no formato usado pelo pacote, pelo ZIP e
-   pelo checklist em PDF. */
-function documentosDoChecklist(notice,itens){
-  // Item acumulativo (representante legal, responsável técnico...) pode ter
-  // vários documentos vinculados; cada um vira sua própria linha no pacote,
-  // em vez de perder os demais atrás do primeiro.
-  const documentos=itens.flatMap(i=>{
-    const vinculos=i.documentosVinculados?.length?i.documentosVinculados:(i.documentoRefId?[{id:i.documentoRefId,path:i.documentoRefPath,validade:i.validade}]:[]);
-    const comum={chave:i.chave,bloco:i.bloco,categoria:Regras.blocos[i.bloco].pasta,type:i.titulo,title:i.titulo,status:i.status,obrigatorio:i.obrigatorio,aplicavel:i.aplicavel!==false,justificativa:i.justificativa||'',baseLegal:i.baseLegal||''};
-    if(!vinculos.length)return[{...comum,id:null,path:null,validity:null}];
-    return vinculos.map((v,idx)=>({...comum,id:v.id,path:v.path,validity:v.validade||null,
-      title:vinculos.length>1?`${i.titulo}${v.nome?` — ${v.nome}`:` (${idx+1}/${vinculos.length})`}`:i.titulo}));
-  });
-  if(notice.filePath)documentos.push({chave:'edital',bloco:null,categoria:'99-edital-e-anexos',type:'Edital',title:`Edital ${notice.number}`,id:notice.id,path:notice.filePath,validity:null,status:'ok',obrigatorio:true,aplicavel:true,justificativa:'',baseLegal:''});
-  return documentos;
-}
+   pelo checklist em PDF. Compartilhado com wizard.js (baixar checklist em PDF
+   direto do assistente) — vive em Regras para não duplicar. */
+const documentosDoChecklist=Regras.documentosDoChecklist;
 
 async function criarPacoteDoChecklist(notice,itens){
   const aplicaveis=itens.filter(i=>i.aplicavel!==false);
@@ -1092,8 +1075,7 @@ function opcoesCatalogo(atual,excluir=[]){
     `<optgroup label="${esc(bloco)}">${tipos.map(t=>
       `<option value="${t.chave}"${t.chave===atual?' selected':''}>${esc(t.nome)}</option>`).join('')}</optgroup>`).join('');
 }
-const CATEGORIA_DO_BLOCO={juridica:'Societários',fiscal_trabalhista:'Certidões',economico_financeira:'Balanços',
-  tecnica:'Atestados técnicos',proposta:'Propostas',declaracoes:'Declarações',processo_contratacao_direta:'Editais e processos'};
+const CATEGORIA_DO_BLOCO=Regras.categoriaDoBloco;
 /* Cadastro de um documento avulso, de qualquer tipo do catálogo — o mesmo
    "Adicionar certidão" servia só para certidões; isto cobre o resto do
    acervo (societário, técnico, licenças...) sem passar pela importação em

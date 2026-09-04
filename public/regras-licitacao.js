@@ -467,6 +467,76 @@ function br(iso){return iso?iso.split('-').reverse().join('/'):'—'}
 const TIPOS={vigencia:'Vigência',completude:'Completude',consistencia:'Consistência',prazo:'Prazo',elegibilidade:'Elegibilidade'};
 const rotuloTipo=t=>TIPOS[t]||t;
 
+/* ---------------------------------------------------------------------------
+   Vínculos de documento por item do checklist.
+
+   Compartilhado entre o assistente (wizard.js) e a tela do edital (app.js):
+   os dois precisam do mesmo critério de "este item aceita mais de um
+   documento ao mesmo tempo?" e do mesmo jeito de ler/gravar a lista de
+   vínculos — antes cada um tinha sua própria cópia, e as cópias já tinham
+   começado a divergir (rótulos, nomes de função).
+--------------------------------------------------------------------------- */
+/* Itens cujo tipo do catálogo é "acumulativo" (representante legal,
+   responsável técnico, atestados, ART/RRT...) aceitam mais de um documento
+   vinculado ao mesmo tempo — uma empresa pode ter vários sócios, vários
+   responsáveis técnicos. Os demais continuam com um vínculo só. */
+function itemAcumulativo(item){
+  return tiposQueAtendem(item.chave).some(t=>t.vigencia==='acumulativo');
+}
+/* Lê a lista de vínculos do item, com um jeito de resgatar um item salvo no
+   formato antigo (um vínculo só, nos campos documentoRef*) que ainda não
+   passou pelo formato de lista. */
+function vinculosDoItem(item){
+  if(item.documentosVinculados&&item.documentosVinculados.length)return item.documentosVinculados;
+  return item.documentoRefId?[{tabela:item.documentoRefTabela,id:item.documentoRefId,path:item.documentoRefPath,validade:item.validade}]:[];
+}
+function statusDoVinculo(vinculo,dataAlvo){
+  if(!vinculo)return'ausente';
+  if(vinculo.validade&&dataAlvo&&vinculo.validade<dataAlvo)return'vencido';
+  return'ok';
+}
+/* "ok" se pelo menos um vínculo da lista estiver em dia — não precisa que
+   todos estejam, já que cada um pode ser de uma pessoa diferente. */
+function statusDosVinculos(lista,dataAlvo){
+  if(!lista||!lista.length)return'ausente';
+  return lista.some(v=>!v.validade||!dataAlvo||v.validade>=dataAlvo)?'ok':'vencido';
+}
+/* Grava a lista de vínculos no item e mantém os campos antigos (documentoRef*)
+   espelhando o primeiro da lista, para o que ainda lê só esse formato (o
+   "Abrir" do PDF do checklist, por exemplo). */
+function aplicarVinculos(item,lista,dataAlvo){
+  item.documentosVinculados=lista;
+  const primeiro=lista[0]||null;
+  item.documentoRefTabela=primeiro?.tabela||null;
+  item.documentoRefId=primeiro?.id||null;
+  item.documentoRefPath=primeiro?.path||null;
+  item.validade=primeiro?.validade||null;
+  item.status=item.aplicavel===false?'nao_aplicavel':(item.gerado?'gerado':statusDosVinculos(lista,dataAlvo));
+}
+/* Normaliza o checklist do assistente no formato usado pelo pacote, pelo ZIP e
+   pelo checklist em PDF. Item acumulativo pode ter vários documentos
+   vinculados; cada um vira sua própria linha, em vez de perder os demais
+   atrás do primeiro. */
+function documentosDoChecklist(notice,itens){
+  const documentos=itens.flatMap(i=>{
+    const vinculos=vinculosDoItem(i);
+    const comum={chave:i.chave,bloco:i.bloco,categoria:blocos[i.bloco].pasta,type:i.titulo,title:i.titulo,status:i.status,obrigatorio:i.obrigatorio,aplicavel:i.aplicavel!==false,justificativa:i.justificativa||'',baseLegal:i.baseLegal||''};
+    if(!vinculos.length)return[{...comum,id:null,path:null,validity:null}];
+    return vinculos.map((v,idx)=>({...comum,id:v.id,path:v.path,validity:v.validade||null,
+      title:vinculos.length>1?`${i.titulo}${v.nome?` — ${v.nome}`:` (${idx+1}/${vinculos.length})`}`:i.titulo}));
+  });
+  if(notice.filePath)documentos.push({chave:'edital',bloco:null,categoria:'99-edital-e-anexos',type:'Edital',title:`Edital ${notice.number}`,id:notice.id,path:notice.filePath,validity:null,status:'ok',obrigatorio:true,aplicavel:true,justificativa:'',baseLegal:''});
+  return documentos;
+}
+/* Mesmo mapa bloco→categoria usado tanto para o envio direto de um item do
+   checklist quanto para o cadastro de documento avulso — existia duplicado
+   em wizard.js e em app.js. */
+const categoriaDoBloco={juridica:'Societários',fiscal_trabalhista:'Certidões',economico_financeira:'Balanços',
+  tecnica:'Atestados técnicos',proposta:'Propostas',declaracoes:'Declarações',processo_contratacao_direta:'Editais e processos'};
+/* Rótulo exibido para cada status de item do checklist — existia duplicado em
+   wizard.js e em app.js, com o rótulo de "gerado" divergindo entre os dois. */
+const rotuloChecklist={ok:'Em dia',vencido:'Vencido para a sessão',pendente:'Pendente',ausente:'Ausente',gerado:'Gerado pelo sistema',nao_aplicavel:'Não se aplica'};
+
 global.Regras={
   catalogoDocumentos,tipoDocumento,tiposQueAtendem,tiposBase,classificarNoCatalogo,
   modalidades,formasDiretas,tiposObjeto,criterios,modosDisputa,regimesExecucao,
@@ -476,6 +546,8 @@ global.Regras={
   exigeEconomicoFinanceiro,exigeTecnica,engenharia,
   definirParametros,parametro,parametrosPadrao,
   rotulo,rotuloTipo,moeda,numero,diasEntre,hojeIso,br,
-  LIMIAR_ECONOMICO
+  LIMIAR_ECONOMICO,
+  itemAcumulativo,vinculosDoItem,statusDoVinculo,statusDosVinculos,aplicarVinculos,
+  documentosDoChecklist,categoriaDoBloco,rotuloChecklist
 };
 })(window);
