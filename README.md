@@ -42,7 +42,7 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - links oficiais para Federal/PGFN, FGTS e CNDT;
 - assistente de habilitação em 8 passos, com a taxonomia da Lei 14.133/2021 (modalidade, forma de contratação direta, tipo de objeto, critério de julgamento, regime de execução e tratamento ME/EPP);
 - matriz automática dos documentos exigíveis por modalidade, tipo de objeto e valor (arts. 66 a 69);
-- vinculação automática de cada exigência ao acervo, às certidões e aos balanços já cadastrados;
+- vinculação automática de cada exigência ao acervo, às certidões e aos balanços já cadastrados, com mais de um documento por exigência quando ela aceitar vários (representante legal, responsável técnico, atestados, ART/RRT) — cada um com "Abrir" e "Remover" próprios, sem substituir os demais;
 - crítica em tempo real de vigência, completude e consistência, com alerta de certidão que vence antes da sessão e de valor acima do teto de dispensa;
 - envio de documento direto pela linha do checklist — no assistente e também na tela de detalhes do edital —, indo para o acervo da empresa e ficando vinculado ao item;
 - item marcável como "não se aplica" com justificativa registrada;

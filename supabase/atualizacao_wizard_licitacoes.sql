@@ -171,6 +171,15 @@ alter table public.certidoes add column if not exists responsavel_tecnico text;
 alter table public.documentos_empresa add column if not exists arquivado boolean not null default false;
 alter table public.certidoes add column if not exists arquivado boolean not null default false;
 
+-- 5e. Vários documentos por item do checklist ---------------------------------
+-- Um item do checklist (ex.: "documento de identificação do representante
+-- legal") pode precisar de mais de um arquivo — vários sócios, vários
+-- responsáveis técnicos. `documento_ref_*` continua existindo e espelha o
+-- primeiro da lista, para quem ainda lê só esse formato; `documentos_vinculados`
+-- é a lista completa, no formato [{tabela,id,path,validade,nome}, ...].
+
+alter table public.licitacao_checklist_itens add column if not exists documentos_vinculados jsonb not null default '[]'::jsonb;
+
 -- 6. RLS ----------------------------------------------------------------------
 
 alter table public.licitacao_checklist_itens enable row level security;

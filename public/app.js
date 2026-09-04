@@ -47,7 +47,7 @@ async function loadData(){
   const activeCompanyIds=new Set(state.companies.map(company=>company.id));
   state.certificates=state.certificates.filter(item=>activeCompanyIds.has(item.companyId));state.balances=state.balances.filter(item=>activeCompanyIds.has(item.companyId));state.notices=state.notices.filter(item=>activeCompanyIds.has(item.companyId));state.packages=state.packages.filter(item=>activeCompanyIds.has(item.companyId));state.documents=state.documents.filter(item=>activeCompanyIds.has(item.companyId));
   const activeNoticeIds=new Set(state.notices.map(n=>n.id));
-  state.checklist=(results[6]?.data||[]).filter(x=>activeNoticeIds.has(x.licitacao_id)).map(x=>({id:x.id,companyId:x.empresa_id,noticeId:x.licitacao_id,chave:x.chave,bloco:x.bloco,titulo:x.titulo,baseLegal:x.base_legal,ordem:x.ordem,obrigatorio:x.obrigatorio,aplicavel:x.aplicavel,justificativa:x.justificativa_nao_aplicavel,documentoRefTabela:x.documento_ref_tabela,documentoRefId:x.documento_ref_id,documentoRefPath:x.documento_ref_path,validade:x.validade,status:x.status,observacao:x.observacao}));
+  state.checklist=(results[6]?.data||[]).filter(x=>activeNoticeIds.has(x.licitacao_id)).map(x=>({id:x.id,companyId:x.empresa_id,noticeId:x.licitacao_id,chave:x.chave,bloco:x.bloco,titulo:x.titulo,baseLegal:x.base_legal,ordem:x.ordem,obrigatorio:x.obrigatorio,aplicavel:x.aplicavel,justificativa:x.justificativa_nao_aplicavel,documentoRefTabela:x.documento_ref_tabela,documentoRefId:x.documento_ref_id,documentoRefPath:x.documento_ref_path,validade:x.validade,status:x.status,observacao:x.observacao,documentosVinculados:x.documentos_vinculados||[]}));
   state.agenda=(results[7]?.data||[]).filter(x=>!x.licitacao_id||activeNoticeIds.has(x.licitacao_id)).map(x=>({id:x.id,companyId:x.empresa_id,noticeId:x.licitacao_id,checklistItemId:x.checklist_item_id,titulo:x.titulo,detalhe:x.detalhe,prazo:x.prazo,responsavel:x.responsavel,origem:x.origem,concluida:x.concluida,concluidaEm:x.concluida_em}));
   if(results[8]?.data?.length)Regras.definirParametros(Object.fromEntries(results[8].data.map(x=>[x.chave,Number(x.valor)])));
   state.profiles=(results[9]?.data||[]).map(x=>({id:x.id,email:x.email,name:x.nome,role:x.perfil,companyId:x.empresa_id}));
@@ -554,6 +554,17 @@ function renderPackages(){$('#saved-packages').innerHTML=state.packages.length?s
    avulso direto na linha, sem precisar abrir o assistente inteiro pra isso. */
 const ROTULO_CHECKLIST={ok:'Em dia',vencido:'Vencido para a sessão',pendente:'Pendente',ausente:'Ausente',gerado:'Gerado',nao_aplicavel:'Não se aplica'};
 let itemUploadAberto=null; // id do item do checklist com o painel de envio aberto, na tela do edital
+// Mesma noção de wizard.js: itens cujo tipo do catálogo é "acumulativo"
+// (representante legal, responsável técnico, atestados...) aceitam mais de
+// um documento vinculado ao mesmo tempo.
+function itemAcumulativo(item){
+  const tipos=Regras.tiposQueAtendem(item.chave);
+  return tipos.some(t=>t.vigencia==='acumulativo');
+}
+function vinculosDoItemChecklist(item){
+  return item.documentosVinculados?.length?item.documentosVinculados
+    :(item.documentoRefId?[{tabela:item.documentoRefTabela,id:item.documentoRefId,path:item.documentoRefPath,validade:item.validade}]:[]);
+}
 function checklistDoEdital(n){
   const itens=state.checklist.filter(c=>c.noticeId===n.id).sort((a,b)=>(a.ordem??0)-(b.ordem??0));
   if(!itens.length||!window.Regras)
@@ -571,9 +582,13 @@ function checklistDoEdital(n){
     <div class="ag-barra"><div class="ag-barra-fill${pct>=100?' full':pct>=60?' meio':''}" style="width:${pct}%"></div></div>
     ${grupos.map(([chave,bloco])=>`<div class="det-bloco">
       <div class="det-bloco-head"><h4>${esc(bloco.n)}</h4><span>${esc(bloco.base)}</span></div>
-      ${itens.filter(i=>i.bloco===chave).map(i=>`<div class="det-item${i.aplicavel===false?' inativo':''}">
-        <span><strong>${esc(i.titulo)}</strong>${i.validade?`<small>válido até ${fmt(i.validade)}</small>`:''}${i.aplicavel===false&&i.justificativa?`<small>${esc(i.justificativa)}</small>`:''}</span>
-        ${i.documentoRefPath?`<button class="link" data-document="${esc(i.documentoRefPath)}">Abrir</button>`
+      ${itens.filter(i=>i.bloco===chave).map(i=>{
+        const acumulativo=itemAcumulativo(i),vinculos=vinculosDoItemChecklist(i);
+        return `<div class="det-item${acumulativo?' det-item-multiplo':''}${i.aplicavel===false?' inativo':''}">
+        <span><strong>${esc(i.titulo)}</strong>${acumulativo&&vinculos.length?`<small>${vinculos.length} documento(s) vinculado(s)</small>`:i.validade?`<small>válido até ${fmt(i.validade)}</small>`:''}${i.aplicavel===false&&i.justificativa?`<small>${esc(i.justificativa)}</small>`:''}
+        ${acumulativo&&vinculos.length?`<ul class="wz-vinculos">${vinculos.map(v=>`<li><span>${esc(v.nome||'Documento')}</span><button class="link" data-document="${esc(v.path)}">Abrir</button></li>`).join('')}</ul>`:''}</span>
+        ${acumulativo?(i.aplicavel===false?'<span></span>':`<button type="button" class="link" data-enviar-item="${i.id}">${itemUploadAberto===i.id?'Fechar':'Enviar mais um ↑'}</button>`)
+          :i.documentoRefPath?`<button class="link" data-document="${esc(i.documentoRefPath)}">Abrir</button>`
           :i.aplicavel===false?'<span></span>'
           :`<button type="button" class="link" data-enviar-item="${i.id}">${itemUploadAberto===i.id?'Fechar':'Enviar agora ↑'}</button>`}
         <span class="badge ${i.status}">${esc(ROTULO_CHECKLIST[i.status]||i.status)}</span>
@@ -581,8 +596,9 @@ function checklistDoEdital(n){
           <input type="file" data-item-arquivo="${i.id}" accept=".pdf,.png,.jpg,.jpeg">
           <input type="date" data-item-validade="${i.id}" placeholder="Validade, se houver">
           <button type="button" class="primary" data-item-salvar="${i.id}">Salvar</button>
-          <small>Vai para o acervo da empresa e fica vinculado a este item.</small>
-        </div>`:''}</div>`).join('')}
+          <small>Vai para o acervo da empresa${acumulativo?' e se acrescenta aos já vinculados':' e fica vinculado a este item'}.</small>
+        </div>`:''}</div>`;
+      }).join('')}
     </div>`).join('')}
     ${critica.alertas.length?`<div class="warning"><strong>${esc(Regras.rotuloTipo(critica.alertas[0].tipo))}:</strong> ${esc(critica.alertas[0].texto)}${critica.alertas.length>1?` (e mais ${critica.alertas.length-1} alerta(s) no assistente)`:''}</div>`:''}
     <div class="record-actions"><button class="primary" data-wizard="${n.id}">Abrir assistente</button>
@@ -608,15 +624,21 @@ async function salvarUploadItem(itemId){
     // Mesma regra do assistente (statusDoVinculo, em wizard.js): sem vínculo é
     // "ausente"; com validade menor que a data da sessão, "vencido"; senão "ok".
     const dataAlvo=notice?.opening||Regras.hojeIso();
-    const status=validade&&dataAlvo&&validade<dataAlvo?'vencido':'ok';
+    const acumulativo=itemAcumulativo(item);
+    const novoVinculo={tabela:'documentos_empresa',id:data.id,path,validade,nome:file.name};
+    const vinculos=acumulativo?[...vinculosDoItemChecklist(item),novoVinculo]:[novoVinculo];
+    // Mesma regra do assistente: "ok" se pelo menos um vínculo estiver em dia
+    // — não precisa que todos estejam, já que cada um pode ser de uma pessoa.
+    const status=vinculos.some(v=>!v.validade||!dataAlvo||v.validade>=dataAlvo)?'ok':'vencido';
+    const primeiro=vinculos[0];
     const {error:erroItem}=await client.from('licitacao_checklist_itens').update({
-      documento_ref_tabela:'documentos_empresa',documento_ref_id:data.id,documento_ref_path:path,
-      validade,status}).eq('id',itemId);
+      documento_ref_tabela:primeiro.tabela,documento_ref_id:primeiro.id,documento_ref_path:primeiro.path,
+      validade:primeiro.validade,documentos_vinculados:vinculos,status}).eq('id',itemId);
     if(erroItem)throw erroItem;
     itemUploadAberto=null;
     await loadData();
     renderNoticeDetail();
-    toast('Documento enviado ao acervo e vinculado ao checklist.');
+    toast(acumulativo?'Documento enviado ao acervo e acrescentado ao checklist.':'Documento enviado ao acervo e vinculado ao checklist.');
   }catch(error){toast(friendlyError(error))}
   finally{setBusy(botao,false)}
 }
@@ -937,7 +959,16 @@ function baixarChecklistPdf(company,notice,documentos){
 /* Normaliza o checklist do assistente no formato usado pelo pacote, pelo ZIP e
    pelo checklist em PDF. */
 function documentosDoChecklist(notice,itens){
-  const documentos=itens.map(i=>({chave:i.chave,bloco:i.bloco,categoria:Regras.blocos[i.bloco].pasta,type:i.titulo,title:i.titulo,id:i.documentoRefId||null,path:i.documentoRefPath||null,validity:i.validade||null,status:i.status,obrigatorio:i.obrigatorio,aplicavel:i.aplicavel!==false,justificativa:i.justificativa||'',baseLegal:i.baseLegal||''}));
+  // Item acumulativo (representante legal, responsável técnico...) pode ter
+  // vários documentos vinculados; cada um vira sua própria linha no pacote,
+  // em vez de perder os demais atrás do primeiro.
+  const documentos=itens.flatMap(i=>{
+    const vinculos=i.documentosVinculados?.length?i.documentosVinculados:(i.documentoRefId?[{id:i.documentoRefId,path:i.documentoRefPath,validade:i.validade}]:[]);
+    const comum={chave:i.chave,bloco:i.bloco,categoria:Regras.blocos[i.bloco].pasta,type:i.titulo,title:i.titulo,status:i.status,obrigatorio:i.obrigatorio,aplicavel:i.aplicavel!==false,justificativa:i.justificativa||'',baseLegal:i.baseLegal||''};
+    if(!vinculos.length)return[{...comum,id:null,path:null,validity:null}];
+    return vinculos.map((v,idx)=>({...comum,id:v.id,path:v.path,validity:v.validade||null,
+      title:vinculos.length>1?`${i.titulo}${v.nome?` — ${v.nome}`:` (${idx+1}/${vinculos.length})`}`:i.titulo}));
+  });
   if(notice.filePath)documentos.push({chave:'edital',bloco:null,categoria:'99-edital-e-anexos',type:'Edital',title:`Edital ${notice.number}`,id:notice.id,path:notice.filePath,validity:null,status:'ok',obrigatorio:true,aplicavel:true,justificativa:'',baseLegal:''});
   return documentos;
 }

@@ -1035,6 +1035,41 @@ dialog.wizard::backdrop {
 .wz-upload[hidden] {
   display: none;
 }
+/* Lista de documentos vinculados a um item acumulativo (vários sócios,
+   vários responsáveis técnicos no mesmo item) — no assistente e na tela do
+   edital. */
+.wz-vinculos {
+  list-style: none;
+  margin: 4px 0 6px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+}
+.wz-vinculos li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--text);
+}
+.wz-vinculos li span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wz-vinculos .link {
+  font-size: 11px;
+}
+.wz-item-multiplo .wz-item-acoes {
+  align-items: stretch;
+  min-width: 240px;
+}
+.det-item-multiplo .wz-vinculos {
+  max-width: 320px;
+}
 .wz-upload {
   display: flex;
   flex-wrap: wrap;

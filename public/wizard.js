@@ -86,6 +86,40 @@ function statusDoVinculo(vinculo,dataAlvo){
   return'ok';
 }
 
+/* Itens cujo tipo do catálogo é "acumulativo" (representante legal,
+   responsável técnico, atestados, ART/RRT...) aceitam mais de um documento
+   vinculado ao mesmo tempo — uma empresa pode ter vários sócios, vários
+   responsáveis técnicos. Os demais continuam com um vínculo só. */
+function itemAcumulativo(item){
+  const tipos=Regras.tiposQueAtendem(item.chave);
+  return tipos.some(t=>t.vigencia==='acumulativo');
+}
+/* Lê a lista de vínculos do item, com um jeito de resgatar um item salvo no
+   formato antigo (um vínculo só, nos campos documentoRef*) que ainda não
+   passou pelo formato de lista. */
+function vinculosDoItem(item){
+  if(item.documentosVinculados&&item.documentosVinculados.length)return item.documentosVinculados;
+  return item.documentoRefId?[{tabela:item.documentoRefTabela,id:item.documentoRefId,path:item.documentoRefPath,validade:item.validade}]:[];
+}
+/* "ok" se pelo menos um vínculo da lista estiver em dia — não precisa que
+   todos estejam, já que cada um pode ser de uma pessoa diferente. */
+function statusDosVinculos(lista,dataAlvo){
+  if(!lista||!lista.length)return'ausente';
+  return lista.some(v=>!v.validade||!dataAlvo||v.validade>=dataAlvo)?'ok':'vencido';
+}
+/* Grava a lista de vínculos no item e mantém os campos antigos (documentoRef*)
+   espelhando o primeiro da lista, para o que ainda lê só esse formato (o
+   "Abrir" do PDF do checklist, por exemplo). */
+function aplicarVinculos(item,lista,dataAlvo){
+  item.documentosVinculados=lista;
+  const primeiro=lista[0]||null;
+  item.documentoRefTabela=primeiro?.tabela||null;
+  item.documentoRefId=primeiro?.id||null;
+  item.documentoRefPath=primeiro?.path||null;
+  item.validade=primeiro?.validade||null;
+  item.status=item.aplicavel===false?'nao_aplicavel':(item.gerado?'gerado':statusDosVinculos(lista,dataAlvo));
+}
+
 /* Monta o checklist do processo: matriz calculada + o que já estava salvo.
    Não sobrescreve vínculo existente nem decisão manual do usuário. */
 function montarChecklist(notice,salvos){
@@ -97,17 +131,14 @@ function montarChecklist(notice,salvos){
     const base={chave:item.chave,bloco:item.bloco,titulo:item.titulo,baseLegal:item.baseLegal||'',
       ordem:item.ordem,obrigatorio:item.obrigatorio,busca:item.busca,gerado:!!item.gerado};
     if(antigo){
-      const vinculado=!!antigo.documentoRefId;
-      return {...base,id:antigo.id,aplicavel:antigo.aplicavel,justificativa:antigo.justificativa||'',
-        observacao:antigo.observacao||'',documentoRefTabela:antigo.documentoRefTabela,documentoRefId:antigo.documentoRefId,
-        documentoRefPath:antigo.documentoRefPath,validade:antigo.validade,
-        status:antigo.aplicavel===false?'nao_aplicavel':vinculado?statusDoVinculo({validade:antigo.validade},dataAlvo):(item.gerado?'gerado':antigo.status||'ausente')};
+      const novo={...base,id:antigo.id,aplicavel:antigo.aplicavel,justificativa:antigo.justificativa||'',observacao:antigo.observacao||''};
+      aplicarVinculos(novo,vinculosDoItem(antigo),dataAlvo);
+      return novo;
     }
-    const achado=candidatosAcervo(item,companyId)[0]||null;
-    return {...base,id:null,aplicavel:true,justificativa:'',observacao:'',
-      documentoRefTabela:achado?.tabela||null,documentoRefId:achado?.id||null,documentoRefPath:achado?.path||null,
-      validade:achado?.validade||null,
-      status:item.gerado?'gerado':statusDoVinculo(achado,dataAlvo)};
+    const candidatos=candidatosAcervo(item,companyId);
+    const novo={...base,id:null,aplicavel:true,justificativa:'',observacao:''};
+    aplicarVinculos(novo,itemAcumulativo(item)?candidatos:candidatos.slice(0,1),dataAlvo);
+    return novo;
   });
 }
 
@@ -116,11 +147,11 @@ function revincular(){
   const dataAlvo=wiz.notice.opening||hoje();
   let ligados=0;
   wiz.itens.forEach(item=>{
-    if(item.documentoRefId||item.aplicavel===false||item.gerado)return;
-    const achado=candidatosAcervo(item,wiz.notice.companyId)[0];
-    if(!achado)return;
-    item.documentoRefTabela=achado.tabela;item.documentoRefId=achado.id;item.documentoRefPath=achado.path;
-    item.validade=achado.validade;item.status=statusDoVinculo(achado,dataAlvo);ligados++;
+    if(vinculosDoItem(item).length||item.aplicavel===false||item.gerado)return;
+    const candidatos=candidatosAcervo(item,wiz.notice.companyId);
+    if(!candidatos.length)return;
+    aplicarVinculos(item,itemAcumulativo(item)?candidatos:candidatos.slice(0,1),dataAlvo);
+    ligados++;
   });
   renderPasso();
   toast(ligados?`${ligados} documento(s) vinculado(s) do acervo.`:'Nenhum documento novo encontrado no acervo.');
@@ -174,6 +205,7 @@ async function salvarChecklist(){
     aplicavel:i.aplicavel!==false,justificativa_nao_aplicavel:i.justificativa||null,
     documento_ref_tabela:i.documentoRefTabela||null,documento_ref_id:i.documentoRefId||null,
     documento_ref_path:i.documentoRefPath||null,validade:i.validade||null,
+    documentos_vinculados:i.documentosVinculados||[],
     status:i.status,observacao:i.observacao||null,atualizado_em:new Date().toISOString()}));
   const {error}=await client.from('licitacao_checklist_itens').upsert(linhas,{onConflict:'licitacao_id,chave'});
   if(error)throw error;
@@ -274,7 +306,57 @@ function renderPassoClassificacao(){
 
 const ROTULO_STATUS={ok:'Em dia',vencido:'Vencido para a sessão',pendente:'Pendente',ausente:'Ausente',gerado:'Gerado pelo sistema',nao_aplicavel:'Não se aplica'};
 
+/* Itens acumulativos (representante legal, responsável técnico, atestados...)
+   aceitam vários documentos ao mesmo tempo: cada sócio, cada profissional tem
+   o seu. Mostra a lista inteira, um "Remover" por documento, e o mesmo select
+   de sempre serve para ACRESCENTAR mais um, em vez de trocar o único. */
+function renderLinhaItemAcumulativo(item,indice){
+  const naoAplica=item.aplicavel===false;
+  const vinculos=vinculosDoItem(item);
+  let sub=item.baseLegal||'';
+  if(!item.obrigatorio)sub+=`${sub?' · ':''}exigível conforme o edital`;
+  const candidatos=candidatosAcervo(item,wiz.notice.companyId)
+    .filter(c=>!vinculos.some(v=>v.tabela===c.tabela&&v.id===c.id));
+  const outros=todoAcervo(wiz.notice.companyId)
+    .filter(o=>!vinculos.some(v=>v.tabela===o.tabela&&v.id===o.id)&&!candidatos.some(c=>c.tabela===o.tabela&&c.id===o.id));
+  return `<div class="wz-item wz-item-multiplo${naoAplica?' inativo':''}" data-item="${indice}">
+    <div class="wz-item-main">
+      <strong>${esc(item.titulo)}</strong>
+      <small>${esc(sub)}${vinculos.length?` · ${vinculos.length} documento(s) vinculado(s)`:''}</small>
+      ${item.observacao?`<small class="wz-obs">${esc(item.observacao)}</small>`:''}
+      ${naoAplica?`<small class="wz-obs">Justificativa: ${esc(item.justificativa||'não informada')}</small>`:''}
+    </div>
+    <div class="wz-item-acoes">
+      ${naoAplica?'':`
+      ${vinculos.length?`<ul class="wz-vinculos">${vinculos.map((v,i)=>`<li>
+        <span>${esc(v.nome||v.path||'Documento')}</span>
+        <span><button type="button" class="link" data-document="${esc(v.path)}">Abrir</button>
+        <button type="button" class="link" data-remover-vinculo="${indice}:${i}">Remover</button></span>
+      </li>`).join('')}</ul>`:''}
+      <select data-vincular-mais="${indice}">
+        <option value="">Vincular mais um do acervo…</option>
+        ${candidatos.length?`<optgroup label="Compatíveis com a exigência">${candidatos.map(c=>`<option value="${c.tabela}:${c.id}">${esc(c.nome)}</option>`).join('')}</optgroup>`:''}
+        ${outros.length?`<optgroup label="Outros documentos da empresa">${outros.map(c=>`<option value="${c.tabela}:${c.id}">${esc(c.nome)}</option>`).join('')}</optgroup>`:''}
+      </select>
+      <div class="wz-item-links">
+        <button type="button" class="link" data-enviar="${indice}">Enviar novo agora ↑</button>
+        <button type="button" class="link" data-agendar="${indice}">Agendar</button>
+        <button type="button" class="link" data-na="${indice}">Não se aplica</button>
+      </div>
+      <div class="wz-upload" id="wz-upload-${indice}" hidden>
+        <input type="file" data-arquivo="${indice}" accept=".pdf,.png,.jpg,.jpeg">
+        <input type="date" data-validade="${indice}" title="Validade, se houver">
+        <button type="button" class="secondary" data-salvar-upload="${indice}">Salvar no acervo e acrescentar</button>
+        <small>Envia para o acervo da empresa e acrescenta à lista, sem substituir os já vinculados.</small>
+      </div>`}
+      ${naoAplica?`<button type="button" class="link" data-reativar="${indice}">Voltar a exigir</button>`:''}
+    </div>
+    <span class="badge ${item.status}">${ROTULO_STATUS[item.status]||item.status}</span>
+  </div>`;
+}
+
 function renderLinhaItem(item,indice){
+  if(itemAcumulativo(item))return renderLinhaItemAcumulativo(item,indice);
   const naoAplica=item.aplicavel===false;
   const doc=item.documentoRefPath;
   let sub=item.baseLegal||'';
@@ -409,7 +491,7 @@ function recalcular(){
   if(wiz.passo>=2&&wiz.notice.companyId){
     const anteriores=wiz.itens.map(i=>({chave:i.chave,id:i.id,aplicavel:i.aplicavel,justificativa:i.justificativa,
       observacao:i.observacao,documentoRefTabela:i.documentoRefTabela,documentoRefId:i.documentoRefId,
-      documentoRefPath:i.documentoRefPath,validade:i.validade,status:i.status}));
+      documentoRefPath:i.documentoRefPath,validade:i.validade,status:i.status,documentosVinculados:i.documentosVinculados}));
     wiz.itens=montarChecklist(wiz.notice,anteriores.length?anteriores:wiz.salvos);
   }
   wiz.critica=Regras.criticarProcesso(processoDaLicitacao(wiz.notice),wiz.itens.filter(i=>i.aplicavel!==false),{});
@@ -548,6 +630,17 @@ function ligarEventos(){
       item.documentoRefTabela=achado.tabela;item.documentoRefId=achado.id;item.documentoRefPath=achado.path;
       item.validade=achado.validade;item.status=statusDoVinculo(achado,wiz.notice.opening||hoje());
       renderPasso();
+      return;
+    }
+    const selMais=t.dataset.vincularMais;
+    if(selMais!=null){
+      const item=wiz.itens[Number(selMais)];
+      if(!t.value)return;
+      const [tabela,refId]=t.value.split(':');
+      const achado=[...candidatosAcervo(item,wiz.notice.companyId),...todoAcervo(wiz.notice.companyId)].find(c=>c.tabela===tabela&&c.id===refId);
+      if(!achado)return;
+      aplicarVinculos(item,[...vinculosDoItem(item),achado],wiz.notice.opening||hoje());
+      renderPasso();
     }
   });
 
@@ -616,18 +709,19 @@ function ligarEventos(){
       try{
         const categoria=categoriaDoItem(item);
         const ano=(validade||hoje()).slice(0,4);
+        const tipoChave=Regras.tiposQueAtendem(item.chave)[0]?.chave||null;
         const path=await uploadDocument(file,wiz.notice.companyId,`acervo/${safeFolder(categoria)}/${ano}`);
         const {data,error}=await client.from('documentos_empresa').insert({
-          empresa_id:wiz.notice.companyId,categoria,tipo:item.titulo.slice(0,120),nome_original:file.name,
+          empresa_id:wiz.notice.companyId,categoria,tipo:item.titulo.slice(0,120),tipo_chave:tipoChave,nome_original:file.name,
           arquivo_path:path,origem:'Assistente de habilitação',validade:validade||null,
           sha256:await fileHash(file),metadados:{item:item.chave,licitacao:wiz.notice.id},criado_por:state.user.id
         }).select().single();
         if(error)throw error;
-        item.documentoRefTabela='documentos_empresa';item.documentoRefId=data.id;item.documentoRefPath=path;
-        item.validade=validade||null;item.status=statusDoVinculo({validade},wiz.notice.opening||hoje());
+        const novoVinculo={tabela:'documentos_empresa',id:data.id,path,validade:validade||null,nome:file.name};
+        aplicarVinculos(item,itemAcumulativo(item)?[...vinculosDoItem(item),novoVinculo]:[novoVinculo],wiz.notice.opening||hoje());
         await loadData();
         renderPasso();
-        toast('Documento enviado ao acervo e vinculado.');
+        toast(itemAcumulativo(item)?'Documento enviado ao acervo e acrescentado.':'Documento enviado ao acervo e vinculado.');
       }catch(error){toast(friendlyError(error))}
       finally{setBusy(alvo,false)}
       return;
@@ -637,7 +731,17 @@ function ligarEventos(){
     if(desvincular!=null){
       const item=wiz.itens[Number(desvincular)];
       item.documentoRefTabela=null;item.documentoRefId=null;item.documentoRefPath=null;item.validade=null;
+      item.documentosVinculados=[];
       item.status=item.gerado?'gerado':'ausente';
+      renderPasso();
+      return;
+    }
+
+    const removerVinculo=alvo.dataset.removerVinculo;
+    if(removerVinculo!=null){
+      const [indiceStr,posStr]=removerVinculo.split(':'),item=wiz.itens[Number(indiceStr)],pos=Number(posStr);
+      const lista=vinculosDoItem(item).filter((_,i)=>i!==pos);
+      aplicarVinculos(item,lista,wiz.notice.opening||hoje());
       renderPasso();
       return;
     }
@@ -657,7 +761,7 @@ function ligarEventos(){
     if(reativar!=null){
       const item=wiz.itens[Number(reativar)];
       item.aplicavel=true;item.justificativa='';
-      item.status=item.gerado?'gerado':item.documentoRefId?statusDoVinculo({validade:item.validade},wiz.notice.opening||hoje()):'ausente';
+      aplicarVinculos(item,vinculosDoItem(item),wiz.notice.opening||hoje());
       renderPasso();
       return;
     }
