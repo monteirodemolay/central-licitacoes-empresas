@@ -1,0 +1,905 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assistente de Licitação</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --sidebar:#152238;
+    --sidebar-hover:#263a59;
+    --sidebar-text:#c9d3e2;
+    --sidebar-muted:#8b9bb8;
+
+    --blue:#2457d6;
+    --blue-strong:#173fb0;
+    --blue-soft:#eaf0fe;
+    --blue-soft-line:#c9dafc;
+
+    --bg:#f4f6f9;
+    --surface:#ffffff;
+    --surface-2:#f8f9fb;
+    --line:#dfe4eb;
+    --text:#1c2737;
+    --muted:#667085;
+
+    --red:#b42318;
+    --red-bg:#fee4e2;
+    --amber:#b54708;
+    --amber-bg:#fef0c7;
+    --green:#027a48;
+    --green-bg:#d1fadf;
+    --grey-fg:#475467;
+    --grey-bg:#eaecf0;
+    --info:#2457d6;
+    --info-bg:#eaf0fe;
+
+    --shadow:0 1px 2px rgba(16,24,40,.06);
+    --shadow-md:0 8px 24px rgba(16,24,40,.10);
+    --radius:10px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --blue:#7ea2ff;
+      --blue-soft:#182544;
+      --blue-soft-line:#2b3e6e;
+
+      --bg:#0c1220;
+      --surface:#131b2c;
+      --surface-2:#182035;
+      --line:#28324a;
+      --text:#e7ecf6;
+      --muted:#93a1ba;
+
+      --red:#ff8a80;
+      --red-bg:#3a1a1c;
+      --amber:#ffc36b;
+      --amber-bg:#3a2a10;
+      --green:#5ee0a6;
+      --green-bg:#123528;
+      --grey-fg:#a7b2c6;
+      --grey-bg:#202a40;
+      --info:#7ea2ff;
+      --info-bg:#182544;
+
+      --shadow:0 1px 2px rgba(0,0,0,.4);
+      --shadow-md:0 12px 30px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --blue:#7ea2ff;
+    --blue-soft:#182544;
+    --blue-soft-line:#2b3e6e;
+
+    --bg:#0c1220;
+    --surface:#131b2c;
+    --surface-2:#182035;
+    --line:#28324a;
+    --text:#e7ecf6;
+    --muted:#93a1ba;
+
+    --red:#ff8a80;
+    --red-bg:#3a1a1c;
+    --amber:#ffc36b;
+    --amber-bg:#3a2a10;
+    --green:#5ee0a6;
+    --green-bg:#123528;
+    --grey-fg:#a7b2c6;
+    --grey-bg:#202a40;
+    --info:#7ea2ff;
+    --info-bg:#182544;
+
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+    --shadow-md:0 12px 30px rgba(0,0,0,.5);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font:15px/1.5 Inter,"Segoe UI",Arial,sans-serif;
+    display:flex;
+    min-height:100vh;
+  }
+  ::selection{background:var(--blue-soft-line);}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
+  .num,input,select,textarea,.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;}
+  h1,h2,h3{text-wrap:balance;}
+
+  /* ---------- sidebar ---------- */
+  .sidebar{
+    width:224px;
+    flex:0 0 224px;
+    background:var(--sidebar);
+    color:var(--sidebar-text);
+    padding:22px 16px;
+    display:flex;
+    flex-direction:column;
+    position:sticky;
+    top:0;
+    height:100vh;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;color:#fff;margin-bottom:26px;}
+  .brand-mark{width:32px;height:32px;border-radius:8px;background:#fff;color:var(--sidebar);display:grid;place-items:center;font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:13px;}
+  .brand small{display:block;font-size:10px;font-weight:500;color:var(--sidebar-muted);letter-spacing:.02em;}
+  nav{display:grid;gap:3px;}
+  nav button{
+    all:unset;
+    cursor:pointer;
+    padding:9px 11px;
+    border-radius:7px;
+    font-size:13px;
+    color:var(--sidebar-text);
+  }
+  nav button:hover{background:var(--sidebar-hover);color:#fff;}
+  nav button.active{background:var(--sidebar-hover);color:#fff;font-weight:600;}
+  .sidebar-foot{margin-top:auto;border-top:1px solid #2a3a5a;padding-top:14px;font-size:11px;color:var(--sidebar-muted);line-height:1.5;}
+
+  /* ---------- main ---------- */
+  main{flex:1;min-width:0;padding:26px 34px 90px;}
+  .crumb{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);font-weight:800;margin:0 0 6px;}
+  .page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:6px;flex-wrap:wrap;}
+  .page-head h1{margin:0;font-size:24px;letter-spacing:-.01em;}
+  .proto-chip{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:11px;font-weight:600;color:var(--blue);
+    background:var(--blue-soft);border:1px solid var(--blue-soft-line);
+    border-radius:999px;padding:4px 10px;margin-left:10px;vertical-align:middle;
+  }
+  .subline{color:var(--muted);font-size:13.5px;margin:2px 0 20px;max-width:64ch;}
+  .head-meta{display:flex;gap:10px;flex-wrap:wrap;}
+  .meta-chip{
+    display:flex;align-items:center;gap:7px;
+    background:var(--surface);border:1px solid var(--line);border-radius:999px;
+    padding:7px 12px 7px 8px;font-size:12.5px;box-shadow:var(--shadow);white-space:nowrap;
+  }
+  .meta-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:0 0 auto;}
+  .meta-chip.warn .dot{background:var(--amber);}
+  .meta-chip .num{font-weight:600;}
+
+  /* ---------- stepper ---------- */
+  .stepper{
+    display:flex;
+    margin:26px 0 22px;
+    border:1px solid var(--line);
+    background:var(--surface);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow-x:auto;
+  }
+  .step-btn{
+    all:unset;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding:13px 16px;
+    flex:1 1 0;
+    min-width:118px;
+    border-right:1px solid var(--line);
+    position:relative;
+  }
+  .step-btn:last-child{border-right:0;}
+  .step-btn[disabled]{cursor:not-allowed;}
+  .step-btn .ix{
+    width:22px;height:22px;border-radius:50%;
+    display:grid;place-items:center;flex:0 0 auto;
+    font-size:11px;font-weight:700;font-family:"IBM Plex Mono",monospace;
+    background:var(--grey-bg);color:var(--grey-fg);
+  }
+  .step-btn .lbl{display:grid;line-height:1.25;}
+  .step-btn .lbl b{font-size:12.5px;font-weight:600;color:var(--text);}
+  .step-btn .lbl span{font-size:10.5px;color:var(--muted);}
+  .step-btn.current{background:var(--blue-soft);}
+  .step-btn.current .ix{background:var(--blue);color:#fff;}
+  .step-btn.done .ix{background:var(--green-bg);color:var(--green);}
+  .step-btn.done .ix::after{content:"✓";}
+  .step-btn.skip .ix{background:transparent;border:1.5px dashed var(--line);color:var(--muted);}
+  .step-btn.skip .lbl span{font-style:italic;}
+
+  /* ---------- cards / steps ---------- */
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:24px 26px;
+  }
+  .panel h2{margin:0 0 3px;font-size:16.5px;}
+  .panel .hint{color:var(--muted);font-size:13px;margin:0 0 20px;max-width:62ch;}
+  .step{display:none;}
+  .step.active{display:block;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .field{display:grid;gap:6px;min-width:0;}
+  .field.full{grid-column:1/-1;}
+  .field label{font-size:12px;font-weight:600;color:var(--muted);}
+  .field small.help{font-size:11.5px;color:var(--muted);font-weight:400;}
+  input,select,textarea{
+    font-family:Inter,sans-serif;
+    font-size:13.5px;
+    padding:9px 11px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    background:var(--surface);
+    color:var(--text);
+    width:100%;
+  }
+  input.mono,select.mono{font-family:"IBM Plex Mono",monospace;font-size:13px;}
+  textarea{font-family:Inter,sans-serif;resize:vertical;min-height:64px;}
+  input:focus,select:focus,textarea:focus{border-color:var(--blue);}
+  .radio-row{display:flex;gap:10px;}
+  .radio-card{
+    flex:1;display:flex;gap:9px;align-items:flex-start;
+    border:1px solid var(--line);border-radius:9px;padding:12px 13px;cursor:pointer;
+  }
+  .radio-card input{width:auto;margin-top:2px;}
+  .radio-card:has(input:checked){border-color:var(--blue);background:var(--blue-soft);}
+  .radio-card b{display:block;font-size:13px;}
+  .radio-card span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;}
+
+  .btnrow{display:flex;gap:10px;margin-top:22px;}
+  button.primary,button.secondary,button.ghost{
+    font:600 13px Inter,sans-serif;border-radius:7px;padding:10px 16px;cursor:pointer;
+  }
+  button.primary{background:var(--blue);border:1px solid var(--blue);color:#fff;}
+  button.secondary{background:var(--surface);border:1px solid var(--line);color:var(--text);}
+  button.ghost{background:transparent;border:1px solid transparent;color:var(--blue);padding:10px 6px;}
+  button[disabled]{opacity:.45;cursor:not-allowed;}
+
+  .callout{
+    display:flex;gap:10px;border-radius:8px;padding:11px 13px;font-size:13px;margin:16px 0 4px;
+    border:1px solid var(--blue-soft-line);background:var(--blue-soft);color:var(--text);
+  }
+  .callout.warn{border-color:#f3d19a;background:var(--amber-bg);}
+  .callout b{color:inherit;}
+  .callout.warn strong{color:var(--amber);}
+  .callout strong{color:var(--blue);}
+
+  /* checklist rows */
+  .blockhead{display:flex;justify-content:space-between;align-items:baseline;margin:26px 0 4px;}
+  .blockhead:first-child{margin-top:0;}
+  .blockhead h3{margin:0;font-size:13.5px;letter-spacing:.02em;}
+  .blockhead .basefund{font-size:11px;color:var(--muted);font-family:"IBM Plex Mono",monospace;}
+  .not-applicable-note{
+    border:1px dashed var(--line);border-radius:9px;padding:16px;color:var(--muted);font-size:13px;
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+  }
+  .item-row{
+    display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:start;
+    padding:11px 2px;border-bottom:1px solid var(--line);
+  }
+  .item-row:last-child{border-bottom:0;}
+  .item-row .ttl{font-size:13.5px;font-weight:600;}
+  .item-row .sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .item-row .badge{margin-top:2px;}
+  .linkbox{display:flex;flex-direction:column;align-items:flex-end;gap:5px;}
+  .linkbox select{font-size:12px;padding:6px 8px;min-width:190px;}
+  .linkbox .toggle-upload{font-size:11px;padding:2px;}
+  .upload-inline{
+    display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;align-items:center;
+    background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:9px;max-width:280px;
+  }
+  .upload-inline input[type="file"]{font-size:11px;padding:5px;max-width:150px;}
+  .upload-inline input[type="date"]{font-size:11px;padding:6px;max-width:118px;}
+  .upload-inline .up-note{flex-basis:100%;font-size:10.5px;color:var(--muted);text-align:right;}
+  .upload-inline button{font-size:11.5px;padding:6px 10px;}
+  .badge{
+    font-size:10.5px;font-weight:700;letter-spacing:.02em;border-radius:999px;padding:5px 10px;
+    white-space:nowrap;text-transform:uppercase;
+  }
+  .badge.ok{background:var(--green-bg);color:var(--green);}
+  .badge.vencido{background:var(--red-bg);color:var(--red);}
+  .badge.pendente{background:var(--amber-bg);color:var(--amber);}
+  .badge.ausente{background:var(--grey-bg);color:var(--grey-fg);}
+  .badge.gerado{background:var(--info-bg);color:var(--info);}
+  .badge.na{background:transparent;color:var(--muted);border:1px dashed var(--line);}
+
+  table.props{width:100%;border-collapse:collapse;margin-top:6px;}
+  table.props th,table.props td{border-bottom:1px solid var(--line);padding:8px 8px;font-size:12.5px;text-align:left;}
+  table.props th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;}
+  table.props td.num{text-align:right;font-family:"IBM Plex Mono",monospace;}
+  table.props tfoot td{font-weight:700;}
+
+  .decl-row{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);}
+  .decl-row:last-child{border-bottom:0;}
+  .decl-row input{width:auto;margin-top:3px;}
+  .decl-row .t{font-size:13px;}
+  .decl-row .t small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px;}
+
+  /* review */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+  .kpi{border:1px solid var(--line);border-radius:9px;padding:14px 15px;background:var(--surface-2);}
+  .kpi .n{font-family:"IBM Plex Mono",monospace;font-size:24px;font-weight:600;line-height:1;}
+  .kpi .l{font-size:11.5px;color:var(--muted);margin-top:6px;}
+  .kpi.ok .n{color:var(--green);}
+  .kpi.warn .n{color:var(--amber);}
+  .kpi.bad .n{color:var(--red);}
+  .pend-list{display:grid;gap:8px;margin:6px 0 22px;}
+  .pend-item{display:flex;gap:10px;align-items:center;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:9px 12px;background:var(--surface-2);}
+
+  .tree{
+    background:var(--surface-2);border:1px solid var(--line);border-radius:9px;
+    padding:14px 16px;font-family:"IBM Plex Mono",monospace;font-size:12px;line-height:1.85;
+    white-space:pre;overflow-x:auto;color:var(--text);
+  }
+  .tree .fold{color:var(--blue);font-weight:600;}
+  .tree .skip{color:var(--muted);}
+
+  .result-panel{margin-top:20px;border-top:1px solid var(--line);padding-top:20px;}
+  .result-panel.ok h3{color:var(--green);}
+  .result-panel.warn h3{color:var(--amber);}
+
+  /* sticky footer */
+  .footbar{
+    position:fixed;left:224px;right:0;bottom:0;
+    background:var(--surface);border-top:1px solid var(--line);
+    padding:13px 34px;display:flex;justify-content:space-between;align-items:center;
+    box-shadow:0 -6px 18px rgba(16,24,40,.06);
+  }
+  .footbar .pend-pill{
+    display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);
+  }
+  .footbar .pend-pill b{font-family:"IBM Plex Mono",monospace;color:var(--amber);}
+  .footbar .pend-pill.zero b{color:var(--green);}
+
+  @media (max-width:900px){
+    .sidebar{display:none;}
+    main{padding:20px;}
+    .footbar{left:0;padding:12px 20px;}
+    .grid2{grid-template-columns:1fr;}
+    .kpis{grid-template-columns:1fr 1fr;}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .step.active{animation:fade .15s ease;}
+  }
+  @keyframes fade{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand"><span class="brand-mark">LD</span><span>LiciDoc<small>Controle de licitações</small></span></div>
+  <nav>
+    <button>Visão geral</button>
+    <button>Empresas</button>
+    <button>Acervo</button>
+    <button>Certidões</button>
+    <button>Balanços</button>
+    <button class="active">Editais</button>
+    <button>Pacotes</button>
+  </nav>
+  <div class="sidebar-foot">Nenhuma análise deste assistente substitui a conferência do edital original, das assinaturas e da validade na data da sessão.</div>
+</aside>
+
+<main>
+  <p class="crumb">Editais · Novo processo</p>
+  <div class="page-head">
+    <div>
+      <h1>Assistente de habilitação<span class="proto-chip">● Protótipo interativo</span></h1>
+    </div>
+  </div>
+  <p class="subline">Classifique o processo uma vez — o assistente calcula a documentação exigível por modalidade e tipo de objeto (Lei 14.133/2021) e cruza com o acervo da empresa.</p>
+
+  <div class="head-meta" id="headMeta"></div>
+
+  <div class="stepper" id="stepper"></div>
+
+  <div class="panel">
+
+    <!-- Step 0 -->
+    <section class="step" data-step="0">
+      <h2>Origem do processo</h2>
+      <p class="hint">O assistente pode ler um edital em PDF e pré-preencher os próximos passos, ou você pode começar do zero.</p>
+      <div class="radio-row">
+        <label class="radio-card"><input type="radio" name="origem" value="pdf" checked><span><b>Ler edital em PDF</b><span>Extração local de texto: identifica número, órgão, objeto, modalidade e exigências para conferência.</span></span></label>
+        <label class="radio-card"><input type="radio" name="origem" value="manual"><span><b>Preencher manualmente</b><span>Sem PDF disponível ainda — os campos ficam em branco para digitação.</span></span></label>
+      </div>
+      <div class="field full" style="margin-top:16px;">
+        <label>Edital em PDF</label>
+        <input type="file" accept=".pdf" id="fileNotice">
+        <small class="help">Exemplo já carregado abaixo para demonstração — Pregão Eletrônico nº 090025/2026-014.</small>
+      </div>
+      <div class="btnrow"><button class="primary" data-next>Avançar</button></div>
+    </section>
+
+    <!-- Step 1 -->
+    <section class="step" data-step="1">
+      <h2>Identificação do processo</h2>
+      <p class="hint">Confira os dados extraídos do edital — todos os campos permanecem editáveis.</p>
+      <div class="grid2">
+        <div class="field"><label>Empresa participante</label>
+          <select id="fEmpresa"><option>Alfa Engenharia e Serviços Ltda. — 11.222.333/0001-81</option><option>Boreal Suprimentos Corporativos EIRELI</option></select>
+        </div>
+        <div class="field"><label>Número / identificação</label><input class="mono" id="fNumero" value="Pregão Eletrônico nº 090025/2026-014"></div>
+        <div class="field"><label>Órgão / entidade</label><input id="fOrgao" value="Prefeitura Municipal de Santo Antônio do Descoberto/GO"></div>
+        <div class="field"><label>Link no PNCP</label><input class="mono" id="fPncp" value="pncp.gov.br/app/editais/09028519000185/2026/014"></div>
+        <div class="field full"><label>Objeto</label><textarea id="fObjeto">Contratação de empresa especializada para prestação de serviços continuados de manutenção predial preventiva e corretiva (elétrica, hidráulica e civil) nas unidades da Secretaria Municipal de Educação.</textarea></div>
+        <div class="field"><label>Data da sessão</label><input type="date" id="fData"></div>
+        <div class="field"><label>Horário</label><input type="time" id="fHora" value="10:00"></div>
+      </div>
+      <div class="btnrow"><button class="secondary" data-back>Voltar</button><button class="primary" data-next>Avançar</button></div>
+    </section>
+
+    <!-- Step 2 -->
+    <section class="step" data-step="2">
+      <h2>Classificação do processo</h2>
+      <p class="hint">Esta etapa alimenta o cálculo automático da matriz de documentos exigíveis — mude os campos abaixo e observe o assistente reagir nos passos seguintes.</p>
+
+      <div class="radio-row">
+        <label class="radio-card"><input type="radio" name="certame" value="sim" id="rCertameSim" checked><span><b>Há certame formal</b><span>Segue uma das cinco modalidades do art. 28.</span></span></label>
+        <label class="radio-card"><input type="radio" name="certame" value="nao" id="rCertameNao"><span><b>Contratação direta</b><span>Dispensa (art. 75) ou inexigibilidade (art. 74).</span></span></label>
+      </div>
+
+      <div class="grid2" style="margin-top:16px;">
+        <div class="field" id="wrapModalidade"><label>Modalidade</label>
+          <select id="fModalidade">
+            <option value="pregao">Pregão</option>
+            <option value="concorrencia">Concorrência</option>
+            <option value="concurso">Concurso</option>
+            <option value="leilao">Leilão</option>
+            <option value="dialogo_competitivo">Diálogo competitivo</option>
+          </select>
+        </div>
+        <div class="field" id="wrapDireta" style="display:none;"><label>Forma de contratação direta</label>
+          <select id="fDireta">
+            <option value="dispensa">Dispensa de licitação — art. 75</option>
+            <option value="inexigibilidade">Inexigibilidade — art. 74</option>
+          </select>
+        </div>
+        <div class="field"><label>Tipo de objeto</label>
+          <select id="fObjetoTipo">
+            <option value="bens_comuns">Bens comuns</option>
+            <option value="servicos_comuns">Serviços comuns</option>
+            <option value="servicos_comuns_engenharia" selected>Serviços comuns de engenharia</option>
+            <option value="obras">Obras</option>
+            <option value="servicos_especiais_engenharia">Serviços especiais de engenharia</option>
+            <option value="servicos_especiais_intelectuais">Serviços técnicos especializados (intelectuais)</option>
+            <option value="locacao_imoveis">Locação de imóveis</option>
+          </select>
+        </div>
+        <div class="field"><label>Valor estimado</label><input class="mono" id="fValor" value="480000" inputmode="decimal"></div>
+        <div class="field"><label>Critério de julgamento</label>
+          <select id="fCriterio">
+            <option value="menor_preco">Menor preço</option>
+            <option value="maior_desconto">Maior desconto</option>
+            <option value="tecnica_e_preco">Técnica e preço</option>
+            <option value="melhor_tecnica">Melhor técnica ou conteúdo artístico</option>
+            <option value="maior_lance">Maior lance</option>
+          </select>
+        </div>
+        <div class="field"><label>Tratamento ME/EPP</label>
+          <select id="fMeEpp">
+            <option value="nao">Sem reserva</option>
+            <option value="cota">Cota reservada</option>
+            <option value="sim">Exclusivo ME/EPP</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="classAlert"></div>
+
+      <div class="btnrow"><button class="secondary" data-back>Voltar</button><button class="primary" data-next>Avançar</button></div>
+    </section>
+
+    <!-- Step 3 -->
+    <section class="step active" data-step="3">
+      <h2>Habilitação jurídica e fiscal/social/trabalhista</h2>
+      <p class="hint">Arts. 66 e 68 — calculado a partir da classificação. Documentos ausentes podem ser vinculados diretamente ao acervo da empresa.</p>
+      <div id="blocoJuridico"></div>
+      <div class="btnrow"><button class="secondary" data-back>Voltar</button><button class="primary" data-next>Avançar</button></div>
+    </section>
+
+    <!-- Step 4 -->
+    <section class="step" data-step="4">
+      <h2>Qualificação econômico-financeira</h2>
+      <p class="hint">Art. 69 — exigida para obras, serviços especiais de engenharia ou quando o valor estimado é elevado.</p>
+      <div id="blocoEconomico"></div>
+      <div class="btnrow"><button class="secondary" data-back>Voltar</button><button class="primary" data-next>Avançar</button></div>
+    </section>
+
+    <!-- Step 5 -->
+    <section class="step" data-step="5">
+      <h2>Qualificação técnica</h2>
+      <p class="hint">Art. 67 — varia conforme o tipo de objeto selecionado no passo 2.</p>
+      <div id="blocoTecnico"></div>
+      <div class="btnrow"><button class="secondary" data-back>Voltar</button><button class="primary" data-next>Avançar</button></div>
+    </section>
+
+    <!-- Step 6 -->
+    <section class="step" data-step="6">
+      <h2>Proposta e declarações</h2>
+      <p class="hint">Itens importados da planilha do órgão; declarações calculadas conforme a modalidade e o tratamento ME/EPP escolhidos.</p>
+      <table class="props">
+        <thead><tr><th>Item</th><th>Descrição</th><th>Un.</th><th>Qtd.</th><th>Valor unit.</th><th>Valor total</th></tr></thead>
+        <tbody>
+          <tr><td class="num">01</td><td>Manutenção elétrica preventiva mensal</td><td>SERV</td><td class="num">12</td><td class="num">2.480,00</td><td class="num">29.760,00</td></tr>
+          <tr><td class="num">02</td><td>Manutenção hidráulica corretiva sob demanda</td><td>H</td><td class="num">960</td><td class="num">68,50</td><td class="num">65.760,00</td></tr>
+          <tr><td class="num">03</td><td>Reforma de rede elétrica — Escola Municipal Vale Verde</td><td>VB</td><td class="num">1</td><td class="num">384.480,00</td><td class="num">384.480,00</td></tr>
+        </tbody>
+        <tfoot><tr><td colspan="5">Valor global da proposta</td><td class="num">480.000,00</td></tr></tfoot>
+      </table>
+      <div class="blockhead" style="margin-top:24px;"><h3>Declarações exigidas</h3><span class="basefund" id="declFund"></span></div>
+      <div id="blocoDeclaracoes"></div>
+      <div class="btnrow"><button class="secondary" data-back>Voltar</button><button class="primary" data-next>Avançar</button></div>
+    </section>
+
+    <!-- Step 7 -->
+    <section class="step" data-step="7">
+      <h2>Revisão final</h2>
+      <p class="hint">Consolidado de todos os blocos aplicáveis a este processo.</p>
+      <div class="kpis" id="kpis"></div>
+      <div id="pendList"></div>
+      <div class="blockhead"><h3>Estrutura do pacote a gerar</h3><span class="basefund">pré-visualização</span></div>
+      <div class="tree" id="zipTree"></div>
+      <div class="btnrow"><button class="secondary" data-back>Voltar</button><button class="primary" id="btnGerar">Gerar pacote ZIP</button></div>
+      <div id="resultPanel"></div>
+    </section>
+
+  </div>
+</main>
+
+<div class="footbar">
+  <div class="pend-pill" id="footPend"></div>
+  <div id="footCountdown" style="font-size:12.5px;color:var(--muted);"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(s,r){ return (r||document).querySelector(s); };
+  var $$ = function(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+  function addDays(n){ var d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+n); return d; }
+  function iso(d){ return d.toISOString().slice(0,10); }
+  function fmt(d){ if(!d) return "—"; var p=iso(d).split("-"); return p[2]+"/"+p[1]+"/"+p[0]; }
+  function diasEntre(a,b){ return Math.round((b-a)/86400000); }
+
+  var TODAY = addDays(0);
+  var ABERTURA = addDays(19);
+
+  var overrides = {}; // itemId -> {status, matchLabel, validade}
+
+  var state = {
+    step: 3,
+    visitedMax: 3,
+    temCertame: true,
+    modalidade: "pregao",
+    direta: "dispensa",
+    tipoObjeto: "servicos_comuns_engenharia",
+    valor: 480000,
+    criterio: "menor_preco",
+    meEpp: "nao"
+  };
+
+  var STEPS = [
+    {k:"origem", t:"Origem"},
+    {k:"ident", t:"Identificação"},
+    {k:"class", t:"Classificação"},
+    {k:"juridico", t:"Habilitação"},
+    {k:"economico", t:"Econ.-financeira", applic:function(){return econAplicavel();}},
+    {k:"tecnico", t:"Técnica", applic:function(){return tecnicaAplicavel();}},
+    {k:"proposta", t:"Proposta"},
+    {k:"revisao", t:"Revisão final"}
+  ];
+
+  function econAplicavel(){
+    return ["obras","servicos_especiais_engenharia","servicos_especiais_intelectuais"].indexOf(state.tipoObjeto)>-1 || state.valor >= 250000;
+  }
+  function tecnicaAplicavel(){
+    return state.tipoObjeto !== "bens_comuns" || state.valor >= 250000;
+  }
+
+  /* ---------------- checklist data ---------------- */
+  function baseJuridicoFiscal(){
+    return [
+      {id:"contrato_social", bloco:"juridica", ttl:"Contrato social consolidado", sub:"Habilitação jurídica · art. 66", status:"ok", validade:null, matchLabel:"contrato-social-2024.pdf"},
+      {id:"cnpj", bloco:"juridica", ttl:"Comprovante de inscrição no CNPJ", sub:"Habilitação jurídica · art. 66", status:"ok", validade:null, matchLabel:"cartao-cnpj.pdf"},
+      {id:"cnd_federal", bloco:"fiscal", ttl:"Certidão conjunta Federal / PGFN", sub:"Regularidade fiscal · art. 68", status:"ok", validade:addDays(140), matchLabel:"cnd-federal.pdf"},
+      {id:"crf_fgts", bloco:"fiscal", ttl:"CRF — Regularidade do FGTS", sub:"Regularidade fiscal · art. 68", status:"urgente_calc", validade:addDays(6), matchLabel:"crf-fgts.pdf"},
+      {id:"cndt", bloco:"fiscal", ttl:"CNDT — Débitos trabalhistas", sub:"Regularidade trabalhista · art. 68", status:"vencido_sessao_calc", validade:addDays(16), matchLabel:"cndt.pdf"},
+      {id:"fazenda_estadual", bloco:"fiscal", ttl:"Regularidade Fazenda Estadual", sub:"Regularidade fiscal · art. 68", status:"ok", validade:addDays(95), matchLabel:"cnd-estadual.pdf"},
+      {id:"fazenda_municipal", bloco:"fiscal", ttl:"Regularidade Fazenda Municipal", sub:"Regularidade fiscal · art. 68", status:"ausente", validade:null, matchLabel:null},
+      {id:"decl_menor", bloco:"declaracao", ttl:"Declaração art. 7º, XXXIII, CF", sub:"Gerada automaticamente pelo assistente", status:"gerado", validade:null, matchLabel:null},
+      {id:"decl_fatos", bloco:"declaracao", ttl:"Inexistência de fatos impeditivos", sub:"Gerada automaticamente pelo assistente", status:"gerado", validade:null, matchLabel:null}
+    ];
+  }
+  function baseEconomico(){
+    return [
+      {id:"balanco", ttl:"Balanço patrimonial — último exercício", sub:"Art. 69 · registrado na Junta Comercial", status:"ok", validade:null, matchLabel:"balanco-2025.pdf"},
+      {id:"falencia", ttl:"Certidão negativa de falência e recuperação judicial", sub:"Art. 69", status:"pendente", validade:null, matchLabel:null},
+      {id:"pl_minimo", ttl:"Patrimônio líquido mínimo (10% do valor estimado)", sub:"Exigido: R$ "+fmtMoeda(state.valor*0.1)+" · informado: R$ "+fmtMoeda(612000), status:(612000 >= state.valor*0.1 ? "ok" : "pendente"), validade:null, matchLabel:null}
+    ];
+  }
+  function baseTecnico(){
+    var rows = [
+      {id:"registro_crea", ttl:"Registro da empresa no CREA", sub:"Art. 67 · qualificação técnico-operacional", status:"ok", validade:addDays(210), matchLabel:"certidao-crea-pj.pdf"},
+      {id:"atestado1", ttl:"Atestado de capacidade técnica — manutenção predial", sub:"64% da parcela de maior relevância exigida", status:"ok", validade:null, matchLabel:"atestado-secretaria-saude.pdf"},
+      {id:"art_rt", ttl:"ART do responsável técnico", sub:"Vínculo comprovado por contrato social", status:"pendente", validade:null, matchLabel:null}
+    ];
+    if(state.tipoObjeto==="obras" || state.tipoObjeto==="servicos_especiais_engenharia"){
+      rows.push({id:"vistoria", ttl:"Declaração de vistoria técnica", sub:"Ou declaração de dispensa de vistoria", status:"ausente", validade:null, matchLabel:null});
+    }
+    return rows;
+  }
+  function declaracoes(){
+    var base = [
+      {t:"Elaboração independente da proposta", s:"Praxe recomendada para pregão e concorrência.", show: state.modalidade==="pregao"||state.modalidade==="concorrencia"||!state.temCertame},
+      {t:"Pleno conhecimento e aceitação do edital", s:"Exigida em todas as modalidades.", show:true},
+      {t:"Cumprimento da reserva legal de cargos (PCD/reabilitado)", s:"Quando o quadro de pessoal se enquadrar na exigência.", show:true},
+      {t:"Enquadramento como ME/EPP", s:"Necessária para fruição dos benefícios da LC 123/2006.", show: state.meEpp!=="nao"}
+    ];
+    return base;
+  }
+
+  function fmtMoeda(v){ return v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+  function resolveStatus(item){
+    var ov = overrides[item.id];
+    if(ov) return ov;
+    var status = item.status;
+    if(status==="urgente_calc") status = diasEntre(TODAY,item.validade) <= 10 ? "pendente" : "ok";
+    if(status==="vencido_sessao_calc") status = item.validade < ABERTURA ? "vencido" : "ok";
+    return {status:status, validade:item.validade, matchLabel:item.matchLabel};
+  }
+
+  var ACERVO_OPCOES = ["cnd-municipal-2026.pdf (emitida hoje)","certidao-municipal-junho.pdf (vencida)","— nenhum documento compatível —"];
+
+  function renderChecklistBlock(container, items, opts){
+    opts = opts || {};
+    var html = "";
+    items.forEach(function(item){
+      var r = resolveStatus(item);
+      var labelMap = {ok:"Em dia", vencido:"Vencido antes da sessão", pendente:"Pendente", ausente:"Ausente", gerado:"Gerado", na:"Não se aplica"};
+      var sub = item.sub;
+      if(r.validade) sub += " · válido até " + fmt(r.validade);
+      if(r.matchLabel) sub += " · " + r.matchLabel;
+      html += '<div class="item-row">'
+        + '<div><div class="ttl">'+esc(item.ttl)+'</div><div class="sub">'+esc(sub)+'</div></div>'
+        + (r.status==="ausente" && opts.linkable!==false
+            ? '<div class="linkbox">'
+              + '<select data-link="'+item.id+'"><option value="">Vincular documento do acervo…</option>'+ACERVO_OPCOES.map(function(o,i){return '<option value="'+i+'">'+esc(o)+'</option>';}).join("")+'</select>'
+              + '<button type="button" class="ghost toggle-upload" data-toggle-upload="'+item.id+'">ou enviar agora ↑</button>'
+              + '<div class="upload-inline" id="upl-'+item.id+'" hidden>'
+                + '<input type="file" data-upfile="'+item.id+'" accept=".pdf,.png,.jpg,.jpeg">'
+                + '<input type="date" data-update="'+item.id+'" title="Validade, se houver">'
+                + '<button type="button" class="secondary" data-upsave="'+item.id+'">Salvar e vincular</button>'
+                + '<span class="up-note">Envia direto para o acervo da empresa e já preenche este item.</span>'
+              + '</div>'
+              + '</div>'
+            : '<div></div>')
+        + '<span class="badge '+r.status+'">'+labelMap[r.status]+'</span>'
+        + '</div>';
+    });
+    container.innerHTML = html;
+    $$('select[data-link]', container).forEach(function(sel){
+      sel.addEventListener("change", function(){
+        var id = sel.getAttribute("data-link");
+        var idx = sel.value;
+        if(idx==="" ) return;
+        var opt = ACERVO_OPCOES[idx];
+        if(opt.indexOf("nenhum")>-1){ renderAll(); return; }
+        var vencida = opt.indexOf("vencida")>-1;
+        overrides[id] = {status: vencida?"vencido":"ok", validade: vencida?addDays(-40):addDays(300), matchLabel: opt.split(" (")[0]};
+        renderAll();
+      });
+    });
+    $$('[data-toggle-upload]', container).forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var id = btn.getAttribute("data-toggle-upload");
+        var panel = container.querySelector('#upl-'+cssId(id));
+        var wasHidden = panel.hidden;
+        $$('.upload-inline', container).forEach(function(p){ p.hidden = true; });
+        panel.hidden = !wasHidden;
+      });
+    });
+    $$('[data-upsave]', container).forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var id = btn.getAttribute("data-upsave");
+        var fileInput = container.querySelector('[data-upfile="'+id+'"]');
+        var dateInput = container.querySelector('[data-update="'+id+'"]');
+        var hasFile = fileInput && fileInput.files && fileInput.files[0];
+        var fname = hasFile ? fileInput.files[0].name : (id.replace(/_/g,"-")+"-enviado-agora.pdf");
+        var val = dateInput && dateInput.value ? new Date(dateInput.value+"T00:00:00") : null;
+        overrides[id] = {status:"ok", validade: val, matchLabel: fname+" · enviado agora"};
+        renderAll();
+      });
+    });
+  }
+  function cssId(s){ return String(s).replace(/[^a-zA-Z0-9_-]/g,"\\$&"); }
+
+  function renderJuridico(){
+    renderChecklistBlock($("#blocoJuridico"), baseJuridicoFiscal());
+  }
+  function renderEconomico(){
+    var wrap = $("#blocoEconomico");
+    if(!econAplicavel()){
+      wrap.innerHTML = '<div class="not-applicable-note"><span>Não exigido para este processo — objeto e valor estimado não ultrapassam o critério de exigência de qualificação econômico-financeira.</span><span class="badge na">Não se aplica</span></div>';
+      return;
+    }
+    renderChecklistBlock(wrap, baseEconomico());
+  }
+  function renderTecnico(){
+    var wrap = $("#blocoTecnico");
+    if(!tecnicaAplicavel()){
+      wrap.innerHTML = '<div class="not-applicable-note"><span>Não exigido para este processo — bem comum de baixo valor, sem exigência técnica além da habilitação básica.</span><span class="badge na">Não se aplica</span></div>';
+      return;
+    }
+    renderChecklistBlock(wrap, baseTecnico());
+  }
+  function renderDeclaracoes(){
+    $("#declFund").textContent = state.temCertame ? modalidadeLabel(state.modalidade) : (state.direta==="dispensa"?"Dispensa — art. 75":"Inexigibilidade — art. 74");
+    var html = "";
+    declaracoes().filter(function(d){return d.show;}).forEach(function(d){
+      html += '<div class="decl-row"><input type="checkbox" checked><div class="t"><b>'+esc(d.t)+'</b><small>'+esc(d.s)+'</small></div></div>';
+    });
+    $("#blocoDeclaracoes").innerHTML = html;
+  }
+
+  function modalidadeLabel(v){
+    return {pregao:"Pregão",concorrencia:"Concorrência",concurso:"Concurso",leilao:"Leilão",dialogo_competitivo:"Diálogo competitivo"}[v] || v;
+  }
+  function objetoLabel(v){
+    return {bens_comuns:"Bens comuns",servicos_comuns:"Serviços comuns",servicos_comuns_engenharia:"Serviços comuns de engenharia",obras:"Obras",servicos_especiais_engenharia:"Serviços especiais de engenharia",servicos_especiais_intelectuais:"Serviços técnicos especializados",locacao_imoveis:"Locação de imóveis"}[v] || v;
+  }
+
+  /* ---------------- alerts ---------------- */
+  function renderClassAlert(){
+    var el = $("#classAlert");
+    var msgs = [];
+    if(state.temCertame && state.modalidade==="pregao" && (state.tipoObjeto==="obras"||state.tipoObjeto==="servicos_especiais_engenharia")){
+      msgs.push({warn:true, html:"<strong>Possível inconsistência —</strong> pregão é destinado a bens e serviços comuns; obras e serviços especiais de engenharia normalmente exigem concorrência."});
+    }
+    if(!state.temCertame && state.direta==="dispensa"){
+      var limite = (state.tipoObjeto==="obras"||state.tipoObjeto==="servicos_especiais_engenharia") ? 130984.20 : 65492.11;
+      if(state.valor > limite){
+        msgs.push({warn:true, html:"<strong>Confira o enquadramento —</strong> valor estimado (R$ "+fmtMoeda(state.valor)+") acima do teto de dispensa por valor vigente em 2026 (R$ "+fmtMoeda(limite)+"). Verifique se o inciso do art. 75 usado não é por valor."});
+      }
+    }
+    if(!msgs.length){
+      el.innerHTML = '<div class="callout"><span>✓</span><span>Classificação consistente com as regras gerais da Lei 14.133/2021. A matriz de documentos dos próximos passos foi recalculada.</span></div>';
+      return;
+    }
+    el.innerHTML = msgs.map(function(m){ return '<div class="callout warn">⚠<span>'+m.html+'</span></div>'; }).join("");
+  }
+
+  /* ---------------- header meta / stepper ---------------- */
+  function renderHeadMeta(){
+    var dias = diasEntre(TODAY, ABERTURA);
+    var pend = countPendencias();
+    $("#headMeta").innerHTML =
+      '<div class="meta-chip'+(dias<=5?' warn':'')+'"><span class="dot"></span>Sessão em <span class="num">'+dias+'</span> dia(s) · '+fmt(ABERTURA)+'</div>'
+      + '<div class="meta-chip"><span class="dot"></span><span class="num">'+objetoLabel(state.tipoObjeto)+'</span></div>'
+      + '<div class="meta-chip"><span class="dot"></span>Valor estimado <span class="num">R$ '+fmtMoeda(state.valor)+'</span></div>'
+      + '<div class="meta-chip'+(pend>0?' warn':'')+'"><span class="dot"></span><span class="num">'+pend+'</span> pendência(s)</div>';
+    $("#footCountdown").textContent = "Processo: Pregão Eletrônico nº 090025/2026-014 · " + fmt(ABERTURA)+" às 10:00";
+  }
+
+  function countPendencias(){
+    var n = 0;
+    baseJuridicoFiscal().forEach(function(it){ var r=resolveStatus(it); if(["pendente","vencido","ausente"].indexOf(r.status)>-1) n++; });
+    if(econAplicavel()) baseEconomico().forEach(function(it){ var r=resolveStatus(it); if(["pendente","vencido","ausente"].indexOf(r.status)>-1) n++; });
+    if(tecnicaAplicavel()) baseTecnico().forEach(function(it){ var r=resolveStatus(it); if(["pendente","vencido","ausente"].indexOf(r.status)>-1) n++; });
+    return n;
+  }
+
+  function renderStepper(){
+    var html = "";
+    STEPS.forEach(function(s,i){
+      var applic = s.applic ? s.applic() : true;
+      var cls = "step-btn";
+      if(i===state.step) cls += " current";
+      else if(i<state.step && applic) cls += " done";
+      else if(!applic) cls += " skip";
+      var dis = i>state.visitedMax ? " disabled" : "";
+      html += '<button class="'+cls+'" data-goto="'+i+'"'+dis+'>'
+        + '<span class="ix">'+(i+1)+'</span>'
+        + '<span class="lbl"><b>'+s.t+'</b><span>'+(applic?stepSub(i):"Não exigido")+'</span></span>'
+        + '</button>';
+    });
+    $("#stepper").innerHTML = html;
+    $$('.step-btn', $("#stepper")).forEach(function(b){
+      b.addEventListener("click", function(){
+        var i = parseInt(b.getAttribute("data-goto"),10);
+        if(b.disabled) return;
+        goTo(i);
+      });
+    });
+  }
+  function stepSub(i){
+    return ["PDF ou manual","Dados do edital","Modalidade e objeto","Jurídica e fiscal","Índices e balanço","Atestados","Itens e preços","Checklist final"][i];
+  }
+
+  function renderFoot(){
+    var n = countPendencias();
+    var el = $("#footPend");
+    el.className = "pend-pill" + (n===0?" zero":"");
+    el.innerHTML = n===0 ? "✓ Nenhuma pendência crítica nos blocos aplicáveis" : "⚠ <b>"+n+"</b> pendência(s) crítica(s) em aberto";
+  }
+
+  function renderReview(){
+    var jur = baseJuridicoFiscal().map(resolveStatus);
+    var eco = econAplicavel() ? baseEconomico().map(resolveStatus) : [];
+    var tec = tecnicaAplicavel() ? baseTecnico().map(resolveStatus) : [];
+    var all = jur.concat(eco).concat(tec);
+    var ok = all.filter(function(r){return r.status==="ok"||r.status==="gerado";}).length;
+    var pend = all.filter(function(r){return r.status==="pendente";}).length;
+    var venc = all.filter(function(r){return r.status==="vencido";}).length;
+    var aus = all.filter(function(r){return r.status==="ausente";}).length;
+    $("#kpis").innerHTML =
+      '<div class="kpi ok"><div class="n">'+ok+'</div><div class="l">documentos em dia</div></div>'
+      + '<div class="kpi warn"><div class="n">'+pend+'</div><div class="l">pendentes</div></div>'
+      + '<div class="kpi bad"><div class="n">'+venc+'</div><div class="l">vencidos p/ a sessão</div></div>'
+      + '<div class="kpi bad"><div class="n">'+aus+'</div><div class="l">ausentes</div></div>';
+
+    var pendItems = [];
+    baseJuridicoFiscal().forEach(function(it){ var r=resolveStatus(it); if(r.status!=="ok"&&r.status!=="gerado") pendItems.push({b:"Habilitação",t:it.ttl,s:r.status}); });
+    if(econAplicavel()) baseEconomico().forEach(function(it){ var r=resolveStatus(it); if(r.status!=="ok"&&r.status!=="gerado") pendItems.push({b:"Econômico-financeira",t:it.ttl,s:r.status}); });
+    if(tecnicaAplicavel()) baseTecnico().forEach(function(it){ var r=resolveStatus(it); if(r.status!=="ok"&&r.status!=="gerado") pendItems.push({b:"Técnica",t:it.ttl,s:r.status}); });
+    $("#pendList").innerHTML = pendItems.length
+      ? pendItems.map(function(p){return '<div class="pend-item"><span class="badge '+p.s+'">'+p.s+'</span><span>'+esc(p.b)+' — '+esc(p.t)+'</span></div>';}).join("")
+      : '<div class="pend-item"><span class="badge ok">ok</span><span>Nenhuma pendência — processo pronto para gerar o pacote.</span></div>';
+
+    var tree = "01-habilitacao-juridica-fiscal/\n";
+    tree += econAplicavel() ? '<span class="fold">02-qualificacao-economico-financeira/</span>\n' : '<span class="skip">02-qualificacao-economico-financeira/  (não exigida — omitida)</span>\n';
+    tree += tecnicaAplicavel() ? '<span class="fold">03-qualificacao-tecnica/</span>\n' : '<span class="skip">03-qualificacao-tecnica/  (não exigida — omitida)</span>\n';
+    tree += "04-proposta/\n  proposta-de-precos.doc\n  planilha-de-itens.xlsx\n";
+    tree += "05-declaracoes/\n  declaracoes.doc\n";
+    tree += state.temCertame ? '<span class="skip">06-processo-contratacao-direta/  (há certame — omitida)</span>\n' : '<span class="fold">06-processo-contratacao-direta/</span>\n  justificativa-enquadramento.doc\n';
+    tree += "99-edital-e-anexos/\n  edital-090025-2026-014.pdf\n00-checklist-completo.txt";
+    $("#zipTree").innerHTML = tree;
+  }
+
+  function renderAll(){
+    renderHeadMeta();
+    renderStepper();
+    renderJuridico();
+    renderEconomico();
+    renderTecnico();
+    renderDeclaracoes();
+    renderClassAlert();
+    renderFoot();
+    if(state.step===7) renderReview();
+  }
+
+  function goTo(i){
+    state.step = i;
+    state.visitedMax = Math.max(state.visitedMax, i);
+    $$(".step").forEach(function(sec){ sec.classList.toggle("active", parseInt(sec.getAttribute("data-step"),10)===i); });
+    renderAll();
+    window.scrollTo({top:0,behavior:"auto"});
+  }
+
+  $$("[data-next]").forEach(function(b){ b.addEventListener("click", function(){ goTo(Math.min(7, state.step+1)); }); });
+  $$("[data-back]").forEach(function(b){ b.addEventListener("click", function(){ goTo(Math.max(0, state.step-1)); }); });
+
+  /* ---------------- classification inputs ---------------- */
+  $("#rCertameSim").addEventListener("change", function(){ state.temCertame=true; $("#wrapModalidade").style.display=""; $("#wrapDireta").style.display="none"; renderAll(); });
+  $("#rCertameNao").addEventListener("change", function(){ state.temCertame=false; $("#wrapModalidade").style.display="none"; $("#wrapDireta").style.display=""; renderAll(); });
+  $("#fModalidade").addEventListener("change", function(e){ state.modalidade=e.target.value; renderAll(); });
+  $("#fDireta").addEventListener("change", function(e){ state.direta=e.target.value; renderAll(); });
+  $("#fObjetoTipo").addEventListener("change", function(e){ state.tipoObjeto=e.target.value; renderAll(); });
+  $("#fCriterio").addEventListener("change", function(e){ state.criterio=e.target.value; renderAll(); });
+  $("#fMeEpp").addEventListener("change", function(e){ state.meEpp=e.target.value; renderAll(); });
+  $("#fValor").addEventListener("input", function(e){ var v=parseFloat(e.target.value.replace(/\./g,"").replace(",",".")); state.valor = isNaN(v)?0:v; renderAll(); });
+
+  $("#btnGerar").addEventListener("click", function(){
+    var n = countPendencias();
+    var panel = $("#resultPanel");
+    if(n===0){
+      panel.innerHTML = '<div class="result-panel ok"><h3>✓ Pacote gerado</h3><p style="color:var(--muted);font-size:13px;">Todos os documentos aplicáveis foram incluídos. Confira o edital original, as assinaturas e a validade na data da sessão antes do envio.</p></div>';
+    } else {
+      panel.innerHTML = '<div class="result-panel warn"><h3>⚠ Pacote gerado com pendências</h3><p style="color:var(--muted);font-size:13px;">'+n+' item(ns) seguem marcados como pendentes, vencidos ou ausentes na estrutura acima — o assistente não bloqueia a geração, mas recomenda revisão antes do envio.</p></div>';
+    }
+  });
+
+  /* ---------------- init ---------------- */
+  $("#fData").value = iso(ABERTURA);
+  $("#fData").addEventListener("change", function(e){ if(e.target.value){ var d=new Date(e.target.value+"T00:00:00"); ABERTURA=d; renderAll(); } });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

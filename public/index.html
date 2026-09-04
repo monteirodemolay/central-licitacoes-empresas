@@ -39,6 +39,7 @@
       <button data-view="certificates">Certidões</button>
       <button data-view="balances">Balanços</button>
       <button data-view="notices">Editais</button>
+      <button data-view="agenda">Agenda</button>
       <button data-view="packages">Pacotes</button>
       <button data-view="trash">Lixeira</button>
       <button id="access-nav" data-view="access" hidden>Acessos</button>
@@ -51,12 +52,12 @@
 
     <section id="dashboard" class="view active">
       <div id="metrics" class="metrics"></div>
-      <article class="card company-overview"><div class="card-head"><div><h2>Situação por empresa</h2><p>Consulte rapidamente as certidões vencidas e próximas do vencimento.</p></div><div class="review-actions"><select id="dashboard-company"><option value="">Todas as empresas</option></select><button id="open-company-review" class="secondary" type="button">Abrir central</button></div></div><div id="company-dashboard" class="company-dashboard"></div></article>
+      <article class="card company-overview"><div class="card-head"><div><h2>Regularidade do dia</h2><p>As certidões fiscais que praticamente todo edital exige, vigentes ou não, por empresa.</p></div><div class="review-actions"><select id="dashboard-company"><option value="">Todas as empresas</option></select><button id="open-company-review" class="secondary" type="button">Abrir central</button></div></div><div id="company-dashboard" class="company-dashboard"></div></article>
       <div class="grid two">
         <article class="card"><div class="card-head"><h2>Alertas de validade</h2><button data-go="certificates" class="link">Ver todas</button></div><div id="alerts"></div></article>
         <article class="card"><div class="card-head"><h2>Próximas licitações</h2><button data-go="notices" class="link">Ver editais</button></div><div id="upcoming"></div></article>
       </div>
-      <article class="card"><h2>Ações rápidas</h2><div class="quick"><button data-open="company">＋ Cadastrar empresa</button><button data-open="certificate">＋ Adicionar certidão</button><button data-open="notice">＋ Importar edital</button></div></article>
+      <article class="card"><h2>Ações rápidas</h2><div class="quick"><button data-open="notice">＋ Novo edital no assistente</button><button data-open="certificate">＋ Adicionar certidão</button><button data-go="agenda">Ver agenda de interesse</button><button data-open="company">＋ Cadastrar empresa</button></div></article>
     </section>
 
     <section id="companies" class="view">
@@ -70,7 +71,24 @@
     </section>
 
     <section id="archive" class="view">
-      <div class="toolbar"><select id="archive-filter"><option value="all">Todas as categorias</option></select><span id="archive-count"></span></div>
+      <div class="toolbar">
+        <label>Empresa<select id="archive-view-company"><option value="">Selecione a empresa</option></select></label>
+        <label>Situação<select id="archive-filter">
+          <option value="all">Todas as situações</option>
+          <option value="vigente">Vigentes</option>
+          <option value="vence_logo">Vencendo em breve</option>
+          <option value="vencido">Vencidos</option>
+          <option value="ausente">Ausentes</option>
+          <option value="sem_validade">Sem validade</option>
+        </select></label>
+        <span id="archive-count"></span>
+        <button id="organizar-acervo" class="secondary" type="button" title="Classifica no catálogo o que foi importado antes">Organizar acervo</button>
+        <button id="revisar-lote" class="secondary" type="button" title="Corrige várias certidões e documentos de uma vez">Revisar classificação em lote</button>
+        <button id="revisao-guiada-abrir" class="secondary" type="button" title="Confere um documento de cada vez, com o arquivo aberto ao lado">Revisar documento por documento</button>
+        <button data-open="document" class="primary" type="button" title="Envia um documento de qualquer tipo do catálogo, não só certidão ou balanço">Cadastrar documento</button>
+      </div>
+      <div id="archive-prontidao"></div>
+      <div id="archive-list" class="acervo-lista"></div>
       <article class="card batch-import">
         <div class="card-head"><div><h2>Importar pasta do Dropbox</h2><p>No Dropbox, baixe a pasta como ZIP. O LiciDoc abre as subpastas, identifica os documentos e permite revisar antes de arquivar.</p></div><span class="badge ok">Migração assistida</span></div>
         <div class="archive-source-controls"><label>Empresa<select id="archive-company"><option value="">Selecione</option></select></label><label>Pasta compactada (.zip)<input id="archive-zip" type="file" accept="application/zip,.zip"></label><span class="source-divider">ou</span><label>Pasta já descompactada<input id="archive-folder" type="file" webkitdirectory directory multiple></label><button id="analyze-archive" class="primary" type="button">Ler documentos</button></div>
@@ -78,7 +96,6 @@
         <div id="archive-progress" class="reader-progress" hidden></div>
         <div id="archive-result"></div>
       </article>
-      <div class="card table-wrap"><table><thead><tr><th>Empresa</th><th>Categoria</th><th>Documento</th><th>Data</th><th>Validade</th><th>Origem</th><th>Ação</th></tr></thead><tbody id="archive-list"></tbody></table></div>
     </section>
 
     <section id="certificates" class="view">
@@ -104,7 +121,7 @@
     </section>
 
     <section id="notices" class="view">
-      <div class="toolbar"><p>Cadastre o edital e acompanhe os requisitos documentais.</p><button data-open="notice" class="primary">Novo edital</button></div>
+      <div class="toolbar"><p>O assistente classifica o processo e calcula a documentação exigível pela Lei 14.133/2021.</p><button data-open="notice" class="primary">Novo edital no assistente</button></div>
       <article class="card pdf-reader">
         <div class="card-head"><div><h2>Leitor de edital em PDF</h2><p>O arquivo é processado neste navegador e não é enviado para nenhum servidor.</p></div><span class="badge ok">Leitura local</span></div>
         <div class="reader-input">
@@ -127,6 +144,30 @@
       <div id="notice-detail-content"></div>
     </section>
 
+    <section id="agenda" class="view">
+      <div class="toolbar">
+        <p>Marque o interesse num edital mesmo sem ter toda a documentação: o sistema mostra o que falta e até quando providenciar.</p>
+        <select id="agenda-filtro">
+          <option value="ativos">Em acompanhamento</option>
+          <option value="vamos_participar">Vamos participar</option>
+          <option value="em_analise">Em análise</option>
+          <option value="todos">Todos os processos</option>
+        </select>
+        <button data-open="notice" class="primary">Novo edital no assistente</button>
+      </div>
+      <div id="agenda-metricas" class="metrics"></div>
+      <div class="grid two">
+        <div>
+          <h2 class="section-title">Editais de interesse</h2>
+          <div id="agenda-processos" class="cards"></div>
+        </div>
+        <article class="card">
+          <div class="card-head"><div><h2>Providências</h2><p>O que precisa ser resolvido, por prazo.</p></div></div>
+          <div id="agenda-providencias"></div>
+        </article>
+      </div>
+    </section>
+
     <section id="packages" class="view">
       <article class="card package-builder"><h2>Preparar pacote de participação</h2><p>Selecione uma empresa e um edital. O sistema vinculará as versões documentais utilizadas e apontará pendências.</p><div class="form-row"><label>Empresa<select id="package-company"></select></label><label>Edital<select id="package-notice"></select></label></div><button id="build-package" class="primary">Criar pacote do processo</button><div id="package-result"></div></article>
       <div id="saved-packages" class="cards"></div>
@@ -142,13 +183,101 @@
     </section>
   </main>
 
-  <dialog id="modal"><form method="dialog" id="modal-form"><div class="modal-head"><h2 id="modal-title"></h2><button value="cancel" class="icon">×</button></div><div id="modal-content"></div><div class="modal-actions"><button value="cancel" class="secondary">Cancelar</button><button id="save-modal" value="default" class="primary">Salvar</button></div></form></dialog>
+  <dialog id="wizard" class="wizard">
+    <div class="wz-head">
+      <div>
+        <p class="eyebrow">ASSISTENTE DE HABILITAÇÃO · LEI 14.133/2021</p>
+        <h2 id="wizard-titulo">Assistente de habilitação</h2>
+      </div>
+      <button id="wizard-fechar" class="icon" type="button" title="Salvar rascunho e fechar">×</button>
+    </div>
+    <div id="wizard-meta" class="wz-meta"></div>
+    <div id="wizard-stepper" class="wz-stepper"></div>
+    <div id="wizard-body" class="wz-body"></div>
+    <div class="wz-foot">
+      <div id="wizard-rodape"></div>
+      <div class="wz-foot-acoes">
+        <button id="wizard-voltar" class="secondary" type="button">Voltar</button>
+        <button id="wizard-avancar" class="primary" type="button">Avançar</button>
+        <button id="wizard-finalizar" class="primary" type="button" hidden>Salvar e gerar pacote</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="revisao-lote" class="wizard revisao-lote">
+    <div class="wz-head">
+      <div>
+        <p class="eyebrow">ACERVO · CRITÉRIO DE ARQUIVAMENTO</p>
+        <h2>Revisão de classificação em lote</h2>
+      </div>
+      <button id="revisao-lote-fechar" class="icon" type="button" title="Fechar">×</button>
+    </div>
+    <div id="revisao-lote-meta" class="wz-meta"></div>
+    <div class="toolbar revisao-lote-toolbar">
+      <label>Empresa<select id="revisao-lote-empresa"><option value="">Todas as empresas</option></select></label>
+      <label>Mostrar<select id="revisao-lote-mostrar">
+        <option value="nao_reconhecidos">Não reconhecidos</option>
+        <option value="todos">Todos</option>
+      </select></label>
+      <label>Buscar<input id="revisao-lote-busca" placeholder="Nome do arquivo, tipo..."></label>
+    </div>
+    <div class="wz-body revisao-lote-body">
+      <table class="revisao-lote-tabela">
+        <thead><tr><th>Empresa</th><th>Documento</th><th>Tipo no catálogo</th><th>Validade</th><th>Situação</th></tr></thead>
+        <tbody id="revisao-lote-linhas"></tbody>
+      </table>
+    </div>
+    <div class="wz-foot">
+      <div id="revisao-lote-rodape">Corrija o tipo e a validade direto na linha; nada é gravado até clicar em Salvar.</div>
+      <div class="wz-foot-acoes">
+        <button id="revisao-lote-cancelar" class="secondary" type="button">Fechar</button>
+        <button id="revisao-lote-salvar" class="primary" type="button">Salvar alterações</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="revisao-guiada" class="wizard revisao-guiada">
+    <div class="wz-head">
+      <div>
+        <p class="eyebrow">ACERVO · CONFIRMAÇÃO INDIVIDUAL</p>
+        <h2>Revisão documento por documento</h2>
+      </div>
+      <button id="revisao-guiada-fechar" class="icon" type="button" title="Fechar">×</button>
+    </div>
+    <div class="toolbar revisao-lote-toolbar">
+      <label>Empresa<select id="revisao-guiada-empresa"><option value="">Todas as empresas</option></select></label>
+      <label>Mostrar<select id="revisao-guiada-mostrar">
+        <option value="todos">Todos</option>
+        <option value="nao_reconhecidos">Não reconhecidos</option>
+      </select></label>
+      <label>Buscar<input id="revisao-guiada-busca" placeholder="Nome do arquivo, tipo..."></label>
+      <span id="revisao-guiada-progresso" class="wz-chip"></span>
+    </div>
+    <div class="wz-body revisao-guiada-corpo">
+      <nav id="revisao-guiada-lista" class="revisao-guiada-lista"></nav>
+      <div id="revisao-guiada-atual" class="revisao-guiada-atual"></div>
+    </div>
+    <div class="wz-foot">
+      <div id="revisao-guiada-rodape">Confira o documento, corrija se precisar e confirme para ir ao próximo. Nada muda até você confirmar.</div>
+      <div class="wz-foot-acoes">
+        <button id="revisao-guiada-anterior" class="secondary" type="button">‹ Anterior</button>
+        <button id="revisao-guiada-pular" class="secondary" type="button">Pular</button>
+        <button id="revisao-guiada-confirmar" class="primary" type="button">Confirmar e avançar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="modal"><form method="dialog" id="modal-form"><div class="modal-head"><h2 id="modal-title"></h2><button value="cancel" formnovalidate class="icon">×</button></div><div id="modal-content"></div><div class="modal-actions"><button value="cancel" formnovalidate class="secondary">Cancelar</button><button id="save-modal" value="default" class="primary">Salvar</button></div></form></dialog>
   <div id="toast" role="status"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="regras-licitacao.js"></script>
   <script src="app.js"></script>
+  <script src="wizard.js"></script>
+  <script src="agenda.js"></script>
 </body>
 </html>
