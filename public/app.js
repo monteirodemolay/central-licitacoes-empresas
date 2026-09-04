@@ -5,6 +5,7 @@ let state={user:null,profile:null,companies:[],documents:[],certificates:[],bala
 let lastPdfAnalysis=null;
 let pendingCertificates=[];
 let pendingArchive=[];
+let sociosPendentes=[]; // {nome,file?,path?,arquivoNome?} do sócios do Contrato social em edição no modal
 const $=s=>document.querySelector(s);const $$=s=>[...document.querySelectorAll(s)];
 const id=()=>crypto.randomUUID();
 const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -43,7 +44,7 @@ async function loadData(){
   state.balances=(results[2].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,year:x.exercicio,tipoChave:x.tipo_chave,documentType:x.tipo_documento,periodStart:x.periodo_inicio,periodEnd:x.periodo_fim,registrationDate:x.data_registro,registrationOffice:x.orgao_registro,filePath:x.arquivo_path,notes:x.observacoes}));
   state.notices=(results[3].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,number:x.numero,agency:x.orgao,object:x.objeto,opening:x.abertura,horaSessao:x.hora_sessao,modality:x.modalidade,linkPortal:x.link_portal,requirements:x.requisitos||[],proposalRequirements:x.requisitos_proposta||[],declarations:x.declaracoes||[],items:x.itens||[],filePath:x.edital_path,extractedText:x.texto_extraido,temCertame:x.tem_certame!==false,modalidadePadrao:x.modalidade_padrao,formaDireta:x.forma_contratacao_direta,fundamentoLegal:x.fundamento_legal,tipoObjeto:x.tipo_objeto,criterio:x.criterio_julgamento,modoDisputa:x.modo_disputa,regime:x.regime_execucao,meEpp:x.exclusividade_me_epp||'nao',valorEstimado:x.valor_estimado,procedimentoAuxiliar:x.procedimento_auxiliar,statusProcesso:x.status_processo||'rascunho',interesse:x.interesse||'em_analise',prioridade:x.prioridade||'media',responsavel:x.responsavel,anotacoes:x.anotacoes,decidirAte:x.decidir_ate}));
   state.packages=(results[4].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,noticeId:x.licitacao_id,name:x.nome,status:x.status,documents:x.documentos||[],proposal:x.proposta||{},declarations:x.declaracoes||[],items:x.itens||[],createdAt:x.criado_em}));
-  state.documents=(results[5]?.data||[]).map(x=>({id:x.id,companyId:x.empresa_id,category:x.categoria,type:x.tipo,tipoChave:x.tipo_chave,name:x.nome_original,filePath:x.arquivo_path,source:x.origem,sourceFolder:x.pasta_origem,documentDate:x.data_documento,validity:x.validade,hash:x.sha256,metadata:x.metadados||{},createdAt:x.criado_em,responsavelTecnico:x.responsavel_tecnico,arquivado:!!x.arquivado}));
+  state.documents=(results[5]?.data||[]).map(x=>({id:x.id,companyId:x.empresa_id,category:x.categoria,type:x.tipo,tipoChave:x.tipo_chave,name:x.nome_original,filePath:x.arquivo_path,source:x.origem,sourceFolder:x.pasta_origem,documentDate:x.data_documento,validity:x.validade,hash:x.sha256,metadata:x.metadados||{},createdAt:x.criado_em,responsavelTecnico:x.responsavel_tecnico,arquivado:!!x.arquivado,socios:x.socios||[]}));
   const activeCompanyIds=new Set(state.companies.map(company=>company.id));
   state.certificates=state.certificates.filter(item=>activeCompanyIds.has(item.companyId));state.balances=state.balances.filter(item=>activeCompanyIds.has(item.companyId));state.notices=state.notices.filter(item=>activeCompanyIds.has(item.companyId));state.packages=state.packages.filter(item=>activeCompanyIds.has(item.companyId));state.documents=state.documents.filter(item=>activeCompanyIds.has(item.companyId));
   const activeNoticeIds=new Set(state.notices.map(n=>n.id));
@@ -71,7 +72,7 @@ function acervoDaEmpresa(companyId){
   const docs=state.documents.filter(d=>d.companyId===companyId).map(d=>({
     origem:'documentos_empresa',id:d.id,chave:chaveDe(d,{categoria:d.category,tipo:d.type,nome:d.name}),
     rotulo:d.type||d.name,arquivo:d.name,path:d.filePath,data:d.documentDate||(d.createdAt||'').slice(0,10),
-    validade:d.validity||null,categoriaAntiga:d.category,fonte:d.source,responsavel:d.responsavelTecnico||null,arquivado:!!d.arquivado}));
+    validade:d.validity||null,categoriaAntiga:d.category,fonte:d.source,responsavel:d.responsavelTecnico||null,arquivado:!!d.arquivado,socios:d.socios||[]}));
   const certs=state.certificates.filter(c=>c.companyId===companyId).map(c=>({
     origem:'certidoes',id:c.id,chave:chaveDe(c,{categoria:'Certidões',tipo:c.type,nome:c.type}),
     rotulo:c.type,arquivo:c.type,path:c.filePath,data:c.issued||null,validade:c.validity||null,
@@ -268,6 +269,10 @@ function linhaDoAcervo(v,companyId){
       ${d?`<small>${esc(d.rotulo)}${d.validade?` · válido até ${fmt(d.validade)}`:d.data?` · ${fmt(d.data)}`:''}${d.fonte?` · ${esc(d.fonte)}`:''}${d.responsavel?` · ${esc(d.responsavel)}`:''}</small>`
         :'<small>Nenhum arquivo deste tipo no acervo.</small>'}
       <small class="acervo-regra">${esc(regra)}${v.total>1?` · ${v.total} arquivo(s)`:''}</small>
+      ${v.chave==='ato_constitutivo'&&d?.socios?.length?`<div class="acervo-socios">
+        <strong>Sócios</strong>
+        <ul>${d.socios.map(s=>`<li>${esc(s.nome)}${s.path?` <button type="button" class="link" data-document="${esc(s.path)}">Abrir documento</button>`:' <em>sem documento anexado</em>'}</li>`).join('')}</ul>
+      </div>`:''}
     </div>
     <div class="acervo-item-acoes">
       ${d?.path?`<button class="link" data-document="${esc(d.path)}">Abrir</button>`:''}
@@ -1067,7 +1072,7 @@ function checklistCompleto(company,notice,documentos){
   return linhas.join('\n');
 }
 
-function openModal(type,prefill={}){if(type==='balance')return openBalanceModal();if(type==='notice')return abrirWizard();const companyOptions=state.companies.map(c=>`<option value="${c.id}" ${c.id===state.profile?.companyId?'selected':''}>${esc(c.name)}</option>`).join(''),forms={company:{title:'Cadastrar empresa',html:`<div class="form-grid"><label class="full">CNPJ<div class="input-action"><input name="cnpj" required inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00"><button id="search-cnpj" class="secondary" type="button">Buscar dados</button></div><small id="cnpj-message" class="field-message">Consulta cadastral pela BrasilAPI. Confira os dados retornados.</small></label><label class="full">Razão social<input name="name" required></label><label>Nome fantasia<input name="trade"></label><label>Município<input name="city"></label><label>UF<input name="state" maxlength="2"></label><label>Data de abertura<input name="openingDate" type="date"></label><label>Porte<input name="size"></label><label class="full">Natureza jurídica<input name="legalNature"></label><label class="full">Linhas de fornecimento<textarea name="activities"></textarea></label></div>`},certificate:{title:'Adicionar certidão',html:`<div class="form-grid"><label class="full">Empresa<select name="companyId" required><option value="">Selecione</option>${companyOptions}</select></label><label>Tipo<select name="type" required>${certificateOptions()}</select></label><label>Órgão emissor<input name="issuer"></label><label>Emissão<input name="issued" type="date"></label><label>Validade<input name="validity" type="date" required></label><label class="full">Nome da pessoa (responsável técnico, representante legal...)<input name="responsavelTecnico" placeholder="Quando a certidão for de alguém específico, não da empresa"></label><label class="full">Arquivo original<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg"></label></div>`},document:{title:'Cadastrar documento',html:`<div class="form-grid"><label class="full">Empresa<select name="companyId" required><option value="">Selecione</option>${companyOptions}</select></label><label class="full">Tipo no catálogo<select name="tipoChave" required>${opcoesCatalogo('',['balanco'])}</select><small class="field-message">É o tipo que decide se pede validade e como entra no acervo. Para balanço, use "Adicionar balanço".</small></label><label>Validade (quando houver)<input name="validity" type="date"></label><label class="full">Nome da pessoa (responsável técnico, representante legal...)<input name="responsavelTecnico" placeholder="Nome do profissional, quando o documento for dele"></label><label class="full">Arquivo<input name="file" type="file" required accept=".pdf,.png,.jpg,.jpeg"></label></div>`}};if(type==='company'&&!isAdmin()){toast('Somente o administrador pode cadastrar empresas.');return false}if((type==='certificate'||type==='document')&&!state.companies.length){toast('Cadastre uma empresa primeiro.');return false}const f=forms[type];$('#modal-title').textContent=f.title;$('#modal-content').innerHTML=f.html;$('#modal').classList.remove('wide');if(prefill.companyId&&$('[name="companyId"]'))$('[name="companyId"]').value=prefill.companyId;if(prefill.tipoChave&&$('[name="tipoChave"]'))$('[name="tipoChave"]').value=prefill.tipoChave;const form=$('#modal-form');form.dataset.type=type;delete form.dataset.modo;delete form.dataset.registro;$('#modal').showModal();return true}
+function openModal(type,prefill={}){if(type==='balance')return openBalanceModal();if(type==='notice')return abrirWizard();const companyOptions=state.companies.map(c=>`<option value="${c.id}" ${c.id===state.profile?.companyId?'selected':''}>${esc(c.name)}</option>`).join(''),forms={company:{title:'Cadastrar empresa',html:`<div class="form-grid"><label class="full">CNPJ<div class="input-action"><input name="cnpj" required inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00"><button id="search-cnpj" class="secondary" type="button">Buscar dados</button></div><small id="cnpj-message" class="field-message">Consulta cadastral pela BrasilAPI. Confira os dados retornados.</small></label><label class="full">Razão social<input name="name" required></label><label>Nome fantasia<input name="trade"></label><label>Município<input name="city"></label><label>UF<input name="state" maxlength="2"></label><label>Data de abertura<input name="openingDate" type="date"></label><label>Porte<input name="size"></label><label class="full">Natureza jurídica<input name="legalNature"></label><label class="full">Linhas de fornecimento<textarea name="activities"></textarea></label></div>`},certificate:{title:'Adicionar certidão',html:`<div class="form-grid"><label class="full">Empresa<select name="companyId" required><option value="">Selecione</option>${companyOptions}</select></label><label>Tipo<select name="type" required>${certificateOptions()}</select></label><label>Órgão emissor<input name="issuer"></label><label>Emissão<input name="issued" type="date"></label><label>Validade<input name="validity" type="date" required></label><label class="full">Nome da pessoa (responsável técnico, representante legal...)<input name="responsavelTecnico" placeholder="Quando a certidão for de alguém específico, não da empresa"></label><label class="full">Arquivo original<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg"></label></div>`},document:{title:'Cadastrar documento',html:`<div class="form-grid"><label class="full">Empresa<select name="companyId" required><option value="">Selecione</option>${companyOptions}</select></label><label class="full">Tipo no catálogo<select name="tipoChave" required>${opcoesCatalogo('',['balanco'])}</select><small class="field-message">É o tipo que decide se pede validade e como entra no acervo. Para balanço, use "Adicionar balanço".</small></label><label>Validade (quando houver)<input name="validity" type="date"></label><label class="full">Nome da pessoa (responsável técnico, representante legal...)<input name="responsavelTecnico" placeholder="Nome do profissional, quando o documento for dele"></label><label class="full">Arquivo<input name="file" type="file" required accept=".pdf,.png,.jpg,.jpeg"></label></div>${sociosSecaoHtml(prefill.tipoChave==='ato_constitutivo')}`}};if(type==='company'&&!isAdmin()){toast('Somente o administrador pode cadastrar empresas.');return false}if((type==='certificate'||type==='document')&&!state.companies.length){toast('Cadastre uma empresa primeiro.');return false}const f=forms[type];$('#modal-title').textContent=f.title;$('#modal-content').innerHTML=f.html;$('#modal').classList.remove('wide');if(prefill.companyId&&$('[name="companyId"]'))$('[name="companyId"]').value=prefill.companyId;if(prefill.tipoChave&&$('[name="tipoChave"]'))$('[name="tipoChave"]').value=prefill.tipoChave;if(type==='document'){sociosPendentes=[];renderSociosSecao()}const form=$('#modal-form');form.dataset.type=type;delete form.dataset.modo;delete form.dataset.registro;$('#modal').showModal();return true}
 /* ---------------------------------------------------------------------------
    Edição do que já está cadastrado.
 
@@ -1105,13 +1110,27 @@ async function cadastrarDocumento(data,file){
       validade:data.validity||null,tipo_chave:tipo.chave,responsavel_tecnico:data.responsavelTecnico||null,
       link_emissao:issuerLinks[nome]||null,arquivo_path:path,criado_por:state.user.id});
     if(error)throw error;
-    return;
+    return null;
   }
   const path=await uploadDocument(file,data.companyId,`acervo/${safeFolder(tipo.nome)}`);
-  const {error}=await client.from('documentos_empresa').insert({empresa_id:data.companyId,tipo:tipo.nome,
+  const {data:inserido,error}=await client.from('documentos_empresa').insert({empresa_id:data.companyId,tipo:tipo.nome,
     categoria:CATEGORIA_DO_BLOCO[tipo.bloco]||'Outros',tipo_chave:tipo.chave,validade:data.validity||null,
     responsavel_tecnico:data.responsavelTecnico||null,
-    nome_original:file.name,data_documento:Regras.hojeIso(),arquivo_path:path,criado_por:state.user.id});
+    nome_original:file.name,data_documento:Regras.hojeIso(),arquivo_path:path,criado_por:state.user.id}).select('id').single();
+  if(error)throw error;
+  return inserido.id;
+}
+/* Persiste os sócios declarados junto com o Contrato social: envia ao Storage
+   quem ainda não tinha arquivo e grava a lista completa no documento. */
+async function salvarSociosDoDocumento(documentoId,companyId){
+  const lista=[];
+  for(const s of sociosPendentes){
+    if(s.file?.size){
+      const path=await uploadDocument(s.file,companyId,`acervo/socios/${safeFolder(s.nome)}`);
+      lista.push({nome:s.nome,path,arquivoNome:s.file.name});
+    }else lista.push({nome:s.nome,path:s.path||null,arquivoNome:s.arquivoNome||null});
+  }
+  const {error}=await client.from('documentos_empresa').update({socios:lista}).eq('id',documentoId);
   if(error)throw error;
 }
 function chaveAtualDe(entidade,r){
@@ -1136,6 +1155,38 @@ async function visualizarArquivo(path,container){
       ?`<img src="${esc(data.signedUrl)}" alt="Pré-visualização do arquivo">`
       :`<iframe src="${esc(data.signedUrl)}" title="Pré-visualização do arquivo"></iframe>`;
   }catch(error){container.innerHTML=`<p class="empty">Não foi possível abrir a pré-visualização: ${esc(friendlyError(error))}</p>`}
+}
+
+/* Sócios do Contrato social: só um campo pra declarar o quadro societário e,
+   se já tiver, anexar o documento de identificação de cada um — nada de
+   extração automática, sempre editado à mão e sempre visível para conferir. */
+function sociosSecaoHtml(visivel){
+  return `<div class="full socios-secao" data-socios-secao ${visivel?'':'hidden'}>
+    <label class="full">Sócios
+      <small class="field-message">Cadastre cada sócio do quadro societário e, quando tiver, anexe o documento de identificação dele.</small>
+    </label>
+    <ul id="socios-lista" class="socios-lista"></ul>
+    <div class="socios-add">
+      <input id="socio-novo-nome" placeholder="Nome do sócio">
+      <input id="socio-novo-arquivo" type="file" accept=".pdf,.png,.jpg,.jpeg">
+      <button type="button" id="adicionar-socio" class="secondary">Adicionar sócio</button>
+    </div>
+  </div>`;
+}
+function renderSociosSecao(){
+  const cont=$('#socios-lista');
+  if(!cont)return;
+  cont.innerHTML=sociosPendentes.length?sociosPendentes.map((s,i)=>{
+    const temDocumento=!!(s.file||s.path);
+    return `<li class="socio-linha">
+      <span>${esc(s.nome)}${s.file?` — <em>${esc(s.file.name)}</em>`:s.path?' — documento anexado':' — <em>sem documento anexado</em>'}</span>
+      <span class="socio-linha-acoes">
+        ${s.path&&!s.file?`<button type="button" class="link" data-document="${esc(s.path)}">Abrir</button>`:''}
+        <label class="link-file">${temDocumento?'Trocar arquivo':'Anexar documento'}<input type="file" accept=".pdf,.png,.jpg,.jpeg" data-arquivo-socio="${i}" hidden></label>
+        <button type="button" class="icon" data-remover-socio="${i}" title="Remover sócio">×</button>
+      </span>
+    </li>`;
+  }).join(''):'<li class="empty">Nenhum sócio adicionado ainda.</li>';
 }
 
 /* Edição do que já está cadastrado. O tipo é travado no catálogo — nada de
@@ -1165,7 +1216,7 @@ function openEditModal(entidade,id){
       <label>Data do documento<input name="documentDate" type="date" value="${esc(r.documentDate||'')}"></label>
       <label>Validade<input name="validity" type="date" value="${esc(r.validity||'')}">
         <small class="field-message">Deixe vazio se o documento não vence.</small></label>
-      ${catalogo}${responsavel}${troca}</div>`},
+      ${catalogo}${responsavel}${troca}</div>${sociosSecaoHtml(chave==='ato_constitutivo')}`},
     balance:{titulo:'Editar balanço',html:`<div class="form-grid">
       <label>Exercício<input name="year" type="number" min="2000" max="${new Date().getFullYear()}" value="${esc(r.year||'')}" required></label>
       <label>Tipo<select name="documentType">${['Balanço anual','Balanço de abertura','Balanço intermediário'].map(t=>`<option${t===r.documentType?' selected':''}>${t}</option>`).join('')}</select></label>
@@ -1184,6 +1235,10 @@ function openEditModal(entidade,id){
   form.dataset.type=entidade;
   form.dataset.modo='editar';
   form.dataset.registro=id;
+  if(entidade==='document'){
+    sociosPendentes=(r.socios||[]).map(s=>({nome:s.nome,path:s.path||null,arquivoNome:s.arquivoNome||null}));
+    renderSociosSecao();
+  }
   $('#modal').showModal();
   visualizarArquivo(r.filePath,$('#visualizador-arquivo'));
   return true;
@@ -1238,32 +1293,61 @@ $('#modal-form').addEventListener('submit',async e=>{
   // e.currentTarget. Foi isso que quebrava o "reset()" depois de qualquer
   // cadastro ou edição com upload de arquivo.
   const formEl=e.currentTarget;
-  if(e.submitter?.value==='cancel'){$('#modal').close();formEl.reset();delete formEl.dataset.modo;delete formEl.dataset.registro;return}
+  if(e.submitter?.value==='cancel'){$('#modal').close();formEl.reset();delete formEl.dataset.modo;delete formEl.dataset.registro;sociosPendentes=[];return}
   const button=$('#save-modal'),type=formEl.dataset.type,form=new FormData(formEl),data=Object.fromEntries(form),file=form.get('file');
   setBusy(button,true);
   try{
     if(formEl.dataset.modo==='editar'){
       await salvarEdicao(type,formEl.dataset.registro,data,file);
-      $('#modal').close();formEl.reset();delete formEl.dataset.modo;delete formEl.dataset.registro;
+      if(type==='document'&&data.tipoChave==='ato_constitutivo'){
+        const companyId=state.documents.find(d=>d.id===formEl.dataset.registro)?.companyId;
+        await salvarSociosDoDocumento(formEl.dataset.registro,companyId);
+      }
+      $('#modal').close();formEl.reset();delete formEl.dataset.modo;delete formEl.dataset.registro;sociosPendentes=[];
       await loadData();toast('Registro atualizado.');setBusy(button,false);return;
     }
     if(type==='company'){const {error}=await client.from('empresas').insert({razao_social:data.name,nome_fantasia:data.trade||null,cnpj:data.cnpj,municipio:data.city||null,uf:data.state?.toUpperCase()||null,data_abertura:data.openingDate||null,natureza_juridica:data.legalNature||null,porte:data.size||null,atividades:data.activities||null});if(error)throw error}
     if(type==='certificate'){const folder=`certidoes/${safeFolder(data.type)}/${(data.issued||data.validity).slice(0,4)}`,path=await uploadDocument(file,data.companyId,folder),{error}=await client.from('certidoes').insert({empresa_id:data.companyId,tipo:data.type,orgao_emissor:data.issuer||null,emissao:data.issued||null,validade:data.validity,responsavel_tecnico:data.responsavelTecnico||null,link_emissao:issuerLinks[data.type]||null,arquivo_path:path,criado_por:state.user.id});if(error)throw error}
     if(type==='balance'){const path=await uploadDocument(file,data.companyId,`balancos/${data.year}`),{error}=await client.from('balancos').insert({empresa_id:data.companyId,exercicio:Number(data.year),tipo_documento:data.documentType,periodo_inicio:data.periodStart||null,periodo_fim:data.periodEnd,data_registro:data.registrationDate||null,orgao_registro:data.registrationOffice||null,arquivo_path:path,observacoes:data.notes||null,criado_por:state.user.id});if(error)throw error}
-    if(type==='document')await cadastrarDocumento(data,file);
-    $('#modal').close();formEl.reset();lastPdfAnalysis=null;
+    if(type==='document'){
+      const documentoId=await cadastrarDocumento(data,file);
+      if(documentoId&&data.tipoChave==='ato_constitutivo'&&sociosPendentes.length)
+        await salvarSociosDoDocumento(documentoId,data.companyId);
+    }
+    $('#modal').close();formEl.reset();lastPdfAnalysis=null;sociosPendentes=[];
     await loadData();toast('Registro salvo com sucesso.');
   }catch(error){toast(friendlyError(error))}
   finally{setBusy(button,false)}
 });
 $('#access-list').addEventListener('click',async e=>{const button=e.target.closest('[data-authorize]');if(!button)return;const userId=button.dataset.authorize,companyId=$(`[data-access-company="${userId}"]`).value;if(!companyId){toast('Selecione a empresa do proprietário.');return}setBusy(button,true);const {error}=await client.from('perfis').update({perfil:'proprietario_empresa',empresa_id:companyId}).eq('id',userId);if(error)toast(friendlyError(error));else{await loadData();toast('Proprietário autorizado.')}setBusy(button,false)});
 document.body.addEventListener('click',async e=>{const path=e.target.closest('[data-document]')?.dataset.document;if(path){const {data,error}=await client.storage.from('documentos').createSignedUrl(path,120);if(error)toast(friendlyError(error));else window.open(data.signedUrl,'_blank','noopener')}const ed=e.target.closest('[data-editar]');if(ed){openEditModal(ed.dataset.editar,ed.dataset.editarId);return}const o=e.target.closest('[data-open]'),g=e.target.closest('[data-go]'),w=e.target.closest('[data-wizard]'),review=e.target.closest('[data-review-company]'),notice=e.target.closest('[data-notice-detail]'),trash=e.target.closest('[data-trash-entity]'),restore=e.target.closest('[data-restore-entity]'),remove=e.target.closest('[data-delete-entity]');if(o)openModal(o.dataset.open);if(g)navigate(g.dataset.go);if(w)abrirWizard(w.dataset.wizard);if(review){$('#review-company').value=review.dataset.reviewCompany;renderCompanyReview();navigate('review')}if(notice){state.selectedNoticeId=notice.dataset.noticeDetail;renderNoticeDetail();navigate('notice-detail')}if(trash)await moveToTrash(trash.dataset.trashEntity,trash.dataset.trashId);if(restore)await restoreFromTrash(restore.dataset.restoreEntity,restore.dataset.restoreId);if(remove)await permanentDelete(remove.dataset.deleteEntity,remove.dataset.deleteId)});
-$('#modal-content').addEventListener('click',e=>{if(e.target.closest('#search-cnpj'))searchCnpj()});
+$('#modal-content').addEventListener('click',e=>{
+  if(e.target.closest('#search-cnpj')){searchCnpj();return}
+  if(e.target.closest('#adicionar-socio')){
+    const nomeInput=$('#socio-novo-nome'),arquivoInput=$('#socio-novo-arquivo'),nome=nomeInput.value.trim();
+    if(!nome){toast('Informe o nome do sócio.');return}
+    sociosPendentes.push({nome,file:arquivoInput.files[0]||null});
+    nomeInput.value='';arquivoInput.value='';
+    renderSociosSecao();
+    return;
+  }
+  const remSocio=e.target.closest('[data-remover-socio]');
+  if(remSocio)sociosPendentes.splice(Number(remSocio.dataset.removerSocio),1),renderSociosSecao();
+});
 $('#modal-content').addEventListener('input',e=>{if(e.target.matches('[name="cnpj"]'))e.target.value=formatCnpj(e.target.value)});
 $('#modal-content').addEventListener('change',e=>{
-  if(!e.target.matches('[name="tipoChave"]'))return;
-  const tipoField=$('[name="type"]');
-  if(tipoField?.readOnly)tipoField.value=Regras.tipoDocumento(e.target.value).nome;
+  if(e.target.matches('[name="tipoChave"]')){
+    const tipoField=$('[name="type"]');
+    if(tipoField?.readOnly)tipoField.value=Regras.tipoDocumento(e.target.value).nome;
+    const secao=$('[data-socios-secao]');
+    if(secao)secao.hidden=e.target.value!=='ato_constitutivo';
+    return;
+  }
+  const arquivoSocio=e.target.closest('[data-arquivo-socio]');
+  if(arquivoSocio){
+    const i=Number(arquivoSocio.dataset.arquivoSocio),file=arquivoSocio.files[0];
+    if(file&&sociosPendentes[i]){sociosPendentes[i]={...sociosPendentes[i],file};renderSociosSecao()}
+  }
 });
 $('#analyze-certificates').addEventListener('click',analyzeCertificateBatch);
 $('#reclassify-certificates').addEventListener('click',reclassifyImportedCertificates);

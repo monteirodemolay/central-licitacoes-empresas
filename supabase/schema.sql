@@ -474,6 +474,14 @@ alter table public.certidoes add column if not exists arquivado boolean not null
 
 alter table public.licitacao_checklist_itens add column if not exists documentos_vinculados jsonb not null default '[]'::jsonb;
 
+-- 5f. Sócios do contrato social -----------------------------------------------
+-- Cada sócio do quadro societário, com o documento de identificação dele
+-- vinculado, declarado junto com o Contrato social ou ato constitutivo.
+-- Sempre editável pelo usuário — o sistema não reconhece nada sozinho aqui.
+-- Formato: [{nome,path,arquivoNome}, ...].
+
+alter table public.documentos_empresa add column if not exists socios jsonb not null default '[]'::jsonb;
+
 -- 6. RLS ----------------------------------------------------------------------
 
 alter table public.licitacao_checklist_itens enable row level security;

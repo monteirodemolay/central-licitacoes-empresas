@@ -1624,6 +1624,84 @@ dialog.wizard::backdrop {
   display: flex;
   gap: 8px;
 }
+.acervo-socios {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  margin-top: 2px;
+}
+.acervo-socios strong {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+.acervo-socios ul {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.acervo-socios li em {
+  color: var(--muted);
+  font-style: normal;
+}
+.socios-secao {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+.socios-lista {
+  list-style: none;
+  margin: 6px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.socios-lista li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.socios-lista li:last-child {
+  border-bottom: 0;
+}
+.socios-lista li em {
+  color: var(--muted);
+  font-style: normal;
+}
+.socio-linha-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.link-file {
+  font: 400 12px Inter, Segoe UI, Arial, sans-serif;
+  color: var(--blue);
+  cursor: pointer;
+}
+.socios-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.socios-add input[type="text"],
+.socios-add input:not([type]) {
+  flex: 1;
+  min-width: 160px;
+}
+.socios-add input[type="file"] {
+  font-size: 11px;
+  max-width: 200px;
+}
 @media (max-width: 900px) {
   .acervo-item {
     grid-template-columns: 1fr auto;

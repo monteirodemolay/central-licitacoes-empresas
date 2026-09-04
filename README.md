@@ -22,6 +22,7 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - seletor "vincular arquivo já enviado" em cada linha do acervo, para apontar qual dos arquivos já cadastrados é aquele tipo — com pré-visualização do PDF ou imagem antes de confirmar — e, se nenhum servir, cadastrar um novo já com o tipo certo;
 - visualizador de PDF/imagem embutido também na edição de certidões e documentos, para corrigir a classificação vendo o arquivo, não só o nome dele;
 - campo do tipo travado no catálogo nos formulários de edição — nada de texto livre divergindo da classificação real, que era como declaração entrava como ato constitutivo;
+- sócios do quadro societário declarados junto com o Contrato social ou ato constitutivo — vários por documento, cada um com o documento de identificação vinculado quando já tiver, sempre editável (adicionar, trocar o arquivo ou remover), sem nenhum reconhecimento automático;
 - veredito objetivo de prontidão por empresa (apto / apto com ressalva / não apto), calculado sobre a base documental mínima, com o que falta e o que vence em até 30 dias;
 - painel de regularidade do dia na Visão geral, por empresa: as certidões fiscais que praticamente todo edital exige, com a validade da vigente ou "Ausente"/"Vencida" e um atalho para mandar a atualizada na hora; o mesmo atalho também sai clicando direto no selo "Vencida"/"Urgente" dos alertas de validade;
 - prontidão projetada para uma data futura — não só hoje —, usada na tela do edital para responder objetivamente "a empresa vai ter documento apto na data da sessão?";
@@ -143,6 +144,12 @@ O registro em conselho profissional (CREA/CAU/CRC) é dois tipos, não um: o
 responsável técnico** (pessoa física, todos somam — não faz sentido o CREA de
 um engenheiro "substituir" o de outro). Confundir os dois foi um erro comum
 antes dessa separação.
+
+O Contrato social ou ato constitutivo tem um campo próprio de **Sócios**, no
+cadastro e na edição: cada sócio do quadro societário, com o documento de
+identificação dele vinculado quando já tiver. É sempre preenchido e revisado
+à mão — o sistema não tenta reconhecer sócio nenhum sozinho, para não errar o
+nome de quem assina pela empresa.
 
 O Acervo mostra o catálogo inteiro, tipo por tipo — não só o que já tem
 arquivo. Um tipo sem nenhum documento aparece como **Ausente**, com o mesmo
