@@ -107,8 +107,10 @@ const catalogoDocumentos=[
   {chave:'cnd_falencia',nome:'Certidão de falência e recuperação judicial',bloco:'economico_financeira',vigencia:'validade',certidao:'Falência e recuperação',atende:['cnd_falencia']},
   {chave:'certidao_junta',nome:'Certidão simplificada da Junta Comercial',bloco:'economico_financeira',vigencia:'validade',certidao:'Certidão simplificada da Junta Comercial',atende:[]},
 
-  {chave:'registro_conselho',nome:'Registro em conselho profissional (CREA/CAU/CRC)',bloco:'tecnica',vigencia:'acumulativo',atende:['registro_crea','registro_conselho'],
-   detecta:/\bcrea\b|\bcau\b|\bcrc\b|conselho regional|registro profissional/i},
+  {chave:'registro_crea',nome:'Registro da empresa no conselho profissional (pessoa jurídica)',bloco:'tecnica',vigencia:'substituivel',atende:['registro_crea'],
+   detecta:/(crea|cau|crc).{0,15}(pessoa jur[ií]dica|\bpj\b|empresa)|(pessoa jur[ií]dica|\bpj\b).{0,15}(crea|cau|crc)|\bcrpj\b/i},
+  {chave:'registro_conselho',nome:'Registro do responsável técnico no conselho profissional (pessoa física)',bloco:'tecnica',vigencia:'acumulativo',atende:['registro_conselho'],
+   detecta:/(crea|cau|crc).{0,15}(pessoa f[ií]sica|\bpf\b|profissional|respons[aá]vel)|(pessoa f[ií]sica|\bpf\b).{0,15}(crea|cau|crc)|\bcrppf\b/i},
   {chave:'atestado_capacidade',nome:'Atestado de capacidade técnica',bloco:'tecnica',vigencia:'acumulativo',
    atende:['atestado_capacidade','atestado_operacional','atestado_profissional','atestado_similar','curriculo_equipe','notoria_especializacao','certificacao_produto','exclusividade'],
    detecta:/atestado.*capacidade|capacidade t[eé]cnica|acervo t[eé]cnico|\bcat\b/i},

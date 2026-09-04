@@ -17,10 +17,13 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 ## O que já funciona
 
 - cadastro de múltiplas empresas;
-- acervo documental organizado por tipo de documento, e não por arquivo solto: cada tipo mostra o que vale hoje e recolhe as versões anteriores;
-- catálogo fechado de tipos, cada um com a regra que decide a vigência — vale até a validade, o mais recente substitui os anteriores, ou todos somam;
+- acervo documental como checklist do catálogo inteiro, e não uma pilha de arquivo solto: todo tipo aparece, tenha ou não arquivo — o que vale hoje em destaque, o histórico recolhido, e "Ausente" para o que ainda falta;
+- catálogo fechado de tipos, cada um com a regra que decide a vigência — vale até a validade, o mais recente substitui os anteriores, ou todos somam; registro de conselho profissional (CREA/CAU/CRC) separado entre empresa (pessoa jurídica) e responsável técnico (pessoa física, com o nome de cada profissional), porque não são o mesmo documento;
+- seletor "vincular arquivo já enviado" em cada linha do acervo, para apontar qual dos arquivos já cadastrados é aquele tipo — com pré-visualização do PDF ou imagem antes de confirmar — e, se nenhum servir, cadastrar um novo já com o tipo certo;
+- visualizador de PDF/imagem embutido também na edição de certidões e documentos, para corrigir a classificação vendo o arquivo, não só o nome dele;
+- campo do tipo travado no catálogo nos formulários de edição — nada de texto livre divergindo da classificação real, que era como declaração entrava como ato constitutivo;
 - veredito objetivo de prontidão por empresa (apto / apto com ressalva / não apto), calculado sobre a base documental mínima, com o que falta e o que vence em até 30 dias;
-- painel de regularidade do dia na Visão geral, por empresa: as certidões fiscais que praticamente todo edital exige, com a validade da vigente ou "Ausente"/"Vencida" e um atalho para mandar a atualizada na hora;
+- painel de regularidade do dia na Visão geral, por empresa: as certidões fiscais que praticamente todo edital exige, com a validade da vigente ou "Ausente"/"Vencida" e um atalho para mandar a atualizada na hora; o mesmo atalho também sai clicando direto no selo "Vencida"/"Urgente" dos alertas de validade;
 - prontidão projetada para uma data futura — não só hoje —, usada na tela do edital para responder objetivamente "a empresa vai ter documento apto na data da sessão?";
 - ação de organizar o acervo, que classifica no catálogo o que foi importado antes de existir critério;
 - edição de certidões, documentos e balanços já cadastrados, inclusive para corrigir a classificação divergente ou reconhecida errado, com troca de arquivo opcional;
@@ -122,11 +125,22 @@ que diz como a vigência funciona:
 |---|---|---|
 | `validade` | Vale até a data de validade | certidões fiscais (Federal/PGFN, FGTS, CNDT, estadual, municipal), alvará |
 | `substituivel` | O mais recente substitui os anteriores | contrato social, cartão CNPJ, balanço |
-| `acumulativo` | Todos continuam valendo juntos | atestados de capacidade técnica, ART/RRT, registro em conselho profissional (CREA/CAU/CRC) — a empresa pode ter mais de um responsável técnico registrado ao mesmo tempo |
+| `acumulativo` | Todos continuam valendo juntos | atestados de capacidade técnica, ART/RRT, registro do responsável técnico no conselho profissional — a empresa pode ter mais de um profissional registrado ao mesmo tempo, cada um com o próprio nome guardado no campo "Responsável técnico" |
 
 Os tipos marcados como **base** são os que praticamente todo edital exige. É sobre
 eles que o veredito de prontidão é calculado — a resposta objetiva de "posso
 disputar hoje?", independente de um edital específico.
+
+O registro em conselho profissional (CREA/CAU/CRC) é dois tipos, não um: o
+**da empresa** (pessoa jurídica, um só, o mais recente vale) e o **de cada
+responsável técnico** (pessoa física, todos somam — não faz sentido o CREA de
+um engenheiro "substituir" o de outro). Confundir os dois foi um erro comum
+antes dessa separação.
+
+O Acervo mostra o catálogo inteiro, tipo por tipo — não só o que já tem
+arquivo. Um tipo sem nenhum documento aparece como **Ausente**, com o mesmo
+seletor de vínculo dos outros: é assim que dá para ver, de cara, tudo que
+ainda falta enviar, sem precisar adivinhar o que existe.
 
 Quem já tinha acervo importado antes do catálogo usa o botão **Organizar acervo**:
 ele reclassifica o que está lá, separando, por exemplo, o contrato social das
@@ -151,6 +165,23 @@ decidindo o tipo certo —, o botão **Revisar documento por documento** mostra
 um registro por vez, com uma lista ao lado para pular direto para qualquer
 outro. Confirma e grava na hora, sem perder o arquivo; sair sem confirmar uma
 alteração pede confirmação antes de descartar.
+
+Uma quarta via, direto na linha do tipo no Acervo: **Vincular arquivo já
+enviado** abre um seletor com todos os documentos e certidões já cadastrados
+na empresa, mostrando o nome do arquivo original e a classificação que cada
+um tem hoje — inclusive quando está errada, como uma declaração que entrou
+como ato constitutivo. Escolher um mostra a pré-visualização do PDF ou
+imagem antes de confirmar; se nenhum arquivo já enviado for aquele tipo, um
+link leva direto para cadastrar um novo, já com o tipo certo preenchido. É a
+via inversa da revisão documento por documento: aqui se parte do tipo que
+falta, não do arquivo que sobrou.
+
+Editar um registro também mostra o arquivo ao lado do formulário — certidão
+ou documento, PDF ou imagem — porque não dá para corrigir a classificação
+direito sem ver o que está sendo classificado. O campo "Tipo" fica travado
+no catálogo: para certidão é um select da lista fechada, para documento
+segue automaticamente o "Tipo no catálogo" escolhido, sem texto livre para
+divergir de novo.
 
 Para incluir um documento que ainda não existe no acervo — de qualquer tipo do
 catálogo, não só certidão ou balanço —, o botão **Cadastrar documento** pede a

@@ -151,6 +151,15 @@ alter table public.balancos add column if not exists tipo_chave text;
 create index if not exists idx_documentos_empresa_tipo_chave
   on public.documentos_empresa(empresa_id,tipo_chave);
 
+-- 5c. Responsável técnico -----------------------------------------------------
+-- Registro de conselho profissional pessoa física, ART/RRT, vínculo e atestado
+-- de capacidade técnico-profissional pertencem a uma pessoa específica, não à
+-- empresa; sem o nome não dá para distinguir o registro de um profissional do
+-- de outro quando a empresa tem mais de um responsável técnico.
+
+alter table public.documentos_empresa add column if not exists responsavel_tecnico text;
+alter table public.certidoes add column if not exists responsavel_tecnico text;
+
 -- 6. RLS ----------------------------------------------------------------------
 
 alter table public.licitacao_checklist_itens enable row level security;
