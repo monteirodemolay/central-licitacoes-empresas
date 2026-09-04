@@ -127,6 +127,13 @@ que diz como a vigência funciona:
 | `substituivel` | O mais recente substitui os anteriores | contrato social, cartão CNPJ, balanço |
 | `acumulativo` | Todos continuam valendo juntos | atestados de capacidade técnica, ART/RRT, registro do responsável técnico no conselho profissional, documento de identificação do representante legal — a empresa pode ter mais de um profissional ou mais de um representante legal ao mesmo tempo, cada um com o próprio nome guardado no campo "Nome da pessoa" |
 
+Dentro de um tipo acumulativo, o sistema escolhe o mais recente para
+representar o grupo em destaque — mas isso é só um ponto de partida. O botão
+**Arquivar**, em cada arquivo desse tipo, tira ele manualmente da disputa por
+"vigente" sem apagar nada: útil quando o mais recente não é mais o que vale
+de fato, como um responsável técnico mais novo que já não está mais na
+empresa. **Reativar** desfaz.
+
 Os tipos marcados como **base** são os que praticamente todo edital exige. É sobre
 eles que o veredito de prontidão é calculado — a resposta objetiva de "posso
 disputar hoje?", independente de um edital específico.

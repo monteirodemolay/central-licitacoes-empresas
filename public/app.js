@@ -39,11 +39,11 @@ async function loadData(){
   const results=await Promise.all(requests),failure=[results[0],results[1],results[3],results[9]].find(r=>r?.error);
   if(failure){toast(friendlyError(failure.error));return}
   state.companies=(results[0].data||[]).map(x=>({id:x.id,name:x.razao_social,trade:x.nome_fantasia,cnpj:x.cnpj,city:x.municipio,state:x.uf,activities:x.atividades,openingDate:x.data_abertura,legalNature:x.natureza_juridica,size:x.porte}));
-  state.certificates=(results[1].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,type:x.tipo,tipoChave:x.tipo_chave,issuer:x.orgao_emissor,issued:x.emissao,validity:x.validade,link:x.link_emissao,filePath:x.arquivo_path,responsavelTecnico:x.responsavel_tecnico}));
+  state.certificates=(results[1].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,type:x.tipo,tipoChave:x.tipo_chave,issuer:x.orgao_emissor,issued:x.emissao,validity:x.validade,link:x.link_emissao,filePath:x.arquivo_path,responsavelTecnico:x.responsavel_tecnico,arquivado:!!x.arquivado}));
   state.balances=(results[2].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,year:x.exercicio,tipoChave:x.tipo_chave,documentType:x.tipo_documento,periodStart:x.periodo_inicio,periodEnd:x.periodo_fim,registrationDate:x.data_registro,registrationOffice:x.orgao_registro,filePath:x.arquivo_path,notes:x.observacoes}));
   state.notices=(results[3].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,number:x.numero,agency:x.orgao,object:x.objeto,opening:x.abertura,horaSessao:x.hora_sessao,modality:x.modalidade,linkPortal:x.link_portal,requirements:x.requisitos||[],proposalRequirements:x.requisitos_proposta||[],declarations:x.declaracoes||[],items:x.itens||[],filePath:x.edital_path,extractedText:x.texto_extraido,temCertame:x.tem_certame!==false,modalidadePadrao:x.modalidade_padrao,formaDireta:x.forma_contratacao_direta,fundamentoLegal:x.fundamento_legal,tipoObjeto:x.tipo_objeto,criterio:x.criterio_julgamento,modoDisputa:x.modo_disputa,regime:x.regime_execucao,meEpp:x.exclusividade_me_epp||'nao',valorEstimado:x.valor_estimado,procedimentoAuxiliar:x.procedimento_auxiliar,statusProcesso:x.status_processo||'rascunho',interesse:x.interesse||'em_analise',prioridade:x.prioridade||'media',responsavel:x.responsavel,anotacoes:x.anotacoes,decidirAte:x.decidir_ate}));
   state.packages=(results[4].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,noticeId:x.licitacao_id,name:x.nome,status:x.status,documents:x.documentos||[],proposal:x.proposta||{},declarations:x.declaracoes||[],items:x.itens||[],createdAt:x.criado_em}));
-  state.documents=(results[5]?.data||[]).map(x=>({id:x.id,companyId:x.empresa_id,category:x.categoria,type:x.tipo,tipoChave:x.tipo_chave,name:x.nome_original,filePath:x.arquivo_path,source:x.origem,sourceFolder:x.pasta_origem,documentDate:x.data_documento,validity:x.validade,hash:x.sha256,metadata:x.metadados||{},createdAt:x.criado_em,responsavelTecnico:x.responsavel_tecnico}));
+  state.documents=(results[5]?.data||[]).map(x=>({id:x.id,companyId:x.empresa_id,category:x.categoria,type:x.tipo,tipoChave:x.tipo_chave,name:x.nome_original,filePath:x.arquivo_path,source:x.origem,sourceFolder:x.pasta_origem,documentDate:x.data_documento,validity:x.validade,hash:x.sha256,metadata:x.metadados||{},createdAt:x.criado_em,responsavelTecnico:x.responsavel_tecnico,arquivado:!!x.arquivado}));
   const activeCompanyIds=new Set(state.companies.map(company=>company.id));
   state.certificates=state.certificates.filter(item=>activeCompanyIds.has(item.companyId));state.balances=state.balances.filter(item=>activeCompanyIds.has(item.companyId));state.notices=state.notices.filter(item=>activeCompanyIds.has(item.companyId));state.packages=state.packages.filter(item=>activeCompanyIds.has(item.companyId));state.documents=state.documents.filter(item=>activeCompanyIds.has(item.companyId));
   const activeNoticeIds=new Set(state.notices.map(n=>n.id));
@@ -71,11 +71,11 @@ function acervoDaEmpresa(companyId){
   const docs=state.documents.filter(d=>d.companyId===companyId).map(d=>({
     origem:'documentos_empresa',id:d.id,chave:chaveDe(d,{categoria:d.category,tipo:d.type,nome:d.name}),
     rotulo:d.type||d.name,arquivo:d.name,path:d.filePath,data:d.documentDate||(d.createdAt||'').slice(0,10),
-    validade:d.validity||null,categoriaAntiga:d.category,fonte:d.source,responsavel:d.responsavelTecnico||null}));
+    validade:d.validity||null,categoriaAntiga:d.category,fonte:d.source,responsavel:d.responsavelTecnico||null,arquivado:!!d.arquivado}));
   const certs=state.certificates.filter(c=>c.companyId===companyId).map(c=>({
     origem:'certidoes',id:c.id,chave:chaveDe(c,{categoria:'Certidões',tipo:c.type,nome:c.type}),
     rotulo:c.type,arquivo:c.type,path:c.filePath,data:c.issued||null,validade:c.validity||null,
-    categoriaAntiga:'Certidões',fonte:c.issuer,link:c.link,responsavel:c.responsavelTecnico||null}));
+    categoriaAntiga:'Certidões',fonte:c.issuer,link:c.link,responsavel:c.responsavelTecnico||null,arquivado:!!c.arquivado}));
   const bals=state.balances.filter(b=>b.companyId===companyId).map(b=>({
     origem:'balancos',id:b.id,chave:b.tipoChave||'balanco',
     rotulo:`Balanço ${b.year}`,arquivo:b.documentType||'Balanço anual',path:b.filePath,
@@ -247,6 +247,17 @@ async function confirmarVinculo(chaveTipo){
   renderArchive();
   toast('Documento vinculado a este tipo.');
 }
+/* Arquivamento manual dentro de um tipo acumulativo: tira um arquivo da
+   disputa por "vigente" sem apagá-lo — o usuário decide quem representa o
+   grupo hoje, não a data mais recente. */
+async function alternarArquivado(chaveRegistro,valor){
+  const [origem,id]=chaveRegistro.split(':');
+  const {error}=await client.from(origem).update({arquivado:valor}).eq('id',id);
+  if(error){toast(friendlyError(error));return}
+  await loadData();
+  renderArchive();
+  toast(valor?'Arquivado — não conta mais como vigente.':'Reativado.');
+}
 
 function linhaDoAcervo(v,companyId){
   const d=v.vigente;
@@ -262,6 +273,7 @@ function linhaDoAcervo(v,companyId){
       ${d?.path?`<button class="link" data-document="${esc(d.path)}">Abrir</button>`:''}
       ${d?`<button class="link" data-editar="${({documentos_empresa:'document',certidoes:'certificate',balancos:'balance'})[d.origem]}" data-editar-id="${d.id}">Editar</button>`:''}
       <button type="button" class="link" data-vincular="${esc(v.chave)}">${vincularAberto===v.chave?'Fechar vínculo':'Vincular arquivo já enviado'}</button>
+      ${d&&v.acumulativo?`<button type="button" class="link" data-arquivar="${d.origem}:${d.id}" data-arquivar-valor="true">Arquivar</button>`:''}
       ${d?.link?`<a class="link" href="${esc(d.link)}" target="_blank" rel="noopener">Emitir nova ↗</a>`:''}
       ${d&&d.origem==='documentos_empresa'?deleteButton('document',d.id,'Excluir'):''}
       ${d&&d.origem==='certidoes'?deleteButton('certificate',d.id,'Excluir'):''}
@@ -272,9 +284,10 @@ function linhaDoAcervo(v,companyId){
     ${v.anteriores.length?`<details class="acervo-versoes">
       <summary>${v.acumulativo?`Outros ${v.anteriores.length} arquivo(s) deste tipo`:`${v.anteriores.length} versão(ões) anterior(es)`}</summary>
       ${v.anteriores.map(a=>`<div class="acervo-versao">
-        <span>${esc(a.rotulo)}<small>${a.validade?`validade ${fmt(a.validade)}`:a.data?fmt(a.data):'sem data'}${a.arquivo&&a.arquivo!==a.rotulo?` · ${esc(a.arquivo)}`:''}${a.responsavel?` · ${esc(a.responsavel)}`:''}</small></span>
+        <span>${esc(a.rotulo)}${a.arquivado?' <em>(arquivado)</em>':''}<small>${a.validade?`validade ${fmt(a.validade)}`:a.data?fmt(a.data):'sem data'}${a.arquivo&&a.arquivo!==a.rotulo?` · ${esc(a.arquivo)}`:''}${a.responsavel?` · ${esc(a.responsavel)}`:''}</small></span>
         <span>${a.path?`<button class="link" data-document="${esc(a.path)}">Abrir</button>`:''}
-        <button class="link" data-editar="${({documentos_empresa:'document',certidoes:'certificate',balancos:'balance'})[a.origem]}" data-editar-id="${a.id}">Editar</button></span>
+        <button class="link" data-editar="${({documentos_empresa:'document',certidoes:'certificate',balancos:'balance'})[a.origem]}" data-editar-id="${a.id}">Editar</button>
+        ${v.acumulativo?`<button type="button" class="link" data-arquivar="${a.origem}:${a.id}" data-arquivar-valor="${a.arquivado?'false':'true'}">${a.arquivado?'Reativar':'Arquivar'}</button>`:''}</span>
       </div>`).join('')}
     </details>`:''}
   </article>`;
@@ -1250,7 +1263,9 @@ $('#archive-list').addEventListener('click',e=>{
     return;
   }
   const confirmar=e.target.closest('[data-vincular-confirmar]');
-  if(confirmar)confirmarVinculo(confirmar.dataset.vincularConfirmar);
+  if(confirmar){confirmarVinculo(confirmar.dataset.vincularConfirmar);return}
+  const arquivar=e.target.closest('[data-arquivar]');
+  if(arquivar)alternarArquivado(arquivar.dataset.arquivar,arquivar.dataset.arquivarValor==='true');
 });
 $('#archive-list').addEventListener('change',e=>{
   if(!e.target.matches('[data-vincular-select]'))return;

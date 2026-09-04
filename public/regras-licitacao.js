@@ -222,10 +222,14 @@ function acervoVigente(documentos,dataAlvo){
       vigente=ordenadas[0]||null;
       anteriores=ordenadas.slice(1);
     }else{
-      // Acumulativo: todos valem. O mais recente representa o conjunto.
+      // Acumulativo: todos valem, e o mais recente representa o conjunto em
+      // destaque — a menos que o usuário tenha arquivado ele manualmente
+      // (ex.: o responsável técnico mais recente já não está mais na
+      // empresa). Arquivado nunca vira o representante, mesmo sendo o mais
+      // novo; some para o grupo recolhido junto com os demais.
       const ordenadas=[...lista].sort(recente);
-      vigente=ordenadas[0]||null;
-      anteriores=ordenadas.slice(1);
+      vigente=ordenadas.find(d=>!d.arquivado)||null;
+      anteriores=ordenadas.filter(d=>d!==vigente);
     }
     return {chave,tipo,vigente,anteriores,total:lista.length,
       acumulativo:tipo.vigencia==='acumulativo',

@@ -160,6 +160,17 @@ create index if not exists idx_documentos_empresa_tipo_chave
 alter table public.documentos_empresa add column if not exists responsavel_tecnico text;
 alter table public.certidoes add column if not exists responsavel_tecnico text;
 
+-- 5d. Arquivamento manual dentro dos tipos acumulativos -----------------------
+-- Em tipos "acumulativo" (vários arquivos somam ao mesmo tempo — atestados,
+-- ART/RRT, responsável técnico, representante legal), o sistema escolhe o
+-- mais recente como o "vigente" em destaque. Isso nem sempre é o que vale de
+-- fato: um responsável técnico pode ter saído da empresa mesmo tendo o
+-- registro mais novo. `arquivado` deixa o usuário tirar manualmente um
+-- arquivo da disputa por "vigente", sem apagar nem perder o arquivo.
+
+alter table public.documentos_empresa add column if not exists arquivado boolean not null default false;
+alter table public.certidoes add column if not exists arquivado boolean not null default false;
+
 -- 6. RLS ----------------------------------------------------------------------
 
 alter table public.licitacao_checklist_itens enable row level security;
