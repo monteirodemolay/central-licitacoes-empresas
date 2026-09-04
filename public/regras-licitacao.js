@@ -90,7 +90,7 @@ const catalogoDocumentos=[
    detecta:/altera[cç][aã]o contratual|consolida[cç][aã]o contratual/i},
   {chave:'cnpj',nome:'Comprovante de inscrição no CNPJ',bloco:'juridica',vigencia:'substituivel',base:true,atende:['cnpj'],
    detecta:/cart[aã]o cnpj|comprovante.*inscri[cç][aã]o.*cnpj|\bcnpj\b/i},
-  {chave:'doc_representante',nome:'Documento do representante legal',bloco:'juridica',vigencia:'substituivel',base:true,atende:['doc_representante'],
+  {chave:'doc_representante',nome:'Documento do representante legal',bloco:'juridica',vigencia:'acumulativo',base:true,atende:['doc_representante'],
    detecta:/\brg\b|\bcpf\b|\bcnh\b|identidade|documento.*representante/i},
   {chave:'procuracao',nome:'Procuração ou credenciamento',bloco:'juridica',vigencia:'validade',atende:['doc_representante'],
    detecta:/procura[cç][aã]o|credenciamento/i},

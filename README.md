@@ -125,7 +125,7 @@ que diz como a vigência funciona:
 |---|---|---|
 | `validade` | Vale até a data de validade | certidões fiscais (Federal/PGFN, FGTS, CNDT, estadual, municipal), alvará |
 | `substituivel` | O mais recente substitui os anteriores | contrato social, cartão CNPJ, balanço |
-| `acumulativo` | Todos continuam valendo juntos | atestados de capacidade técnica, ART/RRT, registro do responsável técnico no conselho profissional — a empresa pode ter mais de um profissional registrado ao mesmo tempo, cada um com o próprio nome guardado no campo "Responsável técnico" |
+| `acumulativo` | Todos continuam valendo juntos | atestados de capacidade técnica, ART/RRT, registro do responsável técnico no conselho profissional, documento de identificação do representante legal — a empresa pode ter mais de um profissional ou mais de um representante legal ao mesmo tempo, cada um com o próprio nome guardado no campo "Nome da pessoa" |
 
 Os tipos marcados como **base** são os que praticamente todo edital exige. É sobre
 eles que o veredito de prontidão é calculado — a resposta objetiva de "posso
