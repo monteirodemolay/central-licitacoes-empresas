@@ -21,6 +21,7 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - catálogo fechado de tipos, cada um com a regra que decide a vigência — vale até a validade, o mais recente substitui os anteriores, ou todos somam;
 - veredito objetivo de prontidão por empresa (apto / apto com ressalva / não apto), calculado sobre a base documental mínima, com o que falta e o que vence em até 30 dias;
 - ação de organizar o acervo, que classifica no catálogo o que foi importado antes de existir critério;
+- edição de certidões, documentos e balanços já cadastrados, inclusive para corrigir a classificação divergente ou reconhecida errado, com troca de arquivo opcional;
 - importação de pastas baixadas do Dropbox em ZIP ou já descompactadas, com leitura das subpastas;
 - suporte a ZIPs de até 1 GB e até 1.500 documentos por lote;
 - identificação de duplicidades por hash antes do envio;
@@ -125,6 +126,11 @@ disputar hoje?", independente de um edital específico.
 Quem já tinha acervo importado antes do catálogo usa o botão **Organizar acervo**:
 ele reclassifica o que está lá, separando, por exemplo, o contrato social das
 alterações contratuais que antes ficavam ambos como "Documento societário".
+
+Quando a leitura automática erra — e ela erra —, o botão **Editar** em cada
+certidão, documento ou balanço abre os campos para correção, incluindo o tipo do
+catálogo. A correção manual é definitiva: o "Organizar acervo" só preenche o que
+ainda está sem classificação e nunca sobrescreve o que você ajustou.
 
 ## Regra operacional
 
