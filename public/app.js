@@ -319,6 +319,133 @@ async function salvarRevisaoLote(){
   finally{setBusy(botao,false)}
 }
 
+/* ---------------------------------------------------------------------------
+   Revisão documento por documento.
+
+   A tabela em lote é rápida para quem já sabe o que corrigir; para conferir
+   com calma — abrir o arquivo, olhar, decidir — um registro de cada vez é
+   melhor. Mostra um por vez, com uma lista ao lado para pular direto para
+   qualquer outro, e grava assim que o usuário confirma. Nenhum arquivo é
+   perdido: só a classificação e a validade podem mudar.
+--------------------------------------------------------------------------- */
+let guiaIndice=0, guiaEdicao=null; // {tipoChave?, validade?} do registro em tela, só em memória até confirmar
+
+function registrosGuiados(){
+  const empresaId=$('#revisao-guiada-empresa')?.value||'';
+  const mostrar=$('#revisao-guiada-mostrar')?.value||'todos';
+  const busca=($('#revisao-guiada-busca')?.value||'').toLowerCase().trim();
+  let registros=registrosParaRevisao();
+  if(empresaId)registros=registros.filter(r=>r.companyId===empresaId);
+  if(mostrar==='nao_reconhecidos')registros=registros.filter(r=>r.chave==='outros');
+  if(busca)registros=registros.filter(r=>`${r.rotulo} ${r.detalhe}`.toLowerCase().includes(busca));
+  registros.sort((a,b)=>{
+    const nomeBloco=chave=>Regras.blocos[Regras.catalogoDocumentos.find(t=>t.chave===chave)?.bloco]?.n||'';
+    return nomeBloco(a.chave).localeCompare(nomeBloco(b.chave),'pt-BR')||a.rotulo.localeCompare(b.rotulo,'pt-BR');
+  });
+  return registros;
+}
+function valorGuiaAtual(atual,campo){
+  if(guiaEdicao&&campo in guiaEdicao)return guiaEdicao[campo];
+  return campo==='tipoChave'?atual.chave:atual.validade;
+}
+function revisaoGuiadaSuja(){return guiaEdicao!==null}
+
+function renderRevisaoGuiada(){
+  const registros=registrosGuiados();
+  if(guiaIndice>=registros.length)guiaIndice=Math.max(0,registros.length-1);
+  const atual=registros[guiaIndice];
+
+  $('#revisao-guiada-progresso').textContent=registros.length?`${guiaIndice+1} de ${registros.length}`:'0 de 0';
+  $('#revisao-guiada-lista').innerHTML=registros.length?registros.map((r,i)=>{
+    const situacao=Regras.situacaoDoDocumento({validade:r.validade},Regras.hojeIso());
+    return `<button type="button" class="revisao-guiada-item${i===guiaIndice?' ativo':''}" data-guia-indice="${i}">
+      <strong>${esc(r.rotulo)}</strong>
+      <span class="badge ${SIT_CLASSE[situacao]}">${SIT_ACERVO[situacao]}</span>
+    </button>`;
+  }).join(''):'<p class="empty">Nenhum registro nesta situação.</p>';
+
+  const raiz=$('#revisao-guiada-atual');
+  const podeNavegar=registros.length>0;
+  $('#revisao-guiada-confirmar').disabled=!podeNavegar;
+  $('#revisao-guiada-anterior').disabled=!podeNavegar||guiaIndice<=0;
+  $('#revisao-guiada-pular').disabled=!podeNavegar||guiaIndice>=registros.length-1;
+  raiz.dataset.registro=atual?`${atual.origem}:${atual.id}`:'';
+  if(!atual){
+    raiz.innerHTML='<div class="empty">Nenhum documento para revisar com este filtro.</div>';
+    return;
+  }
+  const chave=valorGuiaAtual(atual,'tipoChave'),validade=valorGuiaAtual(atual,'validade');
+  const situacao=Regras.situacaoDoDocumento({validade},Regras.hojeIso());
+  raiz.innerHTML=`
+    <p class="revisao-guiada-empresa">${esc(companyName(atual.companyId))}</p>
+    <h3>${esc(atual.rotulo)}</h3>
+    ${atual.detalhe?`<p class="revisao-guiada-detalhe">${esc(atual.detalhe)}</p>`:''}
+    ${atual.path?`<button type="button" class="secondary" data-document="${esc(atual.path)}">Abrir arquivo</button>`:'<p class="empty">Sem arquivo anexado a este registro.</p>'}
+    <label>Tipo no catálogo<select id="revisao-guiada-tipo">${opcoesCatalogo(chave)}</select></label>
+    <label>Validade<input id="revisao-guiada-validade" type="date" value="${esc(validade)}"></label>
+    <span class="badge ${SIT_CLASSE[situacao]}">${SIT_ACERVO[situacao]}</span>`;
+}
+function abrirRevisaoGuiada(){
+  guiaIndice=0;guiaEdicao=null;
+  $('#revisao-guiada-empresa').innerHTML='<option value="">Todas as empresas</option>'
+    +state.companies.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  if(state.companies.length===1)$('#revisao-guiada-empresa').value=state.companies[0].id;
+  $('#revisao-guiada-mostrar').value='todos';
+  $('#revisao-guiada-busca').value='';
+  renderRevisaoGuiada();
+  $('#revisao-guiada').showModal();
+}
+function filtroRevisaoGuiadaMudou(){guiaIndice=0;guiaEdicao=null;renderRevisaoGuiada()}
+async function confirmarRevisaoGuiada(){
+  const registros=registrosGuiados(),atual=registros[guiaIndice];
+  if(!atual)return;
+  const tipoChave=valorGuiaAtual(atual,'tipoChave'),validade=valorGuiaAtual(atual,'validade');
+  if(atual.origem==='certidoes'&&!validade){
+    toast('Certidão não pode ficar sem validade. Preencha antes de confirmar.');
+    return;
+  }
+  const botao=$('#revisao-guiada-confirmar'),chaveRegistro=`${atual.origem}:${atual.id}`;
+  setBusy(botao,true,'Salvando...');
+  try{
+    const payload={};
+    if(tipoChave!==atual.chave)payload.tipo_chave=tipoChave;
+    if(validade!==atual.validade)payload.validade=validade||null;
+    if(Object.keys(payload).length){
+      const {error}=await client.from(atual.origem).update(payload).eq('id',atual.id);
+      if(error)throw error;
+      await loadData();
+    }
+    guiaEdicao=null;
+    // O registro confirmado pode ter mudado de bloco ou saído do filtro (ex.:
+    // deixou de ser "não reconhecido"); acha a posição dele na lista nova e
+    // avança para o próximo, em vez de assumir que o índice continua valendo.
+    const novaLista=registrosGuiados();
+    const posicao=novaLista.findIndex(r=>`${r.origem}:${r.id}`===chaveRegistro);
+    guiaIndice=posicao>=0?Math.min(posicao+1,novaLista.length-1):Math.min(guiaIndice,Math.max(0,novaLista.length-1));
+    renderRevisaoGuiada();
+    toast('Confirmado.');
+  }catch(error){toast(friendlyError(error))}
+  finally{setBusy(botao,false)}
+}
+function pularRevisaoGuiada(){
+  if(revisaoGuiadaSuja()&&!confirm('Descartar as alterações deste documento e ir para o próximo sem salvar?'))return;
+  const registros=registrosGuiados();
+  guiaIndice=Math.min(guiaIndice+1,registros.length-1);
+  guiaEdicao=null;
+  renderRevisaoGuiada();
+}
+function voltarRevisaoGuiada(){
+  if(revisaoGuiadaSuja()&&!confirm('Descartar as alterações deste documento e voltar para o anterior?'))return;
+  guiaIndice=Math.max(guiaIndice-1,0);
+  guiaEdicao=null;
+  renderRevisaoGuiada();
+}
+function fecharRevisaoGuiada(){
+  if(revisaoGuiadaSuja()&&!confirm('Descartar a alteração deste documento e fechar?'))return;
+  guiaEdicao=null;
+  $('#revisao-guiada').close();
+}
+
 function renderCertificates(){const filter=$('#certificate-filter')?.value||'all',all=[...state.certificates].sort((a,b)=>companyName(a.companyId).localeCompare(companyName(b.companyId),'pt-BR')||a.type.localeCompare(b.type,'pt-BR')||(b.validity||'').localeCompare(a.validity||'')),list=all.filter(c=>filter==='all'||status(c.validity)===filter),latest=new Set();all.forEach(c=>{const key=`${c.companyId}:${c.type}`;c.isLatest=!latest.has(key);latest.add(key)});$('#certificate-list').innerHTML=list.length?list.map(c=>`<tr><td>${esc(companyName(c.companyId))}</td><td><strong>${esc(c.type)}</strong><br><small>${c.isLatest?'Versão atual':'Histórico preservado'}</small></td><td>${esc(c.issuer||'—')}</td><td>${fmt(c.validity)}</td><td><span class="badge ${status(c.validity)}">${statusLabel(status(c.validity))}</span></td><td>${c.filePath?`<button class="link" data-document="${esc(c.filePath)}">Abrir PDF</button> · `:''}${c.link?`<a href="${esc(c.link)}" target="_blank" rel="noopener">Emitir nova ↗</a> · `:''}<button class="link" data-editar="certificate" data-editar-id="${c.id}">Editar</button> ${deleteButton('certificate',c.id,'Excluir')}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Nenhuma certidão nessa situação.</td></tr>'}
 function renderNotices(){$('#notice-list').innerHTML=state.notices.length?state.notices.map(n=>{const itens=state.checklist.filter(c=>c.noticeId===n.id&&c.aplicavel!==false),r=window.Regras?Regras.contar(itens):{total:0,prontos:0,criticos:0};const st=n.statusProcesso||'rascunho';return`<article class="card notice-card"><div class="card-head"><div><h3>${esc(n.number)}</h3><div class="meta">${esc(companyName(n.companyId))} · ${esc(n.agency)} · Sessão ${fmt(n.opening)}${n.horaSessao?` às ${esc(String(n.horaSessao).slice(0,5))}`:''}</div></div><span class="badge ${st==='pronto'?'ok':st==='em_conferencia'?'pendente':'nao_aplicavel'}">${esc(STATUS_PROCESSO[st]||st)}</span></div><p class="notice-class">${esc(classificacaoLabel(n))}</p><p>${esc((n.object||'').slice(0,240))}${(n.object||'').length>240?'…':''}</p><div class="notice-stats"><span>${r.total?`${r.prontos}/${r.total} documentos`:'checklist não calculado'}</span>${r.criticos?`<span class="pend">${r.criticos} pendência(s)</span>`:''}<span>${(n.items||[]).length} itens</span><span>${esc(window.rotuloInteresse?rotuloInteresse(n.interesse):'')}</span></div><div class="record-actions"><button class="primary" data-wizard="${n.id}">Abrir assistente</button><button class="secondary" data-notice-detail="${n.id}">Ver detalhes</button>${n.filePath?`<button class="link" data-document="${esc(n.filePath)}">Abrir PDF original</button>`:''}<button class="link" data-go="agenda">Ver na agenda</button>${deleteButton('notice',n.id)}</div></article>`}).join(''):'<div class="empty">Nenhum edital cadastrado. Use o assistente para cadastrar o primeiro.</div>';renderSelects()}
 function renderBalances(){$('#balance-list').innerHTML=state.balances.length?state.balances.map(b=>`<article class="card balance-card"><div class="card-head"><div><h3>${esc(companyName(b.companyId))}</h3><p>Exercício ${esc(b.year)} · ${esc(b.documentType||'Balanço anual')}</p></div><span class="badge ok">Arquivado</span></div><p>Período: ${fmt(b.periodStart)} a ${fmt(b.periodEnd)}<br>Registro/autenticação: ${fmt(b.registrationDate)}${b.registrationOffice?' · '+esc(b.registrationOffice):''}</p><div class="record-actions"><small>${esc(b.notes||'Balanço e demonstrações contábeis')}</small>${b.filePath?`<button class="link" data-document="${esc(b.filePath)}">Abrir arquivo</button> · `:''}<button class="link" data-editar="balance" data-editar-id="${b.id}">Editar</button>${deleteButton('balance',b.id)}</div></article>`).join(''):'<div class="empty">Nenhum balanço patrimonial arquivado.</div>'}
@@ -765,7 +892,7 @@ function checklistCompleto(company,notice,documentos){
   return linhas.join('\n');
 }
 
-function openModal(type){if(type==='balance')return openBalanceModal();if(type==='notice')return abrirWizard();const companyOptions=state.companies.map(c=>`<option value="${c.id}" ${c.id===state.profile?.companyId?'selected':''}>${esc(c.name)}</option>`).join(''),forms={company:{title:'Cadastrar empresa',html:`<div class="form-grid"><label class="full">CNPJ<div class="input-action"><input name="cnpj" required inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00"><button id="search-cnpj" class="secondary" type="button">Buscar dados</button></div><small id="cnpj-message" class="field-message">Consulta cadastral pela BrasilAPI. Confira os dados retornados.</small></label><label class="full">Razão social<input name="name" required></label><label>Nome fantasia<input name="trade"></label><label>Município<input name="city"></label><label>UF<input name="state" maxlength="2"></label><label>Data de abertura<input name="openingDate" type="date"></label><label>Porte<input name="size"></label><label class="full">Natureza jurídica<input name="legalNature"></label><label class="full">Linhas de fornecimento<textarea name="activities"></textarea></label></div>`},certificate:{title:'Adicionar certidão',html:`<div class="form-grid"><label class="full">Empresa<select name="companyId" required><option value="">Selecione</option>${companyOptions}</select></label><label>Tipo<select name="type" required>${certificateOptions()}</select></label><label>Órgão emissor<input name="issuer"></label><label>Emissão<input name="issued" type="date"></label><label>Validade<input name="validity" type="date" required></label><label class="full">Arquivo original<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg"></label></div>`}};if(type==='company'&&!isAdmin()){toast('Somente o administrador pode cadastrar empresas.');return false}if(type==='certificate'&&!state.companies.length){toast('Cadastre uma empresa primeiro.');return false}const f=forms[type];$('#modal-title').textContent=f.title;$('#modal-content').innerHTML=f.html;const form=$('#modal-form');form.dataset.type=type;delete form.dataset.modo;delete form.dataset.registro;$('#modal').showModal();return true}
+function openModal(type){if(type==='balance')return openBalanceModal();if(type==='notice')return abrirWizard();const companyOptions=state.companies.map(c=>`<option value="${c.id}" ${c.id===state.profile?.companyId?'selected':''}>${esc(c.name)}</option>`).join(''),forms={company:{title:'Cadastrar empresa',html:`<div class="form-grid"><label class="full">CNPJ<div class="input-action"><input name="cnpj" required inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00"><button id="search-cnpj" class="secondary" type="button">Buscar dados</button></div><small id="cnpj-message" class="field-message">Consulta cadastral pela BrasilAPI. Confira os dados retornados.</small></label><label class="full">Razão social<input name="name" required></label><label>Nome fantasia<input name="trade"></label><label>Município<input name="city"></label><label>UF<input name="state" maxlength="2"></label><label>Data de abertura<input name="openingDate" type="date"></label><label>Porte<input name="size"></label><label class="full">Natureza jurídica<input name="legalNature"></label><label class="full">Linhas de fornecimento<textarea name="activities"></textarea></label></div>`},certificate:{title:'Adicionar certidão',html:`<div class="form-grid"><label class="full">Empresa<select name="companyId" required><option value="">Selecione</option>${companyOptions}</select></label><label>Tipo<select name="type" required>${certificateOptions()}</select></label><label>Órgão emissor<input name="issuer"></label><label>Emissão<input name="issued" type="date"></label><label>Validade<input name="validity" type="date" required></label><label class="full">Arquivo original<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg"></label></div>`},document:{title:'Cadastrar documento',html:`<div class="form-grid"><label class="full">Empresa<select name="companyId" required><option value="">Selecione</option>${companyOptions}</select></label><label class="full">Tipo no catálogo<select name="tipoChave" required>${opcoesCatalogo('',['balanco'])}</select><small class="field-message">É o tipo que decide se pede validade e como entra no acervo. Para balanço, use "Adicionar balanço".</small></label><label>Validade (quando houver)<input name="validity" type="date"></label><label class="full">Arquivo<input name="file" type="file" required accept=".pdf,.png,.jpg,.jpeg"></label></div>`}};if(type==='company'&&!isAdmin()){toast('Somente o administrador pode cadastrar empresas.');return false}if((type==='certificate'||type==='document')&&!state.companies.length){toast('Cadastre uma empresa primeiro.');return false}const f=forms[type];$('#modal-title').textContent=f.title;$('#modal-content').innerHTML=f.html;const form=$('#modal-form');form.dataset.type=type;delete form.dataset.modo;delete form.dataset.registro;$('#modal').showModal();return true}
 /* ---------------------------------------------------------------------------
    Edição do que já está cadastrado.
 
@@ -774,9 +901,9 @@ function openModal(type){if(type==='balance')return openBalanceModal();if(type==
    é ele que decide a vigência e o casamento com as exigências do edital.
 --------------------------------------------------------------------------- */
 const REGISTROS_EDITAVEIS={certificate:'certidoes',document:'documentos_empresa',balance:'balancos'};
-function opcoesCatalogo(atual){
+function opcoesCatalogo(atual,excluir=[]){
   const porBloco=new Map();
-  Regras.catalogoDocumentos.forEach(t=>{
+  Regras.catalogoDocumentos.filter(t=>!excluir.includes(t.chave)).forEach(t=>{
     const b=Regras.blocos[t.bloco]?.n||'Outros';
     if(!porBloco.has(b))porBloco.set(b,[]);
     porBloco.get(b).push(t);
@@ -784,6 +911,31 @@ function opcoesCatalogo(atual){
   return [...porBloco.entries()].map(([bloco,tipos])=>
     `<optgroup label="${esc(bloco)}">${tipos.map(t=>
       `<option value="${t.chave}"${t.chave===atual?' selected':''}>${esc(t.nome)}</option>`).join('')}</optgroup>`).join('');
+}
+const CATEGORIA_DO_BLOCO={juridica:'Societários',fiscal_trabalhista:'Certidões',economico_financeira:'Balanços',
+  tecnica:'Atestados técnicos',proposta:'Propostas',declaracoes:'Declarações',processo_contratacao_direta:'Editais e processos'};
+/* Cadastro de um documento avulso, de qualquer tipo do catálogo — o mesmo
+   "Adicionar certidão" servia só para certidões; isto cobre o resto do
+   acervo (societário, técnico, licenças...) sem passar pela importação em
+   lote. Decide sozinho se o tipo escolhido é uma certidão (vai para a
+   tabela de certidões, com o controle de validade que ela já tem) ou um
+   documento comum. */
+async function cadastrarDocumento(data,file){
+  const tipo=Regras.tipoDocumento(data.tipoChave);
+  if(tipo.chave==='balanco')throw new Error('Balanços têm cadastro próprio, com exercício e período — use "Adicionar balanço".');
+  if(tipo.vigencia==='validade'&&!data.validity)throw new Error('Este tipo de documento tem validade e precisa dela preenchida.');
+  if(tipo.certidao){
+    const nome=tipo.certidao,folder=`certidoes/${safeFolder(nome)}/${(data.validity||Regras.hojeIso()).slice(0,4)}`,path=await uploadDocument(file,data.companyId,folder);
+    const {error}=await client.from('certidoes').insert({empresa_id:data.companyId,tipo:nome,orgao_emissor:nome,
+      validade:data.validity||null,tipo_chave:tipo.chave,link_emissao:issuerLinks[nome]||null,arquivo_path:path,criado_por:state.user.id});
+    if(error)throw error;
+    return;
+  }
+  const path=await uploadDocument(file,data.companyId,`acervo/${safeFolder(tipo.nome)}`);
+  const {error}=await client.from('documentos_empresa').insert({empresa_id:data.companyId,tipo:tipo.nome,
+    categoria:CATEGORIA_DO_BLOCO[tipo.bloco]||'Outros',tipo_chave:tipo.chave,validade:data.validity||null,
+    nome_original:file.name,data_documento:Regras.hojeIso(),arquivo_path:path,criado_por:state.user.id});
+  if(error)throw error;
 }
 function chaveAtualDe(entidade,r){
   if(r.tipoChave)return r.tipoChave;
@@ -878,7 +1030,7 @@ $('#auth-form').addEventListener('submit',async e=>{e.preventDefault();setBusy($
 $('#signup-btn').addEventListener('click',async()=>{const email=$('#auth-email').value.trim(),password=$('#auth-password').value,name=$('#auth-name').value.trim();if(!email||password.length<6||!name){showAuthMessage('Informe nome, e-mail e senha com pelo menos 6 caracteres.');return}setBusy($('#signup-btn'),true,'Criando...');const {data,error}=await client.auth.signUp({email,password,options:{data:{nome:name},emailRedirectTo:location.origin+location.pathname}});if(error)showAuthMessage(friendlyError(error));else if(data.session)await enterApp(data.user);else showAuthMessage('Cadastro criado. Confirme o e-mail para entrar.',true);setBusy($('#signup-btn'),false)});
 $('#reset-btn').addEventListener('click',async()=>{const email=$('#auth-email').value.trim();if(!email){showAuthMessage('Informe seu e-mail.');return}const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});showAuthMessage(error?friendlyError(error):'Enviamos as instruções de recuperação.',!error)});
 $('#logout-btn').addEventListener('click',()=>client.auth.signOut());$('#pending-logout').addEventListener('click',()=>client.auth.signOut());
-$('#modal-form').addEventListener('submit',async e=>{e.preventDefault();const button=$('#save-modal'),type=e.currentTarget.dataset.type,form=new FormData(e.currentTarget),data=Object.fromEntries(form),file=form.get('file');setBusy(button,true);try{if(e.currentTarget.dataset.modo==='editar'){await salvarEdicao(type,e.currentTarget.dataset.registro,data,file);$('#modal').close();e.currentTarget.reset();delete e.currentTarget.dataset.modo;delete e.currentTarget.dataset.registro;await loadData();toast('Registro atualizado.');setBusy(button,false);return}if(type==='company'){const {error}=await client.from('empresas').insert({razao_social:data.name,nome_fantasia:data.trade||null,cnpj:data.cnpj,municipio:data.city||null,uf:data.state?.toUpperCase()||null,data_abertura:data.openingDate||null,natureza_juridica:data.legalNature||null,porte:data.size||null,atividades:data.activities||null});if(error)throw error}if(type==='certificate'){const folder=`certidoes/${safeFolder(data.type)}/${(data.issued||data.validity).slice(0,4)}`,path=await uploadDocument(file,data.companyId,folder),{error}=await client.from('certidoes').insert({empresa_id:data.companyId,tipo:data.type,orgao_emissor:data.issuer||null,emissao:data.issued||null,validade:data.validity,link_emissao:issuerLinks[data.type]||null,arquivo_path:path,criado_por:state.user.id});if(error)throw error}if(type==='balance'){const path=await uploadDocument(file,data.companyId,`balancos/${data.year}`),{error}=await client.from('balancos').insert({empresa_id:data.companyId,exercicio:Number(data.year),tipo_documento:data.documentType,periodo_inicio:data.periodStart||null,periodo_fim:data.periodEnd,data_registro:data.registrationDate||null,orgao_registro:data.registrationOffice||null,arquivo_path:path,observacoes:data.notes||null,criado_por:state.user.id});if(error)throw error}$('#modal').close();e.currentTarget.reset();lastPdfAnalysis=null;await loadData();toast('Registro salvo com sucesso.')}catch(error){toast(friendlyError(error))}finally{setBusy(button,false)}});
+$('#modal-form').addEventListener('submit',async e=>{e.preventDefault();const button=$('#save-modal'),type=e.currentTarget.dataset.type,form=new FormData(e.currentTarget),data=Object.fromEntries(form),file=form.get('file');setBusy(button,true);try{if(e.currentTarget.dataset.modo==='editar'){await salvarEdicao(type,e.currentTarget.dataset.registro,data,file);$('#modal').close();e.currentTarget.reset();delete e.currentTarget.dataset.modo;delete e.currentTarget.dataset.registro;await loadData();toast('Registro atualizado.');setBusy(button,false);return}if(type==='company'){const {error}=await client.from('empresas').insert({razao_social:data.name,nome_fantasia:data.trade||null,cnpj:data.cnpj,municipio:data.city||null,uf:data.state?.toUpperCase()||null,data_abertura:data.openingDate||null,natureza_juridica:data.legalNature||null,porte:data.size||null,atividades:data.activities||null});if(error)throw error}if(type==='certificate'){const folder=`certidoes/${safeFolder(data.type)}/${(data.issued||data.validity).slice(0,4)}`,path=await uploadDocument(file,data.companyId,folder),{error}=await client.from('certidoes').insert({empresa_id:data.companyId,tipo:data.type,orgao_emissor:data.issuer||null,emissao:data.issued||null,validade:data.validity,link_emissao:issuerLinks[data.type]||null,arquivo_path:path,criado_por:state.user.id});if(error)throw error}if(type==='balance'){const path=await uploadDocument(file,data.companyId,`balancos/${data.year}`),{error}=await client.from('balancos').insert({empresa_id:data.companyId,exercicio:Number(data.year),tipo_documento:data.documentType,periodo_inicio:data.periodStart||null,periodo_fim:data.periodEnd,data_registro:data.registrationDate||null,orgao_registro:data.registrationOffice||null,arquivo_path:path,observacoes:data.notes||null,criado_por:state.user.id});if(error)throw error}if(type==='document')await cadastrarDocumento(data,file);$('#modal').close();e.currentTarget.reset();lastPdfAnalysis=null;await loadData();toast('Registro salvo com sucesso.')}catch(error){toast(friendlyError(error))}finally{setBusy(button,false)}});
 $('#access-list').addEventListener('click',async e=>{const button=e.target.closest('[data-authorize]');if(!button)return;const userId=button.dataset.authorize,companyId=$(`[data-access-company="${userId}"]`).value;if(!companyId){toast('Selecione a empresa do proprietário.');return}setBusy(button,true);const {error}=await client.from('perfis').update({perfil:'proprietario_empresa',empresa_id:companyId}).eq('id',userId);if(error)toast(friendlyError(error));else{await loadData();toast('Proprietário autorizado.')}setBusy(button,false)});
 document.body.addEventListener('click',async e=>{const path=e.target.closest('[data-document]')?.dataset.document;if(path){const {data,error}=await client.storage.from('documentos').createSignedUrl(path,120);if(error)toast(friendlyError(error));else window.open(data.signedUrl,'_blank','noopener')}const ed=e.target.closest('[data-editar]');if(ed){openEditModal(ed.dataset.editar,ed.dataset.editarId);return}const o=e.target.closest('[data-open]'),g=e.target.closest('[data-go]'),w=e.target.closest('[data-wizard]'),review=e.target.closest('[data-review-company]'),notice=e.target.closest('[data-notice-detail]'),trash=e.target.closest('[data-trash-entity]'),restore=e.target.closest('[data-restore-entity]'),remove=e.target.closest('[data-delete-entity]');if(o)openModal(o.dataset.open);if(g)navigate(g.dataset.go);if(w)abrirWizard(w.dataset.wizard);if(review){$('#review-company').value=review.dataset.reviewCompany;renderCompanyReview();navigate('review')}if(notice){state.selectedNoticeId=notice.dataset.noticeDetail;renderNoticeDetail();navigate('notice-detail')}if(trash)await moveToTrash(trash.dataset.trashEntity,trash.dataset.trashId);if(restore)await restoreFromTrash(restore.dataset.restoreEntity,restore.dataset.restoreId);if(remove)await permanentDelete(remove.dataset.deleteEntity,remove.dataset.deleteId)});
 $('#modal-content').addEventListener('click',e=>{if(e.target.closest('#search-cnpj'))searchCnpj()});
@@ -917,6 +1069,35 @@ function fecharRevisaoLote(){
 }
 $('#revisao-lote-fechar').addEventListener('click',fecharRevisaoLote);
 $('#revisao-lote-cancelar').addEventListener('click',fecharRevisaoLote);
+$('#revisao-guiada-abrir').addEventListener('click',abrirRevisaoGuiada);
+$('#revisao-guiada-fechar').addEventListener('click',fecharRevisaoGuiada);
+$('#revisao-guiada-empresa').addEventListener('change',filtroRevisaoGuiadaMudou);
+$('#revisao-guiada-mostrar').addEventListener('change',filtroRevisaoGuiadaMudou);
+$('#revisao-guiada-busca').addEventListener('input',filtroRevisaoGuiadaMudou);
+$('#revisao-guiada-confirmar').addEventListener('click',confirmarRevisaoGuiada);
+$('#revisao-guiada-pular').addEventListener('click',pularRevisaoGuiada);
+$('#revisao-guiada-anterior').addEventListener('click',voltarRevisaoGuiada);
+$('#revisao-guiada-lista').addEventListener('click',e=>{
+  const item=e.target.closest('[data-guia-indice]');
+  if(!item)return;
+  const novoIndice=Number(item.dataset.guiaIndice);
+  if(novoIndice===guiaIndice)return;
+  if(revisaoGuiadaSuja()&&!confirm('Descartar as alterações deste documento e ir para o selecionado?'))return;
+  guiaIndice=novoIndice;
+  guiaEdicao=null;
+  renderRevisaoGuiada();
+});
+$('#revisao-guiada-atual').addEventListener('change',e=>{
+  const campo=e.target.id==='revisao-guiada-tipo'?'tipoChave':e.target.id==='revisao-guiada-validade'?'validade':null;
+  if(!campo)return;
+  const atual=registrosGuiados()[guiaIndice];
+  if(!atual)return;
+  const original=campo==='tipoChave'?atual.chave:atual.validade,valor=e.target.value;
+  const novo={...(guiaEdicao||{})};
+  if(valor===original)delete novo[campo];else novo[campo]=valor;
+  guiaEdicao=Object.keys(novo).length?novo:null;
+  renderRevisaoGuiada();
+});
 $('#check-balance').addEventListener('click',balanceGuidance);
 $('#import-items').addEventListener('click',importItemsSpreadsheet);
 $('#build-package').addEventListener('click',createProcessPackage);

@@ -84,6 +84,8 @@
         <span id="archive-count"></span>
         <button id="organizar-acervo" class="secondary" type="button" title="Classifica no catálogo o que foi importado antes">Organizar acervo</button>
         <button id="revisar-lote" class="secondary" type="button" title="Corrige várias certidões e documentos de uma vez">Revisar classificação em lote</button>
+        <button id="revisao-guiada-abrir" class="secondary" type="button" title="Confere um documento de cada vez, com o arquivo aberto ao lado">Revisar documento por documento</button>
+        <button data-open="document" class="primary" type="button" title="Envia um documento de qualquer tipo do catálogo, não só certidão ou balanço">Cadastrar documento</button>
       </div>
       <div id="archive-prontidao"></div>
       <div id="archive-list" class="acervo-lista"></div>
@@ -230,6 +232,37 @@
       <div class="wz-foot-acoes">
         <button id="revisao-lote-cancelar" class="secondary" type="button">Fechar</button>
         <button id="revisao-lote-salvar" class="primary" type="button">Salvar alterações</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="revisao-guiada" class="wizard revisao-guiada">
+    <div class="wz-head">
+      <div>
+        <p class="eyebrow">ACERVO · CONFIRMAÇÃO INDIVIDUAL</p>
+        <h2>Revisão documento por documento</h2>
+      </div>
+      <button id="revisao-guiada-fechar" class="icon" type="button" title="Fechar">×</button>
+    </div>
+    <div class="toolbar revisao-lote-toolbar">
+      <label>Empresa<select id="revisao-guiada-empresa"><option value="">Todas as empresas</option></select></label>
+      <label>Mostrar<select id="revisao-guiada-mostrar">
+        <option value="todos">Todos</option>
+        <option value="nao_reconhecidos">Não reconhecidos</option>
+      </select></label>
+      <label>Buscar<input id="revisao-guiada-busca" placeholder="Nome do arquivo, tipo..."></label>
+      <span id="revisao-guiada-progresso" class="wz-chip"></span>
+    </div>
+    <div class="wz-body revisao-guiada-corpo">
+      <nav id="revisao-guiada-lista" class="revisao-guiada-lista"></nav>
+      <div id="revisao-guiada-atual" class="revisao-guiada-atual"></div>
+    </div>
+    <div class="wz-foot">
+      <div id="revisao-guiada-rodape">Confira o documento, corrija se precisar e confirme para ir ao próximo. Nada muda até você confirmar.</div>
+      <div class="wz-foot-acoes">
+        <button id="revisao-guiada-anterior" class="secondary" type="button">‹ Anterior</button>
+        <button id="revisao-guiada-pular" class="secondary" type="button">Pular</button>
+        <button id="revisao-guiada-confirmar" class="primary" type="button">Confirmar e avançar</button>
       </div>
     </div>
   </dialog>

@@ -107,7 +107,7 @@ const catalogoDocumentos=[
   {chave:'cnd_falencia',nome:'Certidão de falência e recuperação judicial',bloco:'economico_financeira',vigencia:'validade',certidao:'Falência e recuperação',atende:['cnd_falencia']},
   {chave:'certidao_junta',nome:'Certidão simplificada da Junta Comercial',bloco:'economico_financeira',vigencia:'validade',certidao:'Certidão simplificada da Junta Comercial',atende:[]},
 
-  {chave:'registro_conselho',nome:'Registro em conselho profissional (CREA/CAU/CRC)',bloco:'tecnica',vigencia:'validade',atende:['registro_crea','registro_conselho'],
+  {chave:'registro_conselho',nome:'Registro em conselho profissional (CREA/CAU/CRC)',bloco:'tecnica',vigencia:'acumulativo',atende:['registro_crea','registro_conselho'],
    detecta:/\bcrea\b|\bcau\b|\bcrc\b|conselho regional|registro profissional/i},
   {chave:'atestado_capacidade',nome:'Atestado de capacidade técnica',bloco:'tecnica',vigencia:'acumulativo',
    atende:['atestado_capacidade','atestado_operacional','atestado_profissional','atestado_similar','curriculo_equipe','notoria_especializacao','certificacao_produto','exclusividade'],

@@ -1564,3 +1564,87 @@ tr.lote-alterado td {
     min-width: 140px;
   }
 }
+
+/* Revisão documento por documento -------------------------------------------- */
+dialog.revisao-guiada { width: min(980px, 96vw); }
+.revisao-guiada-corpo { display: flex; overflow: hidden; }
+.revisao-guiada-lista {
+  flex: 0 0 260px;
+  overflow-y: auto;
+  border-right: 1px solid var(--line);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.revisao-guiada-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+.revisao-guiada-item strong {
+  font-size: 12.5px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.revisao-guiada-item:hover { background: #f4f6fa; }
+.revisao-guiada-item.ativo {
+  background: #eaf0fe;
+  border-color: #c6d6fb;
+}
+.revisao-guiada-atual {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 22px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+.revisao-guiada-atual h3 { margin: 0; font-size: 18px; }
+.revisao-guiada-empresa {
+  margin: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.revisao-guiada-detalhe { margin: 0; color: var(--muted); font-size: 13px; }
+.revisao-guiada-atual label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+  width: min(360px, 100%);
+}
+.revisao-guiada-atual select,
+.revisao-guiada-atual input[type="date"] {
+  font: 400 13px Inter, Segoe UI, Arial, sans-serif;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text);
+}
+@media (max-width: 720px) {
+  .revisao-guiada-corpo { flex-direction: column; }
+  .revisao-guiada-lista {
+    flex: 0 0 auto;
+    max-height: 180px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}

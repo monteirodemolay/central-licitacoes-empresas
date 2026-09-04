@@ -23,6 +23,8 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - ação de organizar o acervo, que classifica no catálogo o que foi importado antes de existir critério;
 - edição de certidões, documentos e balanços já cadastrados, inclusive para corrigir a classificação divergente ou reconhecida errado, com troca de arquivo opcional;
 - revisão de classificação em lote, para corrigir de uma vez várias certidões e documentos não reconhecidos ou divergentes, com tipo e validade editáveis direto na linha;
+- revisão documento por documento, para conferir com calma um registro de cada vez — abre o arquivo, decide o tipo certo e confirma, com lista lateral para pular direto para qualquer outro;
+- cadastro de documento de qualquer tipo do catálogo (societário, técnico, licença...), não só certidão ou balanço, que decide sozinho se vai para o controle de certidões ou para o acervo comum;
 - importação de pastas baixadas do Dropbox em ZIP ou já descompactadas, com leitura das subpastas;
 - suporte a ZIPs de até 1 GB e até 1.500 documentos por lote;
 - identificação de duplicidades por hash antes do envio;
@@ -116,9 +118,9 @@ que diz como a vigência funciona:
 
 | Regra | O que significa | Exemplos |
 |---|---|---|
-| `validade` | Vale até a data de validade | certidões, CRF, CNDT, registro no CREA, alvará |
+| `validade` | Vale até a data de validade | certidões fiscais (Federal/PGFN, FGTS, CNDT, estadual, municipal), alvará |
 | `substituivel` | O mais recente substitui os anteriores | contrato social, cartão CNPJ, balanço |
-| `acumulativo` | Todos continuam valendo juntos | atestados de capacidade técnica, ART/RRT |
+| `acumulativo` | Todos continuam valendo juntos | atestados de capacidade técnica, ART/RRT, registro em conselho profissional (CREA/CAU/CRC) — a empresa pode ter mais de um responsável técnico registrado ao mesmo tempo |
 
 Os tipos marcados como **base** são os que praticamente todo edital exige. É sobre
 eles que o veredito de prontidão é calculado — a resposta objetiva de "posso
@@ -141,6 +143,18 @@ reconhecidos**; dá para trocar para "Todos", filtrar por empresa e buscar por
 nome. Nada é gravado enquanto você mexe: as alterações ficam destacadas na
 tabela e só vão para o banco quando você clica em **Salvar alterações**, tudo
 de uma vez.
+
+Para conferir com calma, um de cada vez — abrindo o arquivo, olhando o que é,
+decidindo o tipo certo —, o botão **Revisar documento por documento** mostra
+um registro por vez, com uma lista ao lado para pular direto para qualquer
+outro. Confirma e grava na hora, sem perder o arquivo; sair sem confirmar uma
+alteração pede confirmação antes de descartar.
+
+Para incluir um documento que ainda não existe no acervo — de qualquer tipo do
+catálogo, não só certidão ou balanço —, o botão **Cadastrar documento** pede a
+empresa, o tipo exato e o arquivo. O sistema decide sozinho se aquele tipo vai
+para o controle de certidões (com a validade que ele já cobra) ou para o
+acervo comum.
 
 ## Regra operacional
 
