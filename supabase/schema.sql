@@ -109,6 +109,19 @@ create table if not exists public.pacotes (
   atualizado_em timestamptz not null default now()
 );
 
+alter table public.empresas add column if not exists excluido_em timestamptz;
+alter table public.empresas add column if not exists excluido_por uuid references auth.users(id);
+alter table public.certidoes add column if not exists excluido_em timestamptz;
+alter table public.certidoes add column if not exists excluido_por uuid references auth.users(id);
+alter table public.documentos_empresa add column if not exists excluido_em timestamptz;
+alter table public.documentos_empresa add column if not exists excluido_por uuid references auth.users(id);
+alter table public.balancos add column if not exists excluido_em timestamptz;
+alter table public.balancos add column if not exists excluido_por uuid references auth.users(id);
+alter table public.licitacoes add column if not exists excluido_em timestamptz;
+alter table public.licitacoes add column if not exists excluido_por uuid references auth.users(id);
+alter table public.pacotes add column if not exists excluido_em timestamptz;
+alter table public.pacotes add column if not exists excluido_por uuid references auth.users(id);
+
 create index if not exists idx_perfis_empresa on public.perfis(empresa_id);
 create index if not exists idx_certidoes_empresa on public.certidoes(empresa_id);
 create index if not exists idx_certidoes_validade on public.certidoes(validade);
@@ -117,6 +130,12 @@ create index if not exists idx_licitacoes_empresa on public.licitacoes(empresa_i
 create index if not exists idx_licitacoes_abertura on public.licitacoes(abertura);
 create index if not exists idx_balancos_empresa_exercicio on public.balancos(empresa_id,exercicio);
 create index if not exists idx_pacotes_empresa_licitacao on public.pacotes(empresa_id,licitacao_id);
+create index if not exists idx_empresas_excluido_em on public.empresas(excluido_em);
+create index if not exists idx_certidoes_excluido_em on public.certidoes(excluido_em);
+create index if not exists idx_documentos_empresa_excluido_em on public.documentos_empresa(excluido_em);
+create index if not exists idx_balancos_excluido_em on public.balancos(excluido_em);
+create index if not exists idx_licitacoes_excluido_em on public.licitacoes(excluido_em);
+create index if not exists idx_pacotes_excluido_em on public.pacotes(excluido_em);
 
 create or replace function public.meu_perfil()
 returns text language sql stable security definer set search_path=public
@@ -177,6 +196,9 @@ drop policy if exists "empresas atualizacao" on public.empresas;
 create policy "empresas atualizacao" on public.empresas for update to authenticated
 using (public.meu_perfil()='admin_geral' or id=public.minha_empresa())
 with check (public.meu_perfil()='admin_geral' or id=public.minha_empresa());
+drop policy if exists "empresas exclusao" on public.empresas;
+create policy "empresas exclusao" on public.empresas for delete to authenticated
+using (public.meu_perfil()='admin_geral');
 
 drop policy if exists "certidoes leitura" on public.certidoes;
 create policy "certidoes leitura" on public.certidoes for select to authenticated

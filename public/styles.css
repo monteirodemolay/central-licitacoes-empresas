@@ -531,6 +531,30 @@ dialog::backdrop {
   padding: 22px 0;
   text-align: center;
 }
+.company-overview { margin-bottom: 20px; }
+.company-dashboard { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 14px; margin-top: 16px; }
+.company-summary-card { border: 1px solid var(--line); border-radius: 10px; padding: 16px; background: #fbfcfe; }
+.summary-numbers { display: flex; flex-wrap: wrap; gap: 20px; margin: 15px 0; }
+.summary-numbers span { display: grid; color: var(--muted); font-size: 11px; }
+.summary-numbers strong { color: var(--navy); font-size: 23px; line-height: 1.1; }
+.summary-numbers .red-text strong,.red-text { color: var(--red); }
+.summary-numbers .amber-text strong,.amber-text { color: #b76e00; }
+.compact { padding: 7px 0; }
+.compact-empty { padding: 9px 0; }
+.review-actions,.record-actions,.trash-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
+.review-hero,.notice-hero { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
+.review-sections,.notice-detail-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.review-section:last-child { grid-column: 1/-1; }
+.review-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.review-row:last-child { border-bottom: 0; }
+.review-row > span { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.review-row > span:first-child { display: grid; gap: 3px; }
+.detail-section ol { margin: 12px 0 0; padding-left: 22px; }
+.detail-section li { margin: 8px 0; line-height: 1.45; }
+.trash-card { display: flex; justify-content: space-between; align-items: center; gap: 18px; }
+.danger { border-color: #d92d20 !important; color: #b42318 !important; background: #fff !important; }
+.danger:hover { background: #fff1f0 !important; }
+.danger-text { color: #b42318 !important; }
 @media (max-width: 1050px) {
   .batch-row,
   .archive-row,
@@ -584,9 +608,12 @@ dialog::backdrop {
     grid-template-columns: 1fr 1fr;
   }
   .grid.two,
-  .form-row {
+  .form-row,
+  .review-sections,
+  .notice-detail-grid {
     grid-template-columns: 1fr;
   }
+  .review-section:last-child { grid-column: auto; }
 }
 @media (max-width: 560px) {
   .metrics,
@@ -619,4 +646,5 @@ dialog::backdrop {
   .analysis-columns {
     grid-template-columns: 1fr;
   }
+  .review-hero,.notice-hero,.trash-card,.review-row { align-items: flex-start; flex-direction: column; }
 }

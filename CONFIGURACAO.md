@@ -15,6 +15,7 @@ Se a estrutura inicial já foi criada anteriormente, execute apenas o arquivo
 documental, os balanços, os campos de análise do edital e os pacotes vinculados
 aos processos sem apagar os dados existentes. O arquivo pode ser executado
 novamente com segurança para ativar atualizações posteriores.
+Essa atualização também ativa a Central por Empresa e a lixeira de 30 dias.
 
 ## 2. Configurar os endereços de autenticação
 

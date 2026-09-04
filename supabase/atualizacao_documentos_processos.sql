@@ -9,6 +9,13 @@ alter table public.licitacoes add column if not exists requisitos_proposta jsonb
 alter table public.licitacoes add column if not exists declaracoes jsonb not null default '[]'::jsonb;
 alter table public.licitacoes add column if not exists itens jsonb not null default '[]'::jsonb;
 
+alter table public.empresas add column if not exists excluido_em timestamptz;
+alter table public.empresas add column if not exists excluido_por uuid references auth.users(id);
+alter table public.certidoes add column if not exists excluido_em timestamptz;
+alter table public.certidoes add column if not exists excluido_por uuid references auth.users(id);
+alter table public.licitacoes add column if not exists excluido_em timestamptz;
+alter table public.licitacoes add column if not exists excluido_por uuid references auth.users(id);
+
 create table if not exists public.balancos (
   id uuid primary key default gen_random_uuid(),
   empresa_id uuid not null references public.empresas(id) on delete cascade,
@@ -65,6 +72,25 @@ create table if not exists public.documentos_empresa (
 
 create index if not exists idx_documentos_empresa_categoria
 on public.documentos_empresa(empresa_id,categoria);
+
+alter table public.documentos_empresa add column if not exists excluido_em timestamptz;
+alter table public.documentos_empresa add column if not exists excluido_por uuid references auth.users(id);
+alter table public.balancos add column if not exists excluido_em timestamptz;
+alter table public.balancos add column if not exists excluido_por uuid references auth.users(id);
+alter table public.pacotes add column if not exists excluido_em timestamptz;
+alter table public.pacotes add column if not exists excluido_por uuid references auth.users(id);
+
+create index if not exists idx_empresas_excluido_em on public.empresas(excluido_em);
+create index if not exists idx_certidoes_excluido_em on public.certidoes(excluido_em);
+create index if not exists idx_documentos_empresa_excluido_em on public.documentos_empresa(excluido_em);
+create index if not exists idx_balancos_excluido_em on public.balancos(excluido_em);
+create index if not exists idx_licitacoes_excluido_em on public.licitacoes(excluido_em);
+create index if not exists idx_pacotes_excluido_em on public.pacotes(excluido_em);
+
+drop policy if exists "empresas exclusao" on public.empresas;
+create policy "empresas exclusao" on public.empresas for delete to authenticated
+using (public.meu_perfil()='admin_geral');
+grant select,insert,update,delete on public.empresas to authenticated;
 
 alter table public.balancos enable row level security;
 alter table public.pacotes enable row level security;

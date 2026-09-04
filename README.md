@@ -26,15 +26,18 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - importação simultânea de certidões com classificação e leitura de datas;
 - organização privada por empresa, tipo, ano e histórico de versões;
 - classificação automática em regular, urgente e vencida;
+- painel inicial e central de revisão completa por empresa;
 - links oficiais para Federal/PGFN, FGTS e CNDT;
 - cadastro de editais e requisitos;
 - leitura local de editais em PDF, com extração de texto e análise preliminar;
 - identificação assistida de objeto, órgão, modalidade, abertura e documentos exigidos;
 - identificação de requisitos da proposta, declarações e itens do edital;
+- tela própria de cada edital, com objeto, requisitos, declarações, itens e pacotes vinculados;
 - importação de itens em XLS, XLSX ou CSV;
 - controle de balanços por exercício e orientação preliminar de exigibilidade;
 - pacotes vinculados a cada processo, preservando as versões utilizadas;
 - geração de ZIP com checklist, documentos, proposta, declarações e planilha XLSX;
+- lixeira para todos os registros operacionais, com restauração, exclusão imediata e limpeza após 30 dias;
 - exportação do banco local em JSON.
 
 ## Executar
