@@ -434,6 +434,17 @@ on conflict (chave) do update set
   descricao=excluded.descricao,valor=excluded.valor,
   vigencia_inicio=excluded.vigencia_inicio,fonte=excluded.fonte,atualizado_em=now();
 
+-- 5b. Critério de arquivamento do acervo -------------------------------------
+-- `tipo` continua livre para o rótulo que o usuário lê; `tipo_chave` aponta para
+-- o catálogo fechado, e é ele que decide qual documento vale hoje.
+
+alter table public.documentos_empresa add column if not exists tipo_chave text;
+alter table public.certidoes add column if not exists tipo_chave text;
+alter table public.balancos add column if not exists tipo_chave text;
+
+create index if not exists idx_documentos_empresa_tipo_chave
+  on public.documentos_empresa(empresa_id,tipo_chave);
+
 -- 6. RLS ----------------------------------------------------------------------
 
 alter table public.licitacao_checklist_itens enable row level security;

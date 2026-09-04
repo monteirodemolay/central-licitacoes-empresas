@@ -17,7 +17,10 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 ## O que já funciona
 
 - cadastro de múltiplas empresas;
-- acervo documental geral separado por empresa e categoria;
+- acervo documental organizado por tipo de documento, e não por arquivo solto: cada tipo mostra o que vale hoje e recolhe as versões anteriores;
+- catálogo fechado de tipos, cada um com a regra que decide a vigência — vale até a validade, o mais recente substitui os anteriores, ou todos somam;
+- veredito objetivo de prontidão por empresa (apto / apto com ressalva / não apto), calculado sobre a base documental mínima, com o que falta e o que vence em até 30 dias;
+- ação de organizar o acervo, que classifica no catálogo o que foi importado antes de existir critério;
 - importação de pastas baixadas do Dropbox em ZIP ou já descompactadas, com leitura das subpastas;
 - suporte a ZIPs de até 1 GB e até 1.500 documentos por lote;
 - identificação de duplicidades por hash antes do envio;
@@ -102,6 +105,26 @@ Haverá somente dois perfis: administrador geral e proprietário da empresa. O a
 - portal de fornecedores ou clientes;
 - comunicação interna;
 - módulos administrativos sem relação direta com a licitação.
+
+## Critério de arquivamento
+
+O acervo não é uma pasta de arquivos: é uma lista de **tipos de documento**. Cada
+arquivo aponta para um tipo do catálogo (`public/regras-licitacao.js`), e é o tipo
+que diz como a vigência funciona:
+
+| Regra | O que significa | Exemplos |
+|---|---|---|
+| `validade` | Vale até a data de validade | certidões, CRF, CNDT, registro no CREA, alvará |
+| `substituivel` | O mais recente substitui os anteriores | contrato social, cartão CNPJ, balanço |
+| `acumulativo` | Todos continuam valendo juntos | atestados de capacidade técnica, ART/RRT |
+
+Os tipos marcados como **base** são os que praticamente todo edital exige. É sobre
+eles que o veredito de prontidão é calculado — a resposta objetiva de "posso
+disputar hoje?", independente de um edital específico.
+
+Quem já tinha acervo importado antes do catálogo usa o botão **Organizar acervo**:
+ele reclassifica o que está lá, separando, por exemplo, o contrato social das
+alterações contratuais que antes ficavam ambos como "Documento societário".
 
 ## Regra operacional
 

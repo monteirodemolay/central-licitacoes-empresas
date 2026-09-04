@@ -68,6 +68,92 @@ const blocos={
   processo_contratacao_direta:{n:'Processo de contratação direta',base:'Arts. 72, 74 e 75',pasta:'07-processo-contratacao-direta'}
 };
 
+/* ---------------------------------------------------------------------------
+   Catálogo de tipos documentais do acervo.
+
+   É o critério de arquivamento: em vez de `tipo` em texto livre, cada documento
+   passa a apontar para uma destas chaves. Cada tipo declara como a vigência
+   funciona, porque isso é o que decide qual arquivo vale hoje:
+
+     validade     — vale até a data de validade (certidões, licenças, registros)
+     substituivel — o mais recente substitui os anteriores (contrato social, CNPJ)
+     acumulativo  — todos continuam valendo juntos (atestados, ART)
+
+   `base:true` marca o que praticamente todo edital exige — é a régua do veredito
+   de prontidão. `atende` lista as chaves da matriz que o tipo satisfaz, para o
+   assistente casar por chave em vez de adivinhar por texto.
+--------------------------------------------------------------------------- */
+const catalogoDocumentos=[
+  {chave:'ato_constitutivo',nome:'Contrato social ou ato constitutivo',bloco:'juridica',vigencia:'substituivel',base:true,atende:['ato_constitutivo'],
+   detecta:/contrato social|ato constitutivo|estatuto social|requerimento de empres|certificado.*mei/i},
+  {chave:'alteracao_contratual',nome:'Alteração contratual',bloco:'juridica',vigencia:'acumulativo',atende:['ato_constitutivo'],
+   detecta:/altera[cç][aã]o contratual|consolida[cç][aã]o contratual/i},
+  {chave:'cnpj',nome:'Comprovante de inscrição no CNPJ',bloco:'juridica',vigencia:'substituivel',base:true,atende:['cnpj'],
+   detecta:/cart[aã]o cnpj|comprovante.*inscri[cç][aã]o.*cnpj|\bcnpj\b/i},
+  {chave:'doc_representante',nome:'Documento do representante legal',bloco:'juridica',vigencia:'substituivel',base:true,atende:['doc_representante'],
+   detecta:/\brg\b|\bcpf\b|\bcnh\b|identidade|documento.*representante/i},
+  {chave:'procuracao',nome:'Procuração ou credenciamento',bloco:'juridica',vigencia:'validade',atende:['doc_representante'],
+   detecta:/procura[cç][aã]o|credenciamento/i},
+
+  {chave:'cnd_federal',nome:'Certidão conjunta Federal/PGFN',bloco:'fiscal_trabalhista',vigencia:'validade',base:true,certidao:'Federal/PGFN',atende:['cnd_federal']},
+  {chave:'crf_fgts',nome:'Certificado de Regularidade do FGTS',bloco:'fiscal_trabalhista',vigencia:'validade',base:true,certidao:'FGTS',atende:['crf_fgts']},
+  {chave:'cndt',nome:'Certidão Negativa de Débitos Trabalhistas',bloco:'fiscal_trabalhista',vigencia:'validade',base:true,certidao:'CNDT',atende:['cndt']},
+  {chave:'cnd_estadual',nome:'Regularidade com a Fazenda Estadual',bloco:'fiscal_trabalhista',vigencia:'validade',base:true,certidao:'Estadual',atende:['cnd_estadual']},
+  {chave:'cnd_municipal',nome:'Regularidade com a Fazenda Municipal',bloco:'fiscal_trabalhista',vigencia:'validade',base:true,certidao:'Municipal',atende:['cnd_municipal']},
+  {chave:'sicaf',nome:'Registro no SICAF',bloco:'fiscal_trabalhista',vigencia:'validade',certidao:'SICAF',atende:[]},
+
+  {chave:'balanco',nome:'Balanço patrimonial e demonstrações contábeis',bloco:'economico_financeira',vigencia:'substituivel',atende:['balanco'],
+   detecta:/balan[cç]o|balancete|demonstra[cç][aã]o.*cont[aá]bil|\bdre\b|\becd\b|sped.*cont[aá]bil/i},
+  {chave:'cnd_falencia',nome:'Certidão de falência e recuperação judicial',bloco:'economico_financeira',vigencia:'validade',certidao:'Falência e recuperação',atende:['cnd_falencia']},
+  {chave:'certidao_junta',nome:'Certidão simplificada da Junta Comercial',bloco:'economico_financeira',vigencia:'validade',certidao:'Certidão simplificada da Junta Comercial',atende:[]},
+
+  {chave:'registro_conselho',nome:'Registro em conselho profissional (CREA/CAU/CRC)',bloco:'tecnica',vigencia:'validade',atende:['registro_crea','registro_conselho'],
+   detecta:/\bcrea\b|\bcau\b|\bcrc\b|conselho regional|registro profissional/i},
+  {chave:'atestado_capacidade',nome:'Atestado de capacidade técnica',bloco:'tecnica',vigencia:'acumulativo',
+   atende:['atestado_capacidade','atestado_operacional','atestado_profissional','atestado_similar','curriculo_equipe','notoria_especializacao','certificacao_produto','exclusividade'],
+   detecta:/atestado.*capacidade|capacidade t[eé]cnica|acervo t[eé]cnico|\bcat\b/i},
+  {chave:'art_rrt',nome:'ART ou RRT',bloco:'tecnica',vigencia:'acumulativo',atende:['art_rrt','art_atestado'],
+   detecta:/\bart\b|\brrt\b|anota[cç][aã]o de responsabilidade/i},
+  {chave:'vinculo_rt',nome:'Vínculo do responsável técnico',bloco:'tecnica',vigencia:'substituivel',atende:['vinculo_rt'],
+   detecta:/v[ií]nculo.*respons[aá]vel|contrato de trabalho|\bctps\b/i},
+  {chave:'licenca_alvara',nome:'Licença ou alvará de funcionamento',bloco:'tecnica',vigencia:'validade',atende:[],
+   detecta:/alvar[aá]|licen[cç]a sanit[aá]ria|vigil[aâ]ncia sanit[aá]ria|licen[cç]a.*funcionamento|licen[cç]a ambiental/i},
+
+  {chave:'declaracao',nome:'Declaração',bloco:'declaracoes',vigencia:'acumulativo',atende:['decl_me_epp'],
+   detecta:/declara[cç][aã]o/i},
+  {chave:'proposta_modelo',nome:'Proposta ou composição de preços',bloco:'proposta',vigencia:'acumulativo',atende:[],
+   detecta:/proposta|mem[oó]ria de c[aá]lculo|composi[cç][aã]o de custos|planilha.*pre[cç]o/i},
+  {chave:'processo',nome:'Edital ou documento de processo',bloco:'processo_contratacao_direta',vigencia:'acumulativo',atende:[],
+   detecta:/edital|preg[aã]o|concorr[eê]ncia|termo de refer[eê]ncia|recurso|contrarraz[oõ]es|impugna[cç][aã]o/i},
+  {chave:'dados_bancarios',nome:'Dados bancários',bloco:'juridica',vigencia:'substituivel',atende:[],
+   detecta:/dados banc[aá]rios|conta banc[aá]ria|comprovante.*banco/i},
+  {chave:'outros',nome:'Documento não classificado',bloco:'juridica',vigencia:'acumulativo',atende:[]}
+];
+const tipoDocumento=chave=>catalogoDocumentos.find(t=>t.chave===chave)||catalogoDocumentos[catalogoDocumentos.length-1];
+/* Tipos que o assistente aceita para uma dada exigência da matriz. */
+const tiposQueAtendem=chaveMatriz=>catalogoDocumentos.filter(t=>t.atende?.includes(chaveMatriz));
+const tiposBase=()=>catalogoDocumentos.filter(t=>t.base);
+
+/* Classifica um documento já arquivado no catálogo, a partir do que existir:
+   a certidão tipada, a categoria antiga e o texto do tipo/nome do arquivo. */
+function classificarNoCatalogo({categoria,tipo,nome}={}){
+  // Nome de arquivo separa palavra com hífen, sublinhado e ponto: vira espaço,
+  // senão "alteracao-contratual.pdf" não casa com "alteração contratual".
+  const texto=`${tipo||''} ${nome||''}`.replace(/[-_.]+/g,' ');
+  const porCertidao=catalogoDocumentos.find(t=>t.certidao&&t.certidao===tipo);
+  if(porCertidao)return porCertidao.chave;
+  if(categoria==='Certidões'){
+    const certidao=catalogoDocumentos.find(t=>t.certidao&&new RegExp(t.certidao.split('/')[0],'i').test(texto));
+    if(certidao)return certidao.chave;
+  }
+  if(categoria==='Balanços')return'balanco';
+  const porTexto=catalogoDocumentos.find(t=>t.detecta&&t.detecta.test(texto));
+  if(porTexto)return porTexto.chave;
+  return({'Societários':'ato_constitutivo','Atestados técnicos':'atestado_capacidade','Licenças e alvarás':'licenca_alvara',
+    'Representação':'procuracao','Declarações':'declaracao','Propostas':'proposta_modelo','Editais e processos':'processo',
+    'Identificação':'doc_representante','Dados bancários':'dados_bancarios'})[categoria]||'outros';
+}
+
 /* Valores do Decreto nº 12.807/2025 (vigência 2026). Ficam aqui só como reserva:
    a fonte de verdade é a tabela public.parametros_legais, carregada pelo app. */
 const parametrosPadrao={
@@ -98,6 +184,86 @@ function exigeTecnica(p){
   if(p.tipoObjeto==='bens_comuns')return numero(p.valorEstimado)>=LIMIAR_ECONOMICO;
   return true;
 }
+
+/* ---------------------------------------------------------------------------
+   Vigência do acervo: qual arquivo vale hoje, por tipo.
+
+   Recebe os documentos já normalizados ({chave, data, validade, ...}) e devolve
+   uma entrada por tipo com o vigente separado das versões anteriores. É o que
+   permite responder "qual é o contrato social atual?" sem abrir dez arquivos.
+--------------------------------------------------------------------------- */
+const DIAS_VENCE_LOGO=30;
+function situacaoDoDocumento(doc,hoje){
+  if(!doc.validade)return'sem_validade';
+  if(doc.validade<hoje)return'vencido';
+  return diasEntre(hoje,doc.validade)<=DIAS_VENCE_LOGO?'vence_logo':'vigente';
+}
+function acervoVigente(documentos,dataAlvo){
+  const hoje=dataAlvo||hojeIso();
+  const porTipo=new Map();
+  (documentos||[]).forEach(d=>{
+    const chave=d.chave||'outros';
+    if(!porTipo.has(chave))porTipo.set(chave,[]);
+    porTipo.get(chave).push({...d,situacao:situacaoDoDocumento(d,hoje)});
+  });
+  return [...porTipo.entries()].map(([chave,lista])=>{
+    const tipo=tipoDocumento(chave);
+    const recente=(a,b)=>(b.data||b.validade||'').localeCompare(a.data||a.validade||'');
+    let vigente=null,anteriores=[];
+    if(tipo.vigencia==='validade'){
+      // Vale a de maior validade que ainda não venceu; se todas venceram, a última.
+      const ordenadas=[...lista].sort((a,b)=>(b.validade||'').localeCompare(a.validade||''));
+      vigente=ordenadas.find(d=>d.validade&&d.validade>=hoje)||ordenadas[0]||null;
+      anteriores=ordenadas.filter(d=>d!==vigente);
+    }else if(tipo.vigencia==='substituivel'){
+      const ordenadas=[...lista].sort(recente);
+      vigente=ordenadas[0]||null;
+      anteriores=ordenadas.slice(1);
+    }else{
+      // Acumulativo: todos valem. O mais recente representa o conjunto.
+      const ordenadas=[...lista].sort(recente);
+      vigente=ordenadas[0]||null;
+      anteriores=ordenadas.slice(1);
+    }
+    return {chave,tipo,vigente,anteriores,total:lista.length,
+      acumulativo:tipo.vigencia==='acumulativo',
+      situacao:vigente?vigente.situacao:'ausente'};
+  }).sort((a,b)=>{
+    // Bloco na ordem da lei; dentro do bloco, a ordem do catálogo, que segue a
+    // sequência em que os documentos costumam ser pedidos.
+    const ordemBloco=Object.keys(blocos),ordemTipo=catalogoDocumentos.map(t=>t.chave);
+    return ordemBloco.indexOf(a.tipo.bloco)-ordemBloco.indexOf(b.tipo.bloco)
+      ||ordemTipo.indexOf(a.chave)-ordemTipo.indexOf(b.chave);
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   Prontidão: a empresa está apta a disputar hoje?
+
+   Olha só a base documental mínima — o que praticamente todo edital exige,
+   independentemente do objeto. Não substitui o checklist do processo, que é
+   calculado pelo edital concreto.
+--------------------------------------------------------------------------- */
+function prontidaoDaEmpresa(documentos,dataAlvo){
+  const hoje=dataAlvo||hojeIso();
+  const vigencias=acervoVigente(documentos,hoje);
+  const porChave=new Map(vigencias.map(v=>[v.chave,v]));
+  const faltando=[],vencidos=[],vencendo=[],emDia=[];
+  tiposBase().forEach(tipo=>{
+    const v=porChave.get(tipo.chave);
+    if(!v||!v.vigente){faltando.push(tipo);return}
+    if(v.situacao==='vencido')vencidos.push({tipo,doc:v.vigente});
+    else if(v.situacao==='vence_logo')vencendo.push({tipo,doc:v.vigente});
+    else emDia.push({tipo,doc:v.vigente});
+  });
+  const base=tiposBase().length;
+  const bloqueios=faltando.length+vencidos.length;
+  const status=bloqueios?'nao_apto':vencendo.length?'apto_com_ressalva':'apto';
+  return {status,faltando,vencidos,vencendo,emDia,base,
+    prontos:emDia.length+vencendo.length,
+    percentual:base?Math.round((emDia.length+vencendo.length)/base*100):0};
+}
+const ROTULO_PRONTIDAO={apto:'Apto a disputar',apto_com_ressalva:'Apto, com documento vencendo',nao_apto:'Não apto hoje'};
 
 /* ---------------------------------------------------------------------------
    Matriz de documentos: cruza modalidade/forma × tipo de objeto × valor.
@@ -296,9 +462,11 @@ const TIPOS={vigencia:'Vigência',completude:'Completude',consistencia:'Consist�
 const rotuloTipo=t=>TIPOS[t]||t;
 
 global.Regras={
+  catalogoDocumentos,tipoDocumento,tiposQueAtendem,tiposBase,classificarNoCatalogo,
   modalidades,formasDiretas,tiposObjeto,criterios,modosDisputa,regimesExecucao,
   procedimentosAuxiliares,meEpp,blocos,
   calcularMatrizDocumentos,criticarProcesso,contar,
+  acervoVigente,prontidaoDaEmpresa,situacaoDoDocumento,ROTULO_PRONTIDAO,DIAS_VENCE_LOGO,
   exigeEconomicoFinanceiro,exigeTecnica,engenharia,
   definirParametros,parametro,parametrosPadrao,
   rotulo,rotuloTipo,moeda,numero,diasEntre,hojeIso,br,

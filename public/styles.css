@@ -1330,3 +1330,174 @@ dialog.wizard::backdrop {
     grid-template-columns: 1fr auto;
   }
 }
+
+/* Acervo organizado por tipo e veredito de prontidão --------------------- */
+
+.prontidao {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--muted);
+  border-radius: 10px;
+  background: var(--white);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.prontidao.apto {
+  border-left-color: var(--green);
+}
+.prontidao.apto_com_ressalva {
+  border-left-color: var(--amber);
+}
+.prontidao.nao_apto {
+  border-left-color: var(--red);
+}
+.pront-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pront-head > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pront-num {
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.pront-num small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.prontidao .ag-barra {
+  margin: 10px 0 8px;
+}
+.pront-linha {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  padding: 4px 0;
+}
+.pront-linha span:last-child {
+  color: var(--text);
+}
+.pront-ok {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+.acervo-lista {
+  display: grid;
+  gap: 18px;
+}
+.acervo-bloco h3 {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--blue);
+}
+.acervo-bloco h3 span {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.acervo-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 14px;
+  align-items: center;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  border-radius: 9px;
+  padding: 11px 14px;
+  margin-bottom: 8px;
+}
+.acervo-item.vigente {
+  border-left-color: var(--green);
+}
+.acervo-item.vence_logo {
+  border-left-color: var(--amber);
+}
+.acervo-item.vencido,
+.acervo-item.ausente {
+  border-left-color: var(--red);
+}
+.acervo-item-main strong {
+  font-size: 13.5px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.tag-base {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--blue);
+  background: #eaf0fe;
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+.acervo-item-main small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.acervo-regra {
+  font-style: italic;
+  opacity: 0.85;
+}
+.acervo-item-acoes {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.acervo-versoes {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+.acervo-versoes summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--blue);
+}
+.acervo-versao {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0 6px 14px;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--line);
+}
+.acervo-versao:last-child {
+  border-bottom: 0;
+}
+.acervo-versao small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+}
+@media (max-width: 900px) {
+  .acervo-item {
+    grid-template-columns: 1fr auto;
+  }
+}

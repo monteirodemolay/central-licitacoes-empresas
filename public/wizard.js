@@ -33,6 +33,18 @@ function processoDaLicitacao(n){
    Vinculação com o acervo
 -------------------------------------------------------------------------- */
 function candidatosAcervo(item,companyId){
+  // O catálogo é a via exata: se algum tipo declara atender esta exigência,
+  // usa os documentos já classificados nele. A busca por texto fica de reserva
+  // para o acervo que ainda não passou pelo "Organizar acervo".
+  const tipos=Regras.tiposQueAtendem(item.chave).map(t=>t.chave);
+  if(tipos.length){
+    const porCatalogo=acervoDaEmpresa(companyId).filter(d=>tipos.includes(d.chave));
+    if(porCatalogo.length)
+      return porCatalogo
+        .sort((x,y)=>(y.validade||y.data||'').localeCompare(x.validade||x.data||''))
+        .map(d=>({tabela:d.origem,id:d.id,path:d.path,validade:d.validade,
+          nome:`${d.rotulo}${d.validade?` — validade ${fmt(d.validade)}`:d.data?` — ${fmt(d.data)}`:''}`}));
+  }
   const b=item.busca;
   if(!b)return[];
   if(b.certidao)
