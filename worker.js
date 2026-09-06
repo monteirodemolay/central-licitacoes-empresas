@@ -1,5 +1,9 @@
 const SECURITY_HEADERS = {
-  'Content-Security-Policy': "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; connect-src 'self' https://yntnmpwovzqgpuzrrnin.supabase.co wss://yntnmpwovzqgpuzrrnin.supabase.co https://brasilapi.com.br; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; worker-src 'self' blob: https://cdnjs.cloudflare.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+  // img-src e frame-src precisam do domínio do Supabase: é de lá que vem a
+  // pré-visualização de PDF/imagem (signed URL) no modal de edição e no
+  // vincular do Acervo. connect-src sozinho não cobre isso — permite o fetch
+  // da signed URL, mas não o <img>/<iframe> carregando o arquivo em si.
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; connect-src 'self' https://yntnmpwovzqgpuzrrnin.supabase.co wss://yntnmpwovzqgpuzrrnin.supabase.co https://brasilapi.com.br; img-src 'self' data: blob: https://yntnmpwovzqgpuzrrnin.supabase.co; frame-src 'self' https://yntnmpwovzqgpuzrrnin.supabase.co; style-src 'self' 'unsafe-inline'; worker-src 'self' blob: https://cdnjs.cloudflare.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',

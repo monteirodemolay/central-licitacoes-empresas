@@ -5,6 +5,6 @@
   "description": "MVP privado para gestão documental e participação em licitações",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check public/app.js"
+    "check": "node --check server.js && node --check public/app.js && node --check public/regras-licitacao.js && node --check public/wizard.js && node --check public/agenda.js"
   }
 }
