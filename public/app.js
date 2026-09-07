@@ -680,7 +680,7 @@ function resultadoDoCertame(n){
     <span class="badge ${CLASSE_RESULTADO[n.resultado]||'pendente'}">${esc(ROTULO_RESULTADO[n.resultado]||n.resultado)}</span></div>
     <div class="form-grid" id="resultado-form" data-notice="${n.id}">
       <label>Resultado<select name="resultado">${opcoes}</select></label>
-      <label>Valor contratado<input name="valorContratado" inputmode="decimal" value="${esc(n.valorContratado??'')}" placeholder="0,00"></label>
+      <label>Valor contratado<input name="valorContratado" inputmode="decimal" value="${esc(n.valorContratado?Regras.numero(n.valorContratado).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):'')}" placeholder="0,00"></label>
       <label>Data do resultado<input name="dataResultado" type="date" value="${esc(n.dataResultado||'')}"></label>
       <label class="full">Observação<input name="observacaoResultado" value="${esc(n.observacaoResultado||'')}" placeholder="Posição, concorrentes, motivo de desclassificação, recurso..."></label>
     </div>
