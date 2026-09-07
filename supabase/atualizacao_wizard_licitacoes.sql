@@ -188,6 +188,19 @@ alter table public.licitacao_checklist_itens add column if not exists documentos
 
 alter table public.documentos_empresa add column if not exists socios jsonb not null default '[]'::jsonb;
 
+-- 5g. Resultado do certame -----------------------------------------------------
+-- O acompanhamento ia até gerar o pacote de participação; faltava registrar o
+-- que aconteceu depois — sem isso não existe histórico nem taxa de sucesso.
+
+alter table public.licitacoes add column if not exists resultado text not null default 'em_andamento';
+alter table public.licitacoes add column if not exists valor_contratado numeric(18,2);
+alter table public.licitacoes add column if not exists data_resultado date;
+alter table public.licitacoes add column if not exists observacao_resultado text;
+
+alter table public.licitacoes drop constraint if exists licitacoes_resultado_check;
+alter table public.licitacoes add constraint licitacoes_resultado_check
+  check (resultado in ('em_andamento','vencemos','perdemos','desclassificados','revogado','anulado'));
+
 -- 6. RLS ----------------------------------------------------------------------
 
 alter table public.licitacao_checklist_itens enable row level security;
