@@ -34,16 +34,14 @@
     <nav id="nav">
       <button class="active" data-view="dashboard">Visão geral</button>
       <button data-view="companies">Empresas</button>
-      <button data-view="review">Central por empresa</button>
       <button data-view="archive">Acervo</button>
-      <button data-view="certificates">Certidões</button>
-      <button data-view="balances">Balanços</button>
       <button data-view="notices">Editais</button>
       <button data-view="agenda">Agenda</button>
-      <button data-view="packages">Pacotes</button>
+    </nav>
+    <div class="sidebar-utilidades">
       <button data-view="trash">Lixeira</button>
       <button id="access-nav" data-view="access" hidden>Acessos</button>
-    </nav>
+    </div>
     <div class="privacy">🔒 Administrador geral e proprietário da empresa. Arquivos protegidos no armazenamento privado.</div>
   </aside>
 
@@ -52,21 +50,25 @@
 
     <section id="dashboard" class="view active">
       <div id="metrics" class="metrics"></div>
+      <article class="card admin-overview" hidden>
+        <div class="card-head"><div><h2>Painel de clientes</h2><p>Todas as empresas, da mais urgente para a mais tranquila.</p></div></div>
+        <div id="admin-overview-list"></div>
+      </article>
       <article class="card company-overview"><div class="card-head"><div><h2>Regularidade do dia</h2><p>As certidões fiscais que praticamente todo edital exige, vigentes ou não, por empresa.</p></div><div class="review-actions"><select id="dashboard-company"><option value="">Todas as empresas</option></select><button id="open-company-review" class="secondary" type="button">Abrir central</button></div></div><div id="company-dashboard" class="company-dashboard"></div></article>
       <div class="grid two">
-        <article class="card"><div class="card-head"><h2>Alertas de validade</h2><button data-go="certificates" class="link">Ver todas</button></div><div id="alerts"></div></article>
+        <article class="card"><div class="card-head"><h2>Alertas de validade</h2><button data-go="archive" class="link">Ver acervo</button></div><div id="alerts"></div></article>
         <article class="card"><div class="card-head"><h2>Próximas licitações</h2><button data-go="notices" class="link">Ver editais</button></div><div id="upcoming"></div></article>
       </div>
-      <article class="card"><h2>Ações rápidas</h2><div class="quick"><button data-open="notice">＋ Novo edital no assistente</button><button data-open="certificate">＋ Adicionar certidão</button><button data-go="agenda">Ver agenda de interesse</button><button data-open="company">＋ Cadastrar empresa</button></div></article>
+      <article class="card"><h2>Ações rápidas</h2><div class="quick"><button data-open="notice">＋ Novo edital no assistente</button><button data-open="document">＋ Cadastrar documento</button><button data-go="agenda">Ver agenda de interesse</button><button data-open="company" data-admin-only>＋ Cadastrar empresa</button></div></article>
     </section>
 
     <section id="companies" class="view">
-      <div class="toolbar"><input id="company-search" placeholder="Buscar por nome ou CNPJ"><button data-open="company" class="primary">Nova empresa</button></div>
+      <div class="toolbar"><input id="company-search" placeholder="Buscar por nome ou CNPJ"><button data-open="company" class="primary" data-admin-only>Nova empresa</button></div>
       <div id="company-list" class="cards"></div>
     </section>
 
     <section id="review" class="view">
-      <div class="toolbar"><div><h2>Central de revisão documental</h2><p>Confira todos os documentos, certidões, balanços, editais e pacotes de uma empresa.</p></div><select id="review-company"><option value="">Selecione a empresa</option></select></div>
+      <div class="toolbar"><button id="back-to-companies" class="secondary" type="button">← Voltar às empresas</button><select id="review-company"><option value="">Selecione a empresa</option></select></div>
       <div id="review-content"></div>
     </section>
 
@@ -82,42 +84,37 @@
           <option value="sem_validade">Sem validade</option>
         </select></label>
         <span id="archive-count"></span>
-        <button id="organizar-acervo" class="secondary" type="button" title="Classifica no catálogo o que foi importado antes">Organizar acervo</button>
-        <button id="revisar-lote" class="secondary" type="button" title="Corrige várias certidões e documentos de uma vez">Revisar classificação em lote</button>
-        <button id="revisao-guiada-abrir" class="secondary" type="button" title="Confere um documento de cada vez, com o arquivo aberto ao lado">Revisar documento por documento</button>
-        <button data-open="document" class="primary" type="button" title="Envia um documento de qualquer tipo do catálogo, não só certidão ou balanço">Cadastrar documento</button>
+        <button id="revisar-documentos" class="secondary" type="button" title="Confere e corrige a classificação dos documentos, um de cada vez">Revisar documentos</button>
+        <button data-open="balance" class="secondary" type="button" title="Balanço patrimonial tem cadastro próprio, com exercício e período">+ Balanço</button>
+        <button data-open="document" class="primary" type="button" title="Envia um documento de qualquer tipo do catálogo, inclusive certidões e balanços">Cadastrar documento</button>
       </div>
+      <div id="archive-organizar-aviso"></div>
       <div id="archive-prontidao"></div>
       <div id="archive-list" class="acervo-lista"></div>
-      <article class="card batch-import">
-        <div class="card-head"><div><h2>Importar pasta do Dropbox</h2><p>No Dropbox, baixe a pasta como ZIP. O LiciDoc abre as subpastas, identifica os documentos e permite revisar antes de arquivar.</p></div><span class="badge ok">Migração assistida</span></div>
-        <div class="archive-source-controls"><label>Empresa<select id="archive-company"><option value="">Selecione</option></select></label><label>Pasta compactada (.zip)<input id="archive-zip" type="file" accept="application/zip,.zip"></label><span class="source-divider">ou</span><label>Pasta já descompactada<input id="archive-folder" type="file" webkitdirectory directory multiple></label><button id="analyze-archive" class="primary" type="button">Ler documentos</button></div>
-        <p class="field-message">Para acervos grandes, prefira a pasta descompactada. Limites: ZIP de 1 GB, até 1.500 documentos e 50 MB por arquivo.</p>
-        <div id="archive-progress" class="reader-progress" hidden></div>
-        <div id="archive-result"></div>
-      </article>
-    </section>
 
-    <section id="certificates" class="view">
-      <div class="toolbar"><select id="certificate-filter"><option value="all">Todas as situações</option><option value="expired">Vencidas</option><option value="urgent">Urgentes</option><option value="ok">Regulares</option></select><button data-open="certificate" class="primary">Adicionar certidão</button></div>
-      <article class="card batch-import">
-        <div class="card-head"><div><h2>Importar certidões em lote</h2><p>Selecione vários PDFs. O sistema sugere o tipo, a emissão e a validade para sua conferência.</p></div><span class="badge ok">Importação múltipla</span></div>
-        <div class="batch-controls"><label>Empresa<select id="batch-company"><option value="">Selecione</option></select></label><label>Arquivos PDF<input id="batch-files" type="file" accept="application/pdf,.pdf" multiple></label><div class="review-actions"><button id="analyze-certificates" class="primary" type="button">Ler arquivos</button><button id="reclassify-certificates" class="secondary" type="button">Reclassificar importadas</button></div></div>
-        <div id="batch-progress" class="reader-progress" hidden></div>
-        <div id="batch-result"></div>
-      </article>
-      <div class="card table-wrap"><table><thead><tr><th>Empresa</th><th>Certidão</th><th>Órgão</th><th>Validade</th><th>Situação</th><th>Ação</th></tr></thead><tbody id="certificate-list"></tbody></table></div>
-    </section>
-
-    <section id="balances" class="view">
-      <div class="toolbar"><p>Controle os exercícios contábeis e confira o que poderá ser exigido no edital.</p><button data-open="balance" class="primary">Adicionar balanço</button></div>
-      <article class="card balance-checker">
-        <div class="card-head"><div><h2>Conferência de exigibilidade</h2><p>A conclusão é orientativa e deve ser confirmada no edital e com o contador.</p></div></div>
+      <article class="card balance-checker" data-admin-only>
+        <div class="card-head"><div><h2>Conferência de exigibilidade do balanço</h2><p>A conclusão é orientativa e deve ser confirmada no edital e com o contador.</p></div></div>
         <div class="form-row"><label>Empresa<select id="balance-company"><option value="">Selecione</option></select></label><label>Situação da contratação<select id="balance-scenario"><option value="geral">Regra geral</option><option value="pronta_entrega">Bens para pronta entrega</option><option value="locacao_materiais">Locação de materiais</option></select></label></div>
         <button id="check-balance" class="secondary" type="button">Verificar exercícios necessários</button>
         <div id="balance-rule"></div>
       </article>
-      <div id="balance-list" class="cards"></div>
+
+      <details class="card importar-arquivos" data-admin-only>
+        <summary>Importar arquivos em lote</summary>
+        <article class="batch-import">
+          <div class="card-head"><div><h2>Importar certidões em lote</h2><p>Selecione vários PDFs. O sistema sugere o tipo, a emissão e a validade para sua conferência.</p></div><span class="badge ok">Importação múltipla</span></div>
+          <div class="batch-controls"><label>Empresa<select id="batch-company"><option value="">Selecione</option></select></label><label>Arquivos PDF<input id="batch-files" type="file" accept="application/pdf,.pdf" multiple></label><div class="review-actions"><button id="analyze-certificates" class="primary" type="button">Ler arquivos</button><button id="reclassify-certificates" class="secondary" type="button">Reclassificar importadas</button></div></div>
+          <div id="batch-progress" class="reader-progress" hidden></div>
+          <div id="batch-result"></div>
+        </article>
+        <article class="batch-import">
+          <div class="card-head"><div><h2>Importar pasta do Dropbox</h2><p>No Dropbox, baixe a pasta como ZIP. O LiciDoc abre as subpastas, identifica os documentos e permite revisar antes de arquivar.</p></div><span class="badge ok">Migração assistida</span></div>
+          <div class="archive-source-controls"><label>Empresa<select id="archive-company"><option value="">Selecione</option></select></label><label>Pasta compactada (.zip)<input id="archive-zip" type="file" accept="application/zip,.zip"></label><span class="source-divider">ou</span><label>Pasta já descompactada<input id="archive-folder" type="file" webkitdirectory directory multiple></label><button id="analyze-archive" class="primary" type="button">Ler documentos</button></div>
+          <p class="field-message">Para acervos grandes, prefira a pasta descompactada. Limites: ZIP de 1 GB, até 1.500 documentos e 50 MB por arquivo.</p>
+          <div id="archive-progress" class="reader-progress" hidden></div>
+          <div id="archive-result"></div>
+        </article>
+      </details>
     </section>
 
     <section id="notices" class="view">
@@ -169,6 +166,7 @@
     </section>
 
     <section id="packages" class="view">
+      <div class="toolbar"><button id="back-to-notices-from-packages" class="secondary" type="button">← Voltar aos editais</button></div>
       <article class="card package-builder"><h2>Preparar pacote de participação</h2><p>Selecione uma empresa e um edital. O sistema vinculará as versões documentais utilizadas e apontará pendências.</p><div class="form-row"><label>Empresa<select id="package-company"></select></label><label>Edital<select id="package-notice"></select></label></div><button id="build-package" class="primary">Criar pacote do processo</button><div id="package-result"></div></article>
       <div id="saved-packages" class="cards"></div>
     </section>
@@ -252,6 +250,7 @@
       </select></label>
       <label>Buscar<input id="revisao-guiada-busca" placeholder="Nome do arquivo, tipo..."></label>
       <span id="revisao-guiada-progresso" class="wz-chip"></span>
+      <button type="button" class="link" id="revisao-guiada-tabela" data-admin-only>Ver como tabela</button>
     </div>
     <div class="wz-body revisao-guiada-corpo">
       <nav id="revisao-guiada-lista" class="revisao-guiada-lista"></nav>

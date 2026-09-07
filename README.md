@@ -14,6 +14,17 @@ Sistema administrativo enxuto para controlar empresas, documentos e participaç�
 
 Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou importar edital no assistente → classificar o processo → conferir a documentação exigível → acompanhar o que falta pela agenda → gerar pacote.
 
+## Navegação
+
+O menu principal tem 5 itens: Visão geral, Empresas, Acervo, Editais e Agenda. Lixeira e Acessos ficam num rodapé discreto na barra lateral, por serem manutenção, não trabalho do dia a dia. Telas que existiam separadas antes foram fundidas onde o trabalho já acontece, em vez de ficarem como itens de menu à parte:
+
+- **Certidões** e **Balanços** viraram parte do **Acervo** — já apareciam lá organizados por tipo, com vigência e prontidão; manter uma lista solta ao lado era duplicar a mesma informação. O atalho para cadastrar um balanço avulso e a conferência de exigibilidade continuam disponíveis dentro do Acervo;
+- **Central por empresa** virou o que abre ao clicar em "Ver perfil" numa empresa, na tela Empresas — em vez de ser uma tela paralela com seu próprio seletor de empresa;
+- **Pacotes** virou parte da tela do próprio edital — "Preparar pacote" já pré-preenche a empresa e o processo;
+- as três ferramentas que existiam para corrigir a classificação de um documento (organizar automaticamente, revisar em lote, revisar um por um) viraram um único botão, **"Revisar documentos"**, que abre a revisão guiada com um link para trocar para a visão em tabela quando for corrigir muitos de uma vez. O aviso para organizar automaticamente só aparece quando existe algo mesmo não classificado.
+
+O proprietário de empresa (o cliente) vê uma versão mais enxuta: sem os atalhos de importação em lote (Dropbox, certidões em lote), sem a conferência de balanço e sem cadastrar empresa nova — ferramentas de quem administra várias empresas ao mesmo tempo. Continua podendo cadastrar documento avulso, revisar documento por documento, acompanhar prontidão, editais e agenda, tudo restrito à própria empresa.
+
 ## O que já funciona
 
 - cadastro de múltiplas empresas;
@@ -61,7 +72,9 @@ Fluxo principal: cadastrar empresa → manter certidões → cadastrar ou import
 - checklist consolidado em PDF, pronto para imprimir e levar para conferência, com a situação de cada item, a base legal de cada bloco e a contagem regressiva até a sessão;
 - checklist completo no pacote, com `[INCLUÍDO]`, `[PENDENTE]`, `[VENCIDO PARA A SESSÃO]`, `[GERADO PELO SISTEMA]` e `[NÃO SE APLICA — justificativa]`;
 - lixeira para todos os registros operacionais, com restauração, exclusão imediata e limpeza após 30 dias;
-- exportação do banco local em JSON.
+- exportação do banco local em JSON;
+- resultado do certame registrado na tela do próprio edital (em andamento, vencemos, perdemos, desclassificados, revogado, anulado), com valor contratado, data e observação — o acompanhamento não para mais em "gerar o pacote";
+- painel de clientes na Visão geral, para quem administra mais de uma empresa: uma linha por empresa, da mais urgente (mais pendências, sessão mais próxima) para a mais tranquila, sem precisar abrir uma de cada vez para saber quem precisa de atenção.
 
 ## Documentação de referência
 

@@ -42,7 +42,7 @@ async function loadData(){
   state.companies=(results[0].data||[]).map(x=>({id:x.id,name:x.razao_social,trade:x.nome_fantasia,cnpj:x.cnpj,city:x.municipio,state:x.uf,activities:x.atividades,openingDate:x.data_abertura,legalNature:x.natureza_juridica,size:x.porte}));
   state.certificates=(results[1].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,type:x.tipo,tipoChave:x.tipo_chave,issuer:x.orgao_emissor,issued:x.emissao,validity:x.validade,link:x.link_emissao,filePath:x.arquivo_path,responsavelTecnico:x.responsavel_tecnico,arquivado:!!x.arquivado}));
   state.balances=(results[2].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,year:x.exercicio,tipoChave:x.tipo_chave,documentType:x.tipo_documento,periodStart:x.periodo_inicio,periodEnd:x.periodo_fim,registrationDate:x.data_registro,registrationOffice:x.orgao_registro,filePath:x.arquivo_path,notes:x.observacoes}));
-  state.notices=(results[3].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,number:x.numero,agency:x.orgao,object:x.objeto,opening:x.abertura,horaSessao:x.hora_sessao,modality:x.modalidade,linkPortal:x.link_portal,requirements:x.requisitos||[],proposalRequirements:x.requisitos_proposta||[],declarations:x.declaracoes||[],items:x.itens||[],filePath:x.edital_path,extractedText:x.texto_extraido,temCertame:x.tem_certame!==false,modalidadePadrao:x.modalidade_padrao,formaDireta:x.forma_contratacao_direta,fundamentoLegal:x.fundamento_legal,tipoObjeto:x.tipo_objeto,criterio:x.criterio_julgamento,modoDisputa:x.modo_disputa,regime:x.regime_execucao,meEpp:x.exclusividade_me_epp||'nao',valorEstimado:x.valor_estimado,procedimentoAuxiliar:x.procedimento_auxiliar,statusProcesso:x.status_processo||'rascunho',interesse:x.interesse||'em_analise',prioridade:x.prioridade||'media',responsavel:x.responsavel,anotacoes:x.anotacoes,decidirAte:x.decidir_ate}));
+  state.notices=(results[3].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,number:x.numero,agency:x.orgao,object:x.objeto,opening:x.abertura,horaSessao:x.hora_sessao,modality:x.modalidade,linkPortal:x.link_portal,requirements:x.requisitos||[],proposalRequirements:x.requisitos_proposta||[],declarations:x.declaracoes||[],items:x.itens||[],filePath:x.edital_path,extractedText:x.texto_extraido,temCertame:x.tem_certame!==false,modalidadePadrao:x.modalidade_padrao,formaDireta:x.forma_contratacao_direta,fundamentoLegal:x.fundamento_legal,tipoObjeto:x.tipo_objeto,criterio:x.criterio_julgamento,modoDisputa:x.modo_disputa,regime:x.regime_execucao,meEpp:x.exclusividade_me_epp||'nao',valorEstimado:x.valor_estimado,procedimentoAuxiliar:x.procedimento_auxiliar,statusProcesso:x.status_processo||'rascunho',interesse:x.interesse||'em_analise',prioridade:x.prioridade||'media',responsavel:x.responsavel,anotacoes:x.anotacoes,decidirAte:x.decidir_ate,resultado:x.resultado||'em_andamento',valorContratado:x.valor_contratado,dataResultado:x.data_resultado,observacaoResultado:x.observacao_resultado}));
   state.packages=(results[4].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,noticeId:x.licitacao_id,name:x.nome,status:x.status,documents:x.documentos||[],proposal:x.proposta||{},declarations:x.declaracoes||[],items:x.itens||[],createdAt:x.criado_em}));
   state.documents=(results[5]?.data||[]).map(x=>({id:x.id,companyId:x.empresa_id,category:x.categoria,type:x.tipo,tipoChave:x.tipo_chave,name:x.nome_original,filePath:x.arquivo_path,source:x.origem,sourceFolder:x.pasta_origem,documentDate:x.data_documento,validity:x.validade,hash:x.sha256,metadata:x.metadados||{},createdAt:x.criado_em,responsavelTecnico:x.responsavel_tecnico,arquivado:!!x.arquivado,socios:x.socios||[]}));
   const activeCompanyIds=new Set(state.companies.map(company=>company.id));
@@ -58,7 +58,7 @@ async function loadData(){
   state.trash=trashResults.flatMap((result,index)=>(result.data||[]).map(row=>trashItem(...types[index],row)));
   await purgeExpiredTrash();renderAll()
 }
-function navigate(view){$$('.view').forEach(v=>v.classList.toggle('active',v.id===view));$$('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));$('#page-title').textContent=({dashboard:'Visão geral',companies:'Empresas',review:'Central por empresa',archive:'Acervo documental',certificates:'Certidões',balances:'Balanços patrimoniais',notices:'Editais','notice-detail':'Detalhes do edital',agenda:'Agenda de interesse',packages:'Pacotes de participação',trash:'Lixeira',access:'Acessos'})[view]||'LiciDoc'}
+function navigate(view){$$('.view').forEach(v=>v.classList.toggle('active',v.id===view));$$('#nav button, .sidebar-utilidades button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));$('#page-title').textContent=({dashboard:'Visão geral',companies:'Empresas',review:'Perfil da empresa',archive:'Acervo documental',notices:'Editais','notice-detail':'Detalhes do edital',agenda:'Agenda de interesse',packages:'Pacotes de participação',trash:'Lixeira',access:'Acessos'})[view]||'LiciDoc'}
 function renderMetrics(){const expired=state.certificates.filter(c=>status(c.validity)==='expired').length,urgent=state.certificates.filter(c=>status(c.validity)==='urgent').length;const hoje=new Date().toISOString().slice(0,10),tarefas=state.agenda.filter(t=>!t.concluida),atrasadas=tarefas.filter(t=>t.prazo&&t.prazo<hoje).length,participar=state.notices.filter(n=>n.interesse==='vamos_participar'&&(!n.opening||n.opening>=hoje)).length;$('#metrics').innerHTML=`<div class="metric"><span>Empresas</span><strong>${state.companies.length}</strong><small>Disponíveis para você</small></div><div class="metric red"><span>Certidões vencidas</span><strong>${expired}</strong><small>Exigem providência</small></div><div class="metric amber"><span>Vencem em até 15 dias</span><strong>${urgent}</strong><small>Atenção imediata</small></div><div class="metric${atrasadas?' red':''}"><span>Vamos participar</span><strong>${participar}</strong><small>${tarefas.length} providência(s), ${atrasadas} atrasada(s)</small></div>`}
 function renderAlerts(){const items=[...state.certificates].sort((a,b)=>(a.validity||'9999').localeCompare(b.validity||'9999')).slice(0,6);$('#alerts').innerHTML=items.length?items.map(c=>{const st=status(c.validity),precisaAcao=st==='expired'||st==='urgent'||st==='missing';return`<div class="list-row"><p><strong>${esc(c.type)}</strong><br><small>${esc(companyName(c.companyId))} · ${fmt(c.validity)}</small></p>${precisaAcao?`<button type="button" class="badge-acao badge ${st}" data-adicionar-regularidade="${esc(chaveAtualDe('certificate',c))}" data-adicionar-empresa="${esc(c.companyId)}" title="Cadastrar a certidão atualizada">${statusLabel(st)}</button>`:`<span class="badge ${st}">${statusLabel(st)}</span>`}</div>`}).join(''):'<div class="empty">Nenhuma certidão cadastrada.</div>'}
 function renderUpcoming(){const items=[...state.notices].filter(n=>!n.opening||new Date(`${n.opening}T23:59:59`)>=new Date()).sort((a,b)=>(a.opening||'9999').localeCompare(b.opening||'9999')).slice(0,5);$('#upcoming').innerHTML=items.length?items.map(n=>{const itens=state.checklist.filter(c=>c.noticeId===n.id&&c.aplicavel!==false),r=window.Regras?Regras.contar(itens):{criticos:0,total:0};return`<div class="list-row"><p><strong>${esc(n.number)}</strong><br><small>${esc(n.agency)} · ${r.total?`${r.prontos}/${r.total} documentos prontos`:'checklist ainda não calculado'}</small></p><span>${fmt(n.opening)}${r.criticos?`<br><small class="pend">${r.criticos} pendência(s)</small>`:''}</span></div>`}).join(''):'<div class="empty">Nenhuma licitação futura cadastrada.</div>'}
@@ -85,6 +85,34 @@ function acervoDaEmpresa(companyId){
 }
 
 const prontidaoDe=(companyId,dataAlvo)=>Regras.prontidaoDaEmpresa(acervoDaEmpresa(companyId),dataAlvo);
+
+/* Painel de clientes: só para quem cuida de mais de uma empresa. Uma linha por
+   empresa, da mais urgente (mais bloqueios, sessão mais próxima) para a mais
+   tranquila — em vez de abrir uma por uma para saber quem precisa de atenção. */
+function renderAdminOverview(){
+  const root=$('#admin-overview-list'),artigo=$('.admin-overview');
+  if(!root)return;
+  const mostra=isAdmin()&&state.companies.length>=2;
+  if(artigo)artigo.hidden=!mostra;
+  if(!mostra){root.innerHTML='';return}
+  const hoje=Regras.hojeIso();
+  const linhas=state.companies.map(company=>{
+    const p=prontidaoDe(company.id),bloqueios=p.faltando.length+p.vencidos.length;
+    const proxima=state.notices.filter(n=>n.companyId===company.id&&(!n.opening||n.opening>=hoje))
+      .sort((a,b)=>(a.opening||'9999').localeCompare(b.opening||'9999'))[0];
+    return {company,p,bloqueios,proxima};
+  }).sort((a,b)=>b.bloqueios-a.bloqueios||(a.proxima?.opening||'9999').localeCompare(b.proxima?.opening||'9999'));
+  root.innerHTML=linhas.map(({company,p,bloqueios,proxima})=>{
+    const cor={apto:'ok',apto_com_ressalva:'pendente',nao_apto:'vencido'}[p.status];
+    return `<div class="admin-overview-linha">
+      <span class="admin-overview-nome"><strong>${esc(company.name)}</strong><small>${esc(company.cnpj)}</small></span>
+      <span class="badge ${cor}">${esc(Regras.ROTULO_PRONTIDAO[p.status])}</span>
+      <span>${bloqueios?`${bloqueios} pendência(s)`:'sem pendências'}</span>
+      <span>${proxima?`${esc(proxima.number)} · ${fmt(proxima.opening)}`:'sem edital agendado'}</span>
+      <button type="button" class="link" data-review-company="${company.id}">Ver perfil</button>
+    </div>`;
+  }).join('');
+}
 
 /* Painel do veredito: a resposta objetiva de "posso disputar hoje?" — ou, com
    dataAlvo, "vou poder disputar naquele dia?", pois o motor de vigência aceita
@@ -136,8 +164,8 @@ function classificacaoLabel(n){if(!window.Regras)return n.modality||'';const par
 function renderAccess(){if(!isAdmin())return;$('#access-list').innerHTML=state.profiles.length?state.profiles.map(p=>`<div class="access-row"><p><strong>${esc(p.name||p.email)}</strong><br><small>${esc(p.email)} · ${p.role==='admin_geral'?'Administrador geral':p.role==='proprietario_empresa'?'Proprietário':'Aguardando liberação'}</small></p><label>Empresa<select data-access-company="${p.id}" ${p.role==='admin_geral'?'disabled':''}><option value="">Selecione</option>${state.companies.map(c=>`<option value="${c.id}" ${c.id===p.companyId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><button class="primary" data-authorize="${p.id}" ${p.role==='admin_geral'?'disabled':''}>Autorizar</button></div>`).join(''):'<div class="empty">Nenhum usuário cadastrado.</div>'}
 
 function deleteButton(entity,recordId,label='Mover para a lixeira'){return`<button class="link danger-text" type="button" data-trash-entity="${entity}" data-trash-id="${recordId}">${label}</button>`}
-function renderCompanyDashboard(){const selected=$('#dashboard-company')?.value||'',companies=selected?state.companies.filter(c=>c.id===selected):state.companies;$('#company-dashboard').innerHTML=companies.length?companies.map(company=>{const p=prontidaoDe(company.id),cor={apto:'ok',apto_com_ressalva:'pendente',nao_apto:'vencido'}[p.status];return`<article class="company-summary-card"><div class="card-head"><div><h3>${esc(company.name)}</h3><small>${esc(company.cnpj)}</small></div><div class="card-head-acoes"><span class="badge ${cor}">${esc(Regras.ROTULO_PRONTIDAO[p.status])}</span><button class="secondary" data-review-company="${company.id}">Revisar empresa</button></div></div>${regularidadeDoDia(company)}</article>`}).join(''):'<div class="empty">Nenhuma empresa disponível.</div>'}
-function renderCompanies(){const q=$('#company-search')?.value.toLowerCase()||'',list=state.companies.filter(c=>(c.name+c.cnpj).toLowerCase().includes(q));$('#company-list').innerHTML=list.length?list.map(c=>{const certs=state.certificates.filter(x=>x.companyId===c.id),bad=certs.filter(x=>status(x.validity)!=='ok').length;return`<article class="card company-card"><div class="card-head"><div><h3>${esc(c.name)}</h3><div class="meta">${esc(c.trade||'Sem nome fantasia')} · ${esc(c.cnpj)}</div></div><button class="secondary" data-review-company="${c.id}">Revisar</button></div><p>${esc(c.city||'Município não informado')} ${c.state?'— '+esc(c.state):''}</p><div class="stats"><span><strong>${certs.length}</strong>certidões</span><span><strong>${bad}</strong>pendências</span></div>${isAdmin()?`<div class="record-actions">${deleteButton('company',c.id)}</div>`:''}</article>`}).join(''):'<div class="empty">Nenhuma empresa encontrada.</div>';renderSelects()}
+function renderCompanyDashboard(){const selected=$('#dashboard-company')?.value||'',companies=selected?state.companies.filter(c=>c.id===selected):state.companies;$('#company-dashboard').innerHTML=companies.length?companies.map(company=>{const p=prontidaoDe(company.id),cor={apto:'ok',apto_com_ressalva:'pendente',nao_apto:'vencido'}[p.status];return`<article class="company-summary-card"><div class="card-head"><div><h3>${esc(company.name)}</h3><small>${esc(company.cnpj)}</small></div><div class="card-head-acoes"><span class="badge ${cor}">${esc(Regras.ROTULO_PRONTIDAO[p.status])}</span><button class="secondary" data-review-company="${company.id}">Ver perfil</button></div></div>${regularidadeDoDia(company)}</article>`}).join(''):'<div class="empty">Nenhuma empresa disponível.</div>'}
+function renderCompanies(){const q=$('#company-search')?.value.toLowerCase()||'',list=state.companies.filter(c=>(c.name+c.cnpj).toLowerCase().includes(q));$('#company-list').innerHTML=list.length?list.map(c=>{const certs=state.certificates.filter(x=>x.companyId===c.id),bad=certs.filter(x=>status(x.validity)!=='ok').length;return`<article class="card company-card"><div class="card-head"><div><h3>${esc(c.name)}</h3><div class="meta">${esc(c.trade||'Sem nome fantasia')} · ${esc(c.cnpj)}</div></div><button class="secondary" data-review-company="${c.id}">Ver perfil</button></div><p>${esc(c.city||'Município não informado')} ${c.state?'— '+esc(c.state):''}</p><div class="stats"><span><strong>${certs.length}</strong>certidões</span><span><strong>${bad}</strong>pendências</span></div>${isAdmin()?`<div class="record-actions">${deleteButton('company',c.id)}</div>`:''}</article>`}).join(''):'<div class="empty">Nenhuma empresa encontrada.</div>';renderSelects()}
 function reviewRows(items,empty){return items.length?items.join(''):`<p class="empty">${empty}</p>`}
 function renderCompanyReview(){const root=$('#review-content'),companyId=$('#review-company')?.value||'';if(!companyId){root.innerHTML='<div class="empty">Selecione uma empresa para revisar todo o conjunto documental.</div>';return}const company=state.companies.find(c=>c.id===companyId);if(!company){root.innerHTML='<div class="empty">Empresa não localizada.</div>';return}const certs=[...state.certificates.filter(x=>x.companyId===companyId)].sort((a,b)=>(a.validity||'9999').localeCompare(b.validity||'9999')),docs=state.documents.filter(x=>x.companyId===companyId),balances=state.balances.filter(x=>x.companyId===companyId),notices=state.notices.filter(x=>x.companyId===companyId),packages=state.packages.filter(x=>x.companyId===companyId),pending=certs.filter(x=>status(x.validity)!=='ok').length;root.innerHTML=`${painelProntidao(company)}<div class="review-hero card"><div><span class="eyebrow">EMPRESA SELECIONADA</span><h2>${esc(company.name)}</h2><p>${esc(company.cnpj)} · ${esc(company.city||'Município não informado')}${company.state?' / '+esc(company.state):''}</p></div><div class="summary-numbers"><span><strong>${docs.length}</strong>Documentos</span><span><strong>${certs.length}</strong>Certidões</span><span class="${pending?'red-text':''}"><strong>${pending}</strong>Pendências</span><span><strong>${notices.length}</strong>Editais</span></div></div><div class="review-sections"><article class="card review-section"><h3>Certidões</h3>${reviewRows(certs.map(c=>`<div class="review-row"><span><strong>${esc(c.type)}</strong><small>${esc(c.issuer||'Órgão não informado')} · validade ${fmt(c.validity)}</small></span><span><span class="badge ${status(c.validity)}">${statusLabel(status(c.validity))}</span>${c.filePath?`<button class="link" data-document="${esc(c.filePath)}">Abrir</button>`:''}${deleteButton('certificate',c.id)}</span></div>`),'Nenhuma certidão cadastrada.')}</article><article class="card review-section"><h3>Acervo documental</h3>${reviewRows(docs.slice(0,20).map(d=>`<div class="review-row"><span><strong>${esc(d.type||d.name)}</strong><small>${esc(d.category)} · ${fmt(d.documentDate)}</small></span><span>${d.filePath?`<button class="link" data-document="${esc(d.filePath)}">Abrir</button>`:''}${deleteButton('document',d.id)}</span></div>`),'Nenhum documento arquivado.')}</article><article class="card review-section"><h3>Balanços patrimoniais</h3>${reviewRows(balances.map(b=>`<div class="review-row"><span><strong>Exercício ${esc(b.year)}</strong><small>${esc(b.documentType||'Balanço anual')}</small></span><span>${b.filePath?`<button class="link" data-document="${esc(b.filePath)}">Abrir</button>`:''}${deleteButton('balance',b.id)}</span></div>`),'Nenhum balanço arquivado.')}</article><article class="card review-section"><h3>Editais e processos</h3>${reviewRows(notices.map(n=>`<div class="review-row"><span><strong>${esc(n.number)}</strong><small>${esc(n.agency)} · abertura ${fmt(n.opening)}</small></span><span><button class="link" data-notice-detail="${n.id}">Ver tela</button>${deleteButton('notice',n.id)}</span></div>`),'Nenhum edital cadastrado.')}</article><article class="card review-section"><h3>Pacotes preparados</h3>${reviewRows(packages.map(p=>`<div class="review-row"><span><strong>${esc(p.name)}</strong><small>${p.documents.length} documento(s)</small></span><span><button class="link" data-download-package="${p.id}">Baixar</button>${deleteButton('package',p.id)}</span></div>`),'Nenhum pacote preparado.')}</article></div>`}
 const SIT_ACERVO={vigente:'Vigente',vence_logo:'Vence em breve',vencido:'Vencido',sem_validade:'Em dia',ausente:'Ausente'};
@@ -148,6 +176,10 @@ const SIT_CLASSE={vigente:'ok',vence_logo:'pendente',vencido:'vencido',sem_valid
 function renderArchive(){
   const root=$('#archive-list');
   if(!root)return;
+  if($('#archive-organizar-aviso')){
+    const semClassificar=isAdmin()?state.documents.filter(d=>!d.tipoChave).length+state.certificates.filter(c=>!c.tipoChave).length+state.balances.filter(b=>!b.tipoChave).length:0;
+    $('#archive-organizar-aviso').innerHTML=semClassificar?`<div class="aviso-organizar"><span>${semClassificar} documento(s) ainda não classificado(s) no catálogo.</span><button type="button" class="secondary" data-organizar-acervo>Organizar agora</button></div>`:'';
+  }
   const companyId=$('#archive-view-company')?.value||'';
   const situacao=$('#archive-filter')?.value||'all';
   if($('#archive-view-company')&&!$('#archive-view-company').dataset.pronto){
@@ -301,7 +333,7 @@ function linhaDoAcervo(v,companyId){
 /* Reclassifica o que já está arquivado no catálogo. É o "arrumar a casa" para
    quem importou pastas do Dropbox antes de existir critério. */
 async function organizarAcervo(){
-  const botao=$('#organizar-acervo');
+  const botao=$('[data-organizar-acervo]');
   const alvos=state.documents.filter(d=>!d.tipoChave);
   const certs=state.certificates.filter(c=>!c.tipoChave);
   const bals=state.balances.filter(b=>!b.tipoChave);
@@ -550,9 +582,7 @@ function fecharRevisaoGuiada(){
   $('#revisao-guiada').close();
 }
 
-function renderCertificates(){const filter=$('#certificate-filter')?.value||'all',all=[...state.certificates].sort((a,b)=>companyName(a.companyId).localeCompare(companyName(b.companyId),'pt-BR')||a.type.localeCompare(b.type,'pt-BR')||(b.validity||'').localeCompare(a.validity||'')),list=all.filter(c=>filter==='all'||status(c.validity)===filter),latest=new Set();all.forEach(c=>{const key=`${c.companyId}:${c.type}`;c.isLatest=!latest.has(key);latest.add(key)});$('#certificate-list').innerHTML=list.length?list.map(c=>`<tr><td>${esc(companyName(c.companyId))}</td><td><strong>${esc(c.type)}</strong><br><small>${c.isLatest?'Versão atual':'Histórico preservado'}</small></td><td>${esc(c.issuer||'—')}</td><td>${fmt(c.validity)}</td><td><span class="badge ${status(c.validity)}">${statusLabel(status(c.validity))}</span></td><td>${c.filePath?`<button class="link" data-document="${esc(c.filePath)}">Abrir PDF</button> · `:''}${c.link?`<a href="${esc(c.link)}" target="_blank" rel="noopener">Emitir nova ↗</a> · `:''}<button class="link" data-editar="certificate" data-editar-id="${c.id}">Editar</button> ${deleteButton('certificate',c.id,'Excluir')}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Nenhuma certidão nessa situação.</td></tr>'}
 function renderNotices(){$('#notice-list').innerHTML=state.notices.length?state.notices.map(n=>{const itens=state.checklist.filter(c=>c.noticeId===n.id&&c.aplicavel!==false),r=window.Regras?Regras.contar(itens):{total:0,prontos:0,criticos:0};const st=n.statusProcesso||'rascunho';return`<article class="card notice-card"><div class="card-head"><div><h3>${esc(n.number)}</h3><div class="meta">${esc(companyName(n.companyId))} · ${esc(n.agency)} · Sessão ${fmt(n.opening)}${n.horaSessao?` às ${esc(String(n.horaSessao).slice(0,5))}`:''}</div></div><span class="badge ${st==='pronto'?'ok':st==='em_conferencia'?'pendente':'nao_aplicavel'}">${esc(STATUS_PROCESSO[st]||st)}</span></div><p class="notice-class">${esc(classificacaoLabel(n))}</p><p>${esc((n.object||'').slice(0,240))}${(n.object||'').length>240?'…':''}</p><div class="notice-stats"><span>${r.total?`${r.prontos}/${r.total} documentos`:'checklist não calculado'}</span>${r.criticos?`<span class="pend">${r.criticos} pendência(s)</span>`:''}<span>${(n.items||[]).length} itens</span><span>${esc(window.rotuloInteresse?rotuloInteresse(n.interesse):'')}</span></div><div class="record-actions"><button class="primary" data-wizard="${n.id}">Abrir assistente</button><button class="secondary" data-notice-detail="${n.id}">Ver detalhes</button>${n.filePath?`<button class="link" data-document="${esc(n.filePath)}">Abrir PDF original</button>`:''}<button class="link" data-go="agenda">Ver na agenda</button>${deleteButton('notice',n.id)}</div></article>`}).join(''):'<div class="empty">Nenhum edital cadastrado. Use o assistente para cadastrar o primeiro.</div>';renderSelects()}
-function renderBalances(){$('#balance-list').innerHTML=state.balances.length?state.balances.map(b=>`<article class="card balance-card"><div class="card-head"><div><h3>${esc(companyName(b.companyId))}</h3><p>Exercício ${esc(b.year)} · ${esc(b.documentType||'Balanço anual')}</p></div><span class="badge ok">Arquivado</span></div><p>Período: ${fmt(b.periodStart)} a ${fmt(b.periodEnd)}<br>Registro/autenticação: ${fmt(b.registrationDate)}${b.registrationOffice?' · '+esc(b.registrationOffice):''}</p><div class="record-actions"><small>${esc(b.notes||'Balanço e demonstrações contábeis')}</small>${b.filePath?`<button class="link" data-document="${esc(b.filePath)}">Abrir arquivo</button> · `:''}<button class="link" data-editar="balance" data-editar-id="${b.id}">Editar</button>${deleteButton('balance',b.id)}</div></article>`).join(''):'<div class="empty">Nenhum balanço patrimonial arquivado.</div>'}
 function renderPackages(){$('#saved-packages').innerHTML=state.packages.length?state.packages.map(p=>{const notice=state.notices.find(n=>n.id===p.noticeId),missing=(p.documents||[]).filter(d=>!d.path).length;return`<article class="card package-card"><div class="card-head"><div><h3>${esc(p.name)}</h3><p>${esc(companyName(p.companyId))} · ${esc(notice?.agency||'Órgão')}</p></div><span class="badge ${missing?'urgent':'ok'}">${missing?`${missing} pendência(s)`:'Completo'}</span></div><p>${p.documents.length} documento(s) vinculados · ${p.items.length} item(ns) na proposta</p><details><summary>Consultar documentos deste processo</summary>${p.documents.map(d=>`<div class="list-row"><span>${esc(d.title)}</span>${d.path?`<button class="link" data-document="${esc(d.path)}">Abrir</button>`:'<span class="badge missing">Pendente</span>'}</div>`).join('')}</details><div class="record-actions"><button class="primary" data-download-package="${p.id}">Baixar pacote ZIP</button>${deleteButton('package',p.id)}</div></article>`}).join(''):'<div class="empty">Nenhum pacote de processo criado.</div>'}
 /* Bloco do checklist na tela do edital: leitura rápida do que está pronto e do
    que falta. O ajuste fino segue no assistente, mas dá pra mandar um documento
@@ -639,6 +669,30 @@ async function salvarUploadItem(itemId){
   finally{setBusy(botao,false)}
 }
 
+/* Resultado do certame: o acompanhamento ia até gerar o pacote, sem registrar
+   o que aconteceu depois. Sem isso não existe histórico de taxa de sucesso. */
+const ROTULO_RESULTADO={em_andamento:'Em andamento',vencemos:'Vencemos',perdemos:'Perdemos',desclassificados:'Desclassificados',revogado:'Revogado',anulado:'Anulado'};
+const CLASSE_RESULTADO={em_andamento:'pendente',vencemos:'ok',perdemos:'vencido',desclassificados:'vencido',revogado:'nao_aplicavel',anulado:'nao_aplicavel'};
+function resultadoDoCertame(n){
+  const opcoes=Object.entries(ROTULO_RESULTADO).map(([v,t])=>`<option value="${v}"${n.resultado===v?' selected':''}>${esc(t)}</option>`).join('');
+  return `<article class="card detail-section"><div class="card-head"><div><h3>Resultado do certame</h3>
+    <p>O que aconteceu depois do envio — vira histórico e taxa de sucesso.</p></div>
+    <span class="badge ${CLASSE_RESULTADO[n.resultado]||'pendente'}">${esc(ROTULO_RESULTADO[n.resultado]||n.resultado)}</span></div>
+    <div class="form-grid" id="resultado-form" data-notice="${n.id}">
+      <label>Resultado<select name="resultado">${opcoes}</select></label>
+      <label>Valor contratado<input name="valorContratado" inputmode="decimal" value="${esc(n.valorContratado?Regras.numero(n.valorContratado).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):'')}" placeholder="0,00"></label>
+      <label>Data do resultado<input name="dataResultado" type="date" value="${esc(n.dataResultado||'')}"></label>
+      <label class="full">Observação<input name="observacaoResultado" value="${esc(n.observacaoResultado||'')}" placeholder="Posição, concorrentes, motivo de desclassificação, recurso..."></label>
+    </div>
+    <div class="record-actions"><button type="button" class="secondary" id="salvar-resultado">Salvar resultado</button></div>
+  </article>`;
+}
+async function salvarResultadoCertame(noticeId,data){
+  const payload={resultado:data.resultado,valor_contratado:data.valorContratado?Regras.numero(data.valorContratado):null,
+    data_resultado:data.dataResultado||null,observacao_resultado:data.observacaoResultado||null};
+  const {error}=await client.from('licitacoes').update(payload).eq('id',noticeId);
+  if(error)throw error;
+}
 function providenciasDoEdital(n){
   const tarefas=state.agenda.filter(t=>t.noticeId===n.id&&!t.concluida)
     .sort((a,b)=>(a.prazo||'9999-12-31').localeCompare(b.prazo||'9999-12-31'));
@@ -671,24 +725,32 @@ function renderNoticeDetail(){
   <article class="card"><h3>Objeto</h3><p>${esc(n.object)}</p>
     <div class="record-actions"><button class="primary" data-wizard="${n.id}">Abrir assistente</button>
       ${n.filePath?`<button class="secondary" data-document="${esc(n.filePath)}">Abrir edital original</button>`:''}
-      <button class="secondary" data-go="packages">Preparar pacote</button>${deleteButton('notice',n.id)}</div></article>
+      <button class="secondary" data-preparar-pacote="${n.id}">Preparar pacote</button>${deleteButton('notice',n.id)}</div></article>
   ${company&&n.opening?`<article class="card detail-section"><h3>Regularidade na data da sessão</h3>
     <p>Base documental projetada para ${fmt(n.opening)}, não para hoje — responde "a empresa vai ter documento apto naquele dia?".</p>
     ${painelProntidao(company,{compacto:true,dataAlvo:n.opening})}</article>`:''}
   ${checklistDoEdital(n)}
+  ${resultadoDoCertame(n)}
   ${providenciasDoEdital(n)}
   <div class="notice-detail-grid">
     ${list('Documentos e habilitação identificados no PDF',n.requirements,'Nenhum requisito documental identificado na leitura do edital.')}
     ${list('Proposta de preços',n.proposalRequirements,'Nenhuma exigência de proposta identificada.')}
     ${list('Declarações',n.declarations,'Nenhuma declaração identificada.')}
     ${list('Itens da disputa',n.items,'Nenhum item importado ou identificado.')}
-    ${list('Pacotes deste processo',packages.map(p=>`${p.name} — ${p.documents.length} documento(s)`),'Nenhum pacote criado para este edital.')}
-  </div>`;
+  </div>
+  <article class="card detail-section"><h3>Pacotes deste processo</h3>${reviewRows(packages.map(p=>`<div class="review-row"><span><strong>${esc(p.name)}</strong><small>${p.documents.length} documento(s)</small></span><span><button class="link" data-download-package="${p.id}">Baixar</button>${deleteButton('package',p.id)}</span></div>`),'Nenhum pacote criado para este edital.')}</article>`;
 }
 function renderTrash(){const labels={company:'Empresa',certificate:'Certidão',document:'Documento',balance:'Balanço',notice:'Edital',package:'Pacote'},now=Date.now();$('#trash-list').innerHTML=state.trash.length?state.trash.sort((a,b)=>(b.deletedAt||'').localeCompare(a.deletedAt||'')).map(item=>{const elapsed=Math.floor((now-new Date(item.deletedAt).getTime())/86400000),remaining=Math.max(0,30-elapsed),owner=item.entity==='company'?item.title:(state.companies.find(c=>c.id===item.companyId)?.name||state.trash.find(x=>x.entity==='company'&&x.id===item.companyId)?.title||'Empresa não localizada');return`<article class="card trash-card"><div><span class="badge missing">${labels[item.entity]}</span><h3>${esc(item.title)}</h3><p>${esc(item.subtitle||'')} · ${esc(owner)}</p><small>Excluído em ${fmt(item.deletedAt?.slice(0,10))} · ${remaining} dia(s) até a limpeza automática</small></div><div class="trash-actions"><button class="secondary" data-restore-entity="${item.entity}" data-restore-id="${item.id}">Restaurar</button><button class="secondary danger" data-delete-entity="${item.entity}" data-delete-id="${item.id}">Apagar agora</button></div></article>`}).join(''):'<div class="empty">A lixeira está vazia.</div>'}
 function keepSelectValue(selector,placeholder,options){const element=$(selector);if(!element)return;const previous=element.value;element.innerHTML=`<option value="">${placeholder}</option>`+options;if([...element.options].some(option=>option.value===previous))element.value=previous}
 function renderSelects(){const opts=state.companies.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join(''),noticeOptions=state.notices.map(n=>`<option value="${n.id}">${esc(n.number)} — ${esc(n.agency)}</option>`).join('');keepSelectValue('#package-company','Selecione',opts);keepSelectValue('#batch-company','Selecione',opts);keepSelectValue('#archive-company','Selecione',opts);keepSelectValue('#archive-view-company','Selecione a empresa',opts);keepSelectValue('#balance-company','Selecione',opts);keepSelectValue('#dashboard-company','Todas as empresas',opts);keepSelectValue('#review-company','Selecione a empresa',opts);keepSelectValue('#package-notice','Selecione',noticeOptions);keepSelectValue('#items-notice','Selecione',noticeOptions)}
-function renderAll(){renderMetrics();renderAlerts();renderUpcoming();renderSelects();renderCompanyDashboard();renderCompanies();renderArchive();renderCertificates();renderBalances();renderNotices();renderPackages();renderCompanyReview();renderNoticeDetail();renderTrash();renderAccess();if(window.renderAgenda)renderAgenda()}
+/* O proprietário da empresa é o cliente final: vê status e cadastra
+   documento avulso, mas as ferramentas de arrumação em massa do acervo
+   (importação em lote, reclassificação, balanço) são coisa de back-office. */
+function aplicarVisibilidadePorPerfil(){
+  const admin=isAdmin();
+  $$('[data-admin-only]').forEach(el=>{el.hidden=!admin});
+}
+function renderAll(){renderMetrics();renderAlerts();renderUpcoming();renderSelects();renderAdminOverview();renderCompanyDashboard();renderCompanies();renderArchive();renderNotices();renderPackages();renderCompanyReview();renderNoticeDetail();renderTrash();renderAccess();aplicarVisibilidadePorPerfil();if(window.renderAgenda)renderAgenda()}
 
 const certificateTypes=['Federal/PGFN','FGTS','CNDT','Estadual','Municipal','Falência e recuperação','SICAF','Certidão simplificada da Junta Comercial','Regularidade profissional','Outra certidão'];
 const certificateOptions=selected=>certificateTypes.map(type=>`<option ${type===selected?'selected':''}>${type}</option>`).join('');
@@ -1341,7 +1403,9 @@ $('#archive-folder').addEventListener('change',()=>{if($('#archive-folder').file
 $('#archive-result').addEventListener('click',e=>{if(e.target.closest('#import-archive'))importArchive();if(e.target.closest('#download-duplicates'))downloadDuplicateReport()});
 $('#archive-result').addEventListener('change',e=>{const row=e.target.closest('[data-archive-index]'),field=e.target.dataset.archiveField;if(row&&field){const item=pendingArchive[Number(row.dataset.archiveIndex)];item[field]=field==='include'?e.target.checked:e.target.value;if(field==='category'||field==='include')renderPendingArchive()}});
 function filtroArchiveMudou(){vincularAberto=null;vincularSelecionado=null;renderArchive()}
-$('#archive-filter').addEventListener('change',filtroArchiveMudou);$('#archive-view-company').addEventListener('change',filtroArchiveMudou);$('#organizar-acervo').addEventListener('click',organizarAcervo);
+$('#archive-filter').addEventListener('change',filtroArchiveMudou);$('#archive-view-company').addEventListener('change',filtroArchiveMudou);
+$('#archive-organizar-aviso').addEventListener('click',e=>{if(e.target.closest('[data-organizar-acervo]'))organizarAcervo()});
+$('#revisar-documentos').addEventListener('click',abrirRevisaoGuiada);
 $('#archive-list').addEventListener('click',e=>{
   const abrir=e.target.closest('[data-vincular]');
   if(abrir){
@@ -1369,7 +1433,6 @@ $('#archive-list').addEventListener('change',e=>{
   vincularSelecionado=e.target.value||null;
   renderArchive();
 });
-$('#revisar-lote').addEventListener('click',abrirRevisaoLote);
 $('#revisao-lote-empresa').addEventListener('change',renderRevisaoLote);
 $('#revisao-lote-mostrar').addEventListener('change',renderRevisaoLote);
 $('#revisao-lote-busca').addEventListener('input',renderRevisaoLote);
@@ -1393,8 +1456,8 @@ function fecharRevisaoLote(){
 }
 $('#revisao-lote-fechar').addEventListener('click',fecharRevisaoLote);
 $('#revisao-lote-cancelar').addEventListener('click',fecharRevisaoLote);
-$('#revisao-guiada-abrir').addEventListener('click',abrirRevisaoGuiada);
 $('#revisao-guiada-fechar').addEventListener('click',fecharRevisaoGuiada);
+$('#revisao-guiada-tabela').addEventListener('click',()=>{fecharRevisaoGuiada();abrirRevisaoLote()});
 $('#revisao-guiada-empresa').addEventListener('change',filtroRevisaoGuiadaMudou);
 $('#revisao-guiada-mostrar').addEventListener('change',filtroRevisaoGuiadaMudou);
 $('#revisao-guiada-busca').addEventListener('input',filtroRevisaoGuiadaMudou);
@@ -1425,7 +1488,8 @@ $('#revisao-guiada-atual').addEventListener('change',e=>{
 $('#check-balance').addEventListener('click',balanceGuidance);
 $('#import-items').addEventListener('click',importItemsSpreadsheet);
 $('#build-package').addEventListener('click',createProcessPackage);
-document.body.addEventListener('click',e=>{const button=e.target.closest('[data-download-package]');if(button)downloadProcessPackage(button.dataset.downloadPackage);const pdfEdital=e.target.closest('[data-checklist-edital]');if(pdfEdital){const n=state.notices.find(x=>x.id===pdfEdital.dataset.checklistEdital),company=state.companies.find(c=>c.id===n?.companyId);if(n&&company)baixarChecklistPdf(company,n,documentosDoChecklist(n,state.checklist.filter(c=>c.noticeId===n.id).sort((a,b)=>(a.ordem??0)-(b.ordem??0))));else toast('Processo não localizado.')}const pdfBtn=e.target.closest('[data-checklist-pdf]');if(pdfBtn){const pkg=state.packages.find(p=>p.id===pdfBtn.dataset.checklistPdf),company=state.companies.find(c=>c.id===pkg?.companyId),notice=state.notices.find(n=>n.id===pkg?.noticeId);if(pkg&&company&&notice)baixarChecklistPdf(company,notice,pkg.documents);else toast('Pacote não localizado.')}const reg=e.target.closest('[data-adicionar-regularidade]');if(reg)openModal('document',{companyId:reg.dataset.adicionarEmpresa,tipoChave:reg.dataset.adicionarRegularidade})});
+document.body.addEventListener('click',e=>{const button=e.target.closest('[data-download-package]');if(button)downloadProcessPackage(button.dataset.downloadPackage);const pdfEdital=e.target.closest('[data-checklist-edital]');if(pdfEdital){const n=state.notices.find(x=>x.id===pdfEdital.dataset.checklistEdital),company=state.companies.find(c=>c.id===n?.companyId);if(n&&company)baixarChecklistPdf(company,n,documentosDoChecklist(n,state.checklist.filter(c=>c.noticeId===n.id).sort((a,b)=>(a.ordem??0)-(b.ordem??0))));else toast('Processo não localizado.')}const pdfBtn=e.target.closest('[data-checklist-pdf]');if(pdfBtn){const pkg=state.packages.find(p=>p.id===pdfBtn.dataset.checklistPdf),company=state.companies.find(c=>c.id===pkg?.companyId),notice=state.notices.find(n=>n.id===pkg?.noticeId);if(pkg&&company&&notice)baixarChecklistPdf(company,notice,pkg.documents);else toast('Pacote não localizado.')}const reg=e.target.closest('[data-adicionar-regularidade]');if(reg)openModal('document',{companyId:reg.dataset.adicionarEmpresa,tipoChave:reg.dataset.adicionarRegularidade});
+const preparar=e.target.closest('[data-preparar-pacote]');if(preparar){const n=state.notices.find(x=>x.id===preparar.dataset.prepararPacote);if(n){if($('#package-company'))$('#package-company').value=n.companyId;if($('#package-notice'))$('#package-notice').value=n.id}navigate('packages')}});
 $('#export-btn').addEventListener('click',()=>{const backup={exportadoEm:new Date().toISOString(),empresas:state.companies,acervo:state.documents,certidoes:state.certificates,balancos:state.balances,licitacoes:state.notices,pacotes:state.packages},blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`licidoc-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)});
 
 function firstMatch(text,patterns){for(const pattern of patterns){const match=text.match(pattern);if(match?.[1])return match[1].replace(/\s+/g,' ').trim()}return''}
@@ -1440,11 +1504,22 @@ function renderPdfAnalysis(a){const scanned=a.characters<Math.max(300,a.pages*80
 $('#read-pdf').addEventListener('click',async()=>{const file=$('#pdf-input').files[0];if(!file){toast('Selecione um arquivo PDF.');return}const progress=$('#pdf-progress');progress.hidden=false;progress.textContent='Abrindo o PDF...';setBusy($('#read-pdf'),true,'Lendo...');try{lastPdfAnalysis=await extractPdf(file);renderPdfAnalysis(lastPdfAnalysis);progress.textContent='Leitura concluída. Confira os dados.'}catch(error){progress.textContent=`Não foi possível ler: ${friendlyError(error)}`;lastPdfAnalysis=null}finally{setBusy($('#read-pdf'),false)}});
 $('#pdf-result').addEventListener('click',e=>{if(e.target.id==='toggle-preview'){const preview=$('#pdf-preview');preview.hidden=!preview.hidden;e.target.textContent=preview.hidden?'Ver texto extraído':'Ocultar texto'}if(e.target.id==='register-analysis'&&lastPdfAnalysis)abrirWizard();
 });
-$('#nav').addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(b)navigate(b.dataset.view)});$('#company-search').addEventListener('input',renderCompanies);$('#certificate-filter').addEventListener('change',renderCertificates);$('#dashboard-company').addEventListener('change',renderCompanyDashboard);$('#review-company').addEventListener('change',renderCompanyReview);$('#open-company-review').addEventListener('click',()=>{const selected=$('#dashboard-company').value;if(selected)$('#review-company').value=selected;renderCompanyReview();navigate('review')});$('#back-to-notices').addEventListener('click',()=>navigate('notices'));$('#empty-trash').addEventListener('click',emptyTrash);
-$('#notice-detail-content').addEventListener('click',e=>{
+$('#nav').addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(b)navigate(b.dataset.view)});
+$('.sidebar-utilidades').addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(b)navigate(b.dataset.view)});
+$('#company-search').addEventListener('input',renderCompanies);$('#dashboard-company').addEventListener('change',renderCompanyDashboard);$('#review-company').addEventListener('change',renderCompanyReview);$('#open-company-review').addEventListener('click',()=>{const selected=$('#dashboard-company').value;if(selected)$('#review-company').value=selected;renderCompanyReview();navigate('review')});$('#back-to-notices').addEventListener('click',()=>navigate('notices'));$('#back-to-companies').addEventListener('click',()=>navigate('companies'));$('#back-to-notices-from-packages').addEventListener('click',()=>navigate('notices'));$('#empty-trash').addEventListener('click',emptyTrash);
+$('#notice-detail-content').addEventListener('click',async e=>{
   const enviar=e.target.closest('[data-enviar-item]');
   if(enviar){itemUploadAberto=itemUploadAberto===enviar.dataset.enviarItem?null:enviar.dataset.enviarItem;renderNoticeDetail();return}
   const salvar=e.target.closest('[data-item-salvar]');
-  if(salvar)salvarUploadItem(salvar.dataset.itemSalvar);
+  if(salvar){salvarUploadItem(salvar.dataset.itemSalvar);return}
+  const salvarResultado=e.target.closest('#salvar-resultado');
+  if(salvarResultado){
+    const form=$('#resultado-form'),campos={};
+    ['resultado','valorContratado','dataResultado','observacaoResultado'].forEach(nome=>{campos[nome]=form.querySelector(`[name="${nome}"]`)?.value||''});
+    setBusy(salvarResultado,true);
+    try{await salvarResultadoCertame(form.dataset.notice,campos);await loadData();toast('Resultado salvo.')}
+    catch(error){toast(friendlyError(error))}
+    finally{setBusy(salvarResultado,false)}
+  }
 });
 init();
