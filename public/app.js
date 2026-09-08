@@ -12,8 +12,8 @@ const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fmt=d=>d?new Date(`${d}T12:00:00`).toLocaleDateString('pt-BR'):'—';
 const companyName=cid=>state.companies.find(c=>c.id===cid)?.name||'Empresa não localizada';
 const isAdmin=()=>state.profile?.role==='admin_geral';
-function status(date){if(!date)return'missing';const days=Math.ceil((new Date(`${date}T23:59:59`)-new Date())/86400000);if(days<0)return'expired';if(days<=15)return'urgent';return'ok'}
-const statusLabel=s=>({expired:'Vencida',urgent:'Urgente',ok:'Regular',missing:'Pendente'}[s]);
+function status(date){if(!date)return'missing';const days=Math.ceil((new Date(`${date}T23:59:59`)-new Date())/86400000);if(days<0)return'expired';if(days<=3)return'critical';if(days<=5)return'urgent';return'ok'}
+const statusLabel=s=>({expired:'Vencida',critical:'Crítico',urgent:'Urgente',ok:'Regular',missing:'Pendente'}[s]);
 function toast(text){const t=$('#toast');t.textContent=text;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
 function setBusy(button,busy,label='Salvando...'){if(!button)return;button.disabled=busy;if(busy){button.dataset.original=button.textContent;button.textContent=label}else button.textContent=button.dataset.original||button.textContent}
 function showAuthMessage(message,success=false){const el=$('#auth-message');el.textContent=message;el.style.color=success?'var(--green)':'var(--red)'}
@@ -78,8 +78,8 @@ async function loadData(){
   await purgeExpiredTrash();renderAll()
 }
 function navigate(view){$$('.view').forEach(v=>v.classList.toggle('active',v.id===view));$$('#nav button, .sidebar-utilidades button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));$('#page-title').textContent=({dashboard:'Visão geral',companies:'Empresas',review:'Perfil da empresa',archive:'Acervo documental',notices:'Editais','notice-detail':'Detalhes do edital',agenda:'Agenda de interesse',packages:'Pacotes de participação',trash:'Lixeira',access:'Central do usuário'})[view]||'LiciDoc'}
-function renderMetrics(){const expired=state.certificates.filter(c=>status(c.validity)==='expired').length,urgent=state.certificates.filter(c=>status(c.validity)==='urgent').length;const hoje=new Date().toISOString().slice(0,10),tarefas=state.agenda.filter(t=>!t.concluida),atrasadas=tarefas.filter(t=>t.prazo&&t.prazo<hoje).length,participar=state.notices.filter(n=>n.interesse==='vamos_participar'&&(!n.opening||n.opening>=hoje)).length;$('#metrics').innerHTML=`<div class="metric"><span>Empresas</span><strong>${state.companies.length}</strong><small>Disponíveis para você</small></div><div class="metric red"><span>Certidões vencidas</span><strong>${expired}</strong><small>Exigem providência</small></div><div class="metric amber"><span>Vencem em até 15 dias</span><strong>${urgent}</strong><small>Atenção imediata</small></div><div class="metric${atrasadas?' red':''}"><span>Vamos participar</span><strong>${participar}</strong><small>${tarefas.length} providência(s), ${atrasadas} atrasada(s)</small></div>`}
-function renderAlerts(){const items=[...state.certificates].sort((a,b)=>(a.validity||'9999').localeCompare(b.validity||'9999')).slice(0,6);$('#alerts').innerHTML=items.length?items.map(c=>{const st=status(c.validity),precisaAcao=st==='expired'||st==='urgent'||st==='missing';return`<div class="list-row"><p><strong>${esc(c.type)}</strong><br><small>${esc(companyName(c.companyId))} · ${fmt(c.validity)}</small></p>${precisaAcao?`<button type="button" class="badge-acao badge ${st}" data-adicionar-regularidade="${esc(chaveAtualDe('certificate',c))}" data-adicionar-empresa="${esc(c.companyId)}" title="Cadastrar a certidão atualizada">${statusLabel(st)}</button>`:`<span class="badge ${st}">${statusLabel(st)}</span>`}</div>`}).join(''):'<div class="empty">Nenhuma certidão cadastrada.</div>'}
+function renderMetrics(){const expired=state.certificates.filter(c=>status(c.validity)==='expired').length,urgent=state.certificates.filter(c=>['urgent','critical'].includes(status(c.validity))).length;const hoje=new Date().toISOString().slice(0,10),tarefas=state.agenda.filter(t=>!t.concluida),atrasadas=tarefas.filter(t=>t.prazo&&t.prazo<hoje).length,participar=state.notices.filter(n=>n.interesse==='vamos_participar'&&(!n.opening||n.opening>=hoje)).length;$('#metrics').innerHTML=`<div class="metric"><span>Empresas</span><strong>${state.companies.length}</strong><small>Disponíveis para você</small></div><div class="metric red"><span>Certidões vencidas</span><strong>${expired}</strong><small>Exigem providência</small></div><div class="metric amber"><span>Vencem em até 5 dias</span><strong>${urgent}</strong><small>Atenção imediata</small></div><div class="metric${atrasadas?' red':''}"><span>Vamos participar</span><strong>${participar}</strong><small>${tarefas.length} providência(s), ${atrasadas} atrasada(s)</small></div>`}
+function renderAlerts(){const items=[...state.certificates].sort((a,b)=>(a.validity||'9999').localeCompare(b.validity||'9999')).slice(0,6);$('#alerts').innerHTML=items.length?items.map(c=>{const st=status(c.validity),precisaAcao=st==='expired'||st==='critical'||st==='urgent'||st==='missing';return`<div class="list-row"><p><strong>${esc(c.type)}</strong><br><small>${esc(companyName(c.companyId))} · ${fmt(c.validity)}</small></p>${precisaAcao?`<button type="button" class="badge-acao badge ${st}" data-adicionar-regularidade="${esc(chaveAtualDe('certificate',c))}" data-adicionar-empresa="${esc(c.companyId)}" title="Cadastrar a certidão atualizada">${statusLabel(st)}</button>`:`<span class="badge ${st}">${statusLabel(st)}</span>`}</div>`}).join(''):'<div class="empty">Nenhuma certidão cadastrada.</div>'}
 function renderUpcoming(){const items=[...state.notices].filter(n=>!n.opening||new Date(`${n.opening}T23:59:59`)>=new Date()).sort((a,b)=>(a.opening||'9999').localeCompare(b.opening||'9999')).slice(0,5);$('#upcoming').innerHTML=items.length?items.map(n=>{const itens=state.checklist.filter(c=>c.noticeId===n.id&&c.aplicavel!==false),r=window.Regras?Regras.contar(itens):{criticos:0,total:0};return`<div class="list-row"><p><strong>${esc(n.number)}</strong><br><small>${esc(n.agency)} · ${r.total?`${r.prontos}/${r.total} documentos prontos`:'checklist ainda não calculado'}</small></p><span>${fmt(n.opening)}${r.criticos?`<br><small class="pend">${r.criticos} pendência(s)</small>`:''}</span></div>`}).join(''):'<div class="empty">Nenhuma licitação futura cadastrada.</div>'}
 /* ---------------------------------------------------------------------------
    Acervo unificado: certidões, balanços e documentos gerais são a mesma coisa
@@ -101,6 +101,24 @@ function acervoDaEmpresa(companyId){
     rotulo:`Balanço ${b.year}`,arquivo:b.documentType||'Balanço anual',path:b.filePath,
     data:b.periodEnd||`${b.year}-12-31`,validade:null,categoriaAntiga:'Balanços',fonte:b.registrationOffice}));
   return [...certs,...bals,...docs];
+}
+/* Em quais licitações em andamento este arquivo específico já está vinculado
+   no checklist — é o que transforma "essa certidão vai vencer" em "essa
+   certidão vai vencer E vai travar o processo tal", sem precisar abrir cada
+   edital pra descobrir. Só considera processos ainda não enviados/arquivados:
+   depois disso, a validade na data do envio já é história. */
+function licitacoesAfetadas(documentoId,companyId){
+  if(!documentoId)return[];
+  const abertos=state.notices.filter(n=>n.companyId===companyId&&!['enviado','arquivado'].includes(n.statusProcesso));
+  if(!abertos.length)return[];
+  const idsAbertos=new Set(abertos.map(n=>n.id));
+  const afetados=new Set();
+  state.checklist.forEach(item=>{
+    if(!idsAbertos.has(item.noticeId))return;
+    const vinculados=[item.documentoRefId,...(item.documentosVinculados||[]).map(x=>x.id)].filter(Boolean);
+    if(vinculados.includes(documentoId))afetados.add(item.noticeId);
+  });
+  return abertos.filter(n=>afetados.has(n.id));
 }
 
 const prontidaoDe=(companyId,dataAlvo)=>Regras.prontidaoDaEmpresa(acervoDaEmpresa(companyId),dataAlvo);
@@ -153,6 +171,7 @@ function painelProntidao(company,{compacto=false,dataAlvo}={}){
     <div class="ag-barra"><div class="ag-barra-fill${p.percentual>=100?' full':p.percentual>=60?' meio':''}" style="width:${p.percentual}%"></div></div>
     ${problema(p.faltando,'Falta','ausente')}
     ${problema(p.vencidos,projetado?'Vai estar vencido':'Vencido','vencido')}
+    ${problema(p.vencendoUrgente,`Vence em até ${Regras.DIAS_VENCE_URGENTE} dias`,'vencido')}
     ${problema(p.vencendo,`Vence em até ${Regras.DIAS_VENCE_LOGO} dias`,'pendente')}
     ${p.status==='apto'?`<p class="pront-ok">Base documental completa e em dia${projetado?` para ${fmt(dataAlvo)}`:''}. Confira sempre as exigências específicas do edital.</p>`:''}
   </div>`;
@@ -167,7 +186,7 @@ function regularidadeDoDia(company){
   const tipos=Regras.catalogoDocumentos.filter(t=>t.bloco==='fiscal_trabalhista'&&t.base);
   return `<div class="regularidade-dia">${tipos.map(t=>{
     const v=porChave.get(t.chave),d=v?.vigente,situacao=v?.situacao||'ausente';
-    const rotulo=situacao==='ausente'?'Ausente':situacao==='vencido'?'Vencida':situacao==='vence_logo'?`Vence em breve · ${fmt(d.validade)}`:`Válida até ${fmt(d.validade)}`;
+    const rotulo=situacao==='ausente'?'Ausente':situacao==='vencido'?'Vencida':situacao==='vence_urgente'?`Vence em poucos dias · ${fmt(d.validade)}`:situacao==='vence_logo'?`Vence em breve · ${fmt(d.validade)}`:`Válida até ${fmt(d.validade)}`;
     const precisaAcao=situacao==='ausente'||situacao==='vencido';
     return `<div class="regularidade-linha">
       <span>${esc(t.nome)}</span>
@@ -206,8 +225,8 @@ function renderCompanyDashboard(){const selected=$('#dashboard-company')?.value|
 function renderCompanies(){const q=$('#company-search')?.value.toLowerCase()||'',list=state.companies.filter(c=>(c.name+c.cnpj).toLowerCase().includes(q));$('#company-list').innerHTML=list.length?list.map(c=>{const certs=state.certificates.filter(x=>x.companyId===c.id),bad=certs.filter(x=>status(x.validity)!=='ok').length;return`<article class="card company-card"><div class="card-head"><div><h3>${esc(c.name)}</h3><div class="meta">${esc(c.trade||'Sem nome fantasia')} · ${esc(c.cnpj)}</div></div><button class="secondary" data-review-company="${c.id}">Ver perfil</button></div><p>${esc(c.city||'Município não informado')} ${c.state?'— '+esc(c.state):''}</p><div class="stats"><span><strong>${certs.length}</strong>certidões</span><span><strong>${bad}</strong>pendências</span></div>${isAdmin()?`<div class="record-actions">${deleteButton('company',c.id)}</div>`:''}</article>`}).join(''):'<div class="empty">Nenhuma empresa encontrada.</div>';renderSelects()}
 function reviewRows(items,empty){return items.length?items.join(''):`<p class="empty">${empty}</p>`}
 function renderCompanyReview(){const root=$('#review-content'),companyId=$('#review-company')?.value||'';if(!companyId){root.innerHTML='<div class="empty">Selecione uma empresa para revisar todo o conjunto documental.</div>';return}const company=state.companies.find(c=>c.id===companyId);if(!company){root.innerHTML='<div class="empty">Empresa não localizada.</div>';return}const certs=[...state.certificates.filter(x=>x.companyId===companyId)].sort((a,b)=>(a.validity||'9999').localeCompare(b.validity||'9999')),docs=state.documents.filter(x=>x.companyId===companyId),balances=state.balances.filter(x=>x.companyId===companyId),notices=state.notices.filter(x=>x.companyId===companyId),packages=state.packages.filter(x=>x.companyId===companyId),pending=certs.filter(x=>status(x.validity)!=='ok').length;root.innerHTML=`${painelProntidao(company)}<div class="review-hero card"><div><span class="eyebrow">EMPRESA SELECIONADA</span><h2>${esc(company.name)}</h2><p>${esc(company.cnpj)} · ${esc(company.city||'Município não informado')}${company.state?' / '+esc(company.state):''}</p></div><div class="summary-numbers"><span><strong>${docs.length}</strong>Documentos</span><span><strong>${certs.length}</strong>Certidões</span><span class="${pending?'red-text':''}"><strong>${pending}</strong>Pendências</span><span><strong>${notices.length}</strong>Editais</span></div></div><div class="review-sections"><article class="card review-section"><h3>Certidões</h3>${reviewRows(certs.map(c=>`<div class="review-row"><span><strong>${esc(c.type)}</strong><small>${esc(c.issuer||'Órgão não informado')} · validade ${fmt(c.validity)}</small></span><span><span class="badge ${status(c.validity)}">${statusLabel(status(c.validity))}</span>${c.filePath?`<button class="link" data-document="${esc(c.filePath)}">Abrir</button>`:''}${deleteButton('certificate',c.id)}</span></div>`),'Nenhuma certidão cadastrada.')}</article><article class="card review-section"><h3>Acervo documental</h3>${reviewRows(docs.slice(0,20).map(d=>`<div class="review-row"><span><strong>${esc(d.type||d.name)}</strong><small>${esc(d.category)} · ${fmt(d.documentDate)}</small></span><span>${d.filePath?`<button class="link" data-document="${esc(d.filePath)}">Abrir</button>`:''}${deleteButton('document',d.id)}</span></div>`),'Nenhum documento arquivado.')}</article><article class="card review-section"><h3>Balanços patrimoniais</h3>${reviewRows(balances.map(b=>`<div class="review-row"><span><strong>Exercício ${esc(b.year)}</strong><small>${esc(b.documentType||'Balanço anual')}</small></span><span>${b.filePath?`<button class="link" data-document="${esc(b.filePath)}">Abrir</button>`:''}${deleteButton('balance',b.id)}</span></div>`),'Nenhum balanço arquivado.')}</article><article class="card review-section"><h3>Editais e processos</h3>${reviewRows(notices.map(n=>`<div class="review-row"><span><strong>${esc(n.number)}</strong><small>${esc(n.agency)} · abertura ${fmt(n.opening)}</small></span><span><button class="link" data-notice-detail="${n.id}">Ver tela</button>${deleteButton('notice',n.id)}</span></div>`),'Nenhum edital cadastrado.')}</article><article class="card review-section"><h3>Pacotes preparados</h3>${reviewRows(packages.map(p=>`<div class="review-row"><span><strong>${esc(p.name)}</strong><small>${p.documents.length} documento(s)</small></span><span><button class="link" data-download-package="${p.id}">Baixar</button>${deleteButton('package',p.id)}</span></div>`),'Nenhum pacote preparado.')}</article></div>`}
-const SIT_ACERVO={vigente:'Vigente',vence_logo:'Vence em breve',vencido:'Vencido',sem_validade:'Em dia',ausente:'Ausente'};
-const SIT_CLASSE={vigente:'ok',vence_logo:'pendente',vencido:'vencido',sem_validade:'ok',ausente:'ausente'};
+const SIT_ACERVO={vigente:'Vigente',vence_logo:'Vence em breve',vence_urgente:'Vence em poucos dias',vencido:'Vencido',sem_validade:'Em dia',ausente:'Ausente'};
+const SIT_CLASSE={vigente:'ok',vence_logo:'pendente',vence_urgente:'vencido',vencido:'vencido',sem_validade:'ok',ausente:'ausente'};
 
 /* O acervo deixa de ser uma pilha de arquivos e passa a ser uma lista de tipos:
    um por linha, com o que vale hoje em destaque e o histórico recolhido. */
@@ -330,15 +349,33 @@ async function alternarArquivado(chaveRegistro,valor){
   toast(valor?'Arquivado — não conta mais como vigente.':'Reativado.');
 }
 
+/* Enviar um arquivo novo sem sair do card: o mesmo cadastrarDocumento() do
+   modal grande, só que já sabendo o tipo (é a linha em que está) — não
+   precisa perguntar de novo o que já está óbvio pelo lugar onde a pessoa
+   clicou. Balanço fica de fora porque tem cadastro próprio (exercício,
+   período), que não cabe nesse formulário curto. */
+function formEnvioAcervo(v,companyId){
+  if(v.chave==='balanco')return'';
+  const precisaValidade=v.tipo.vigencia==='validade';
+  return `<form class="acervo-upload-inline" data-upload-tipo="${esc(v.chave)}" data-upload-empresa="${esc(companyId)}">
+    <label>Arquivo<input type="file" name="file" required accept=".pdf,.png,.jpg,.jpeg"></label>
+    ${precisaValidade?'<label>Validade<input type="date" name="validity" required></label>':''}
+    <label>Nome da pessoa (se for de alguém específico)<input type="text" name="responsavelTecnico" placeholder="Opcional"></label>
+    <button class="primary" type="submit">Enviar arquivo</button>
+  </form>`;
+}
 function linhaDoAcervo(v,companyId){
   const d=v.vigente;
   const regra={validade:'vale até a validade',substituivel:'o mais recente substitui os anteriores',acumulativo:'todos somam'}[v.tipo.vigencia];
+  const precisaAvisar=['vencido','vence_urgente','vence_logo'].includes(v.situacao);
+  const afetados=precisaAvisar&&d?licitacoesAfetadas(d.id,companyId):[];
   return `<article class="acervo-item ${v.situacao}">
     <div class="acervo-item-main">
       <strong>${esc(v.tipo.nome)}${v.tipo.base?'<span class="tag-base" title="Exigido em praticamente todo edital">base</span>':''}</strong>
       ${d?`<small>${esc(d.rotulo)}${d.validade?` · válido até ${fmt(d.validade)}`:d.data?` · ${fmt(d.data)}`:''}${d.fonte?` · ${esc(d.fonte)}`:''}${d.responsavel?` · ${esc(d.responsavel)}`:''}</small>`
         :'<small>Nenhum arquivo deste tipo no acervo.</small>'}
       <small class="acervo-regra">${esc(regra)}${v.total>1?` · ${v.total} arquivo(s)`:''}</small>
+      ${afetados.length?`<small class="acervo-afeta">⚠ Afeta ${afetados.length} licitação(ões) em andamento: ${afetados.map(n=>esc(n.number)).join(', ')}</small>`:''}
       ${v.chave==='ato_constitutivo'&&d?.socios?.length?`<div class="acervo-socios">
         <strong>Sócios</strong>
         <ul>${d.socios.map(s=>`<li>${esc(s.nome)}${s.path?` <button type="button" class="link" data-document="${esc(s.path)}">Abrir documento</button>`:' <em>sem documento anexado</em>'}</li>`).join('')}</ul>
@@ -356,14 +393,15 @@ function linhaDoAcervo(v,companyId){
     </div>
     <span class="badge ${SIT_CLASSE[v.situacao]}">${SIT_ACERVO[v.situacao]}</span>
     ${painelVincular(v,companyId)}
-    ${v.anteriores.length?`<details class="acervo-versoes">
-      <summary>${v.acumulativo?`Outros ${v.anteriores.length} arquivo(s) deste tipo`:`${v.anteriores.length} versão(ões) anterior(es)`}</summary>
+    ${v.chave!=='balanco'?`<details class="acervo-versoes">
+      <summary>${v.anteriores.length?(v.acumulativo?`Outros ${v.anteriores.length} arquivo(s) deste tipo`:`${v.anteriores.length} versão(ões) anterior(es)`)+' · enviar novo arquivo':v.total?'Enviar um arquivo atualizado':'Enviar o primeiro arquivo'}</summary>
       ${v.anteriores.map(a=>`<div class="acervo-versao">
         <span>${esc(a.rotulo)}${a.arquivado?' <em>(arquivado)</em>':''}<small>${a.validade?`validade ${fmt(a.validade)}`:a.data?fmt(a.data):'sem data'}${a.arquivo&&a.arquivo!==a.rotulo?` · ${esc(a.arquivo)}`:''}${a.responsavel?` · ${esc(a.responsavel)}`:''}</small></span>
         <span>${a.path?`<button class="link" data-document="${esc(a.path)}">Abrir</button>`:''}
         <button class="link" data-editar="${({documentos_empresa:'document',certidoes:'certificate',balancos:'balance'})[a.origem]}" data-editar-id="${a.id}">Editar</button>
         ${v.acumulativo?`<button type="button" class="link" data-arquivar="${a.origem}:${a.id}" data-arquivar-valor="${a.arquivado?'false':'true'}">${a.arquivado?'Reativar':'Arquivar'}</button>`:''}</span>
       </div>`).join('')}
+      ${formEnvioAcervo(v,companyId)}
     </details>`:''}
   </article>`;
 }
@@ -1676,6 +1714,24 @@ $('#archive-list').addEventListener('change',e=>{
   if(!e.target.matches('[data-vincular-select]'))return;
   vincularSelecionado=e.target.value||null;
   renderArchive();
+});
+$('#archive-list').addEventListener('submit',async e=>{
+  const form=e.target.closest('.acervo-upload-inline');
+  if(!form)return;
+  e.preventDefault();
+  const file=form.querySelector('[name="file"]').files[0];
+  if(!file){toast('Selecione um arquivo.');return}
+  const data={tipoChave:form.dataset.uploadTipo,companyId:form.dataset.uploadEmpresa,
+    validity:form.querySelector('[name="validity"]')?.value||'',
+    responsavelTecnico:form.querySelector('[name="responsavelTecnico"]')?.value.trim()||''};
+  const button=form.querySelector('button[type="submit"]');
+  setBusy(button,true,'Enviando...');
+  try{
+    await cadastrarDocumento(data,file);
+    await loadData();
+    toast('Arquivo enviado.');
+  }catch(error){toast(friendlyError(error))}
+  finally{setBusy(button,false)}
 });
 $('#revisao-lote-empresa').addEventListener('change',renderRevisaoLote);
 $('#revisao-lote-mostrar').addEventListener('change',renderRevisaoLote);
