@@ -102,7 +102,7 @@ const catalogoDocumentos=[
   {chave:'cnd_municipal',nome:'Regularidade com a Fazenda Municipal',bloco:'fiscal_trabalhista',vigencia:'validade',base:true,certidao:'Municipal',atende:['cnd_municipal']},
   {chave:'sicaf',nome:'Registro no SICAF',bloco:'fiscal_trabalhista',vigencia:'validade',certidao:'SICAF',atende:[]},
 
-  {chave:'balanco',nome:'Balanço patrimonial e demonstrações contábeis',bloco:'economico_financeira',vigencia:'substituivel',atende:['balanco'],
+  {chave:'balanco',nome:'Balanço patrimonial e demonstrações contábeis',bloco:'economico_financeira',vigencia:'validade',atende:['balanco'],
    detecta:/balan[cç]o|balancete|demonstra[cç][aã]o.*cont[aá]bil|\bdre\b|\becd\b|sped.*cont[aá]bil/i},
   {chave:'cnd_falencia',nome:'Certidão de falência e recuperação judicial',bloco:'economico_financeira',vigencia:'validade',certidao:'Falência e recuperação',atende:['cnd_falencia']},
   {chave:'certidao_junta',nome:'Certidão simplificada da Junta Comercial',bloco:'economico_financeira',vigencia:'validade',certidao:'Certidão simplificada da Junta Comercial',atende:[]},

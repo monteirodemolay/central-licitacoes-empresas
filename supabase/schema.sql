@@ -505,6 +505,14 @@ alter table public.licitacoes add column if not exists composicao_custos jsonb;
 alter table public.licitacoes add column if not exists proposta_validade_dias integer;
 alter table public.licitacoes add column if not exists proposta_condicoes text;
 
+-- 5i. Validade do balanço ------------------------------------------------------
+-- Até quando o balanço vale depende da forma de apresentação da empresa
+-- (regime tributário, se é auditado, exigência do órgão) — não é algo que o
+-- sistema deduza sozinho. Fica em aberto para quem cadastra decidir, do
+-- mesmo jeito que já funciona para as certidões.
+
+alter table public.balancos add column if not exists validade date;
+
 -- 6. RLS ----------------------------------------------------------------------
 
 alter table public.licitacao_checklist_itens enable row level security;
