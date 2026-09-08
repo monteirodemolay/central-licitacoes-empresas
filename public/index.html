@@ -15,18 +15,21 @@
       <div class="auth-brand">LD</div>
       <h1>LiciDoc</h1>
       <p>Entre para acessar as licitações da sua empresa.</p>
-      <label>Nome completo<input id="auth-name" autocomplete="name" placeholder="Exigido somente no primeiro cadastro"></label>
       <label>E-mail<input id="auth-email" type="email" autocomplete="email" required></label>
       <label>Senha<input id="auth-password" type="password" autocomplete="current-password" minlength="6" required></label>
       <div id="auth-message"></div>
       <button id="login-btn" class="primary" type="submit">Entrar</button>
-      <button id="signup-btn" class="secondary" type="button">Criar primeiro acesso</button>
       <button id="reset-btn" class="link" type="button">Esqueci minha senha</button>
+      <p class="auth-hint">Ainda não tem acesso? Peça ao administrador geral para criar sua conta.</p>
     </form>
   </section>
 
   <section id="pending-screen" class="auth-screen" hidden>
     <div class="auth-card"><div class="auth-brand">LD</div><h1>Acesso aguardando liberação</h1><p>Seu cadastro foi recebido. O administrador geral precisa vinculá-lo à sua empresa.</p><button id="pending-logout" class="secondary">Sair</button></div>
+  </section>
+
+  <section id="error-screen" class="auth-screen" hidden>
+    <div class="auth-card"><div class="auth-brand">LD</div><h1>Não foi possível carregar seus dados</h1><p id="error-screen-message">Verifique sua conexão com a internet e tente novamente. Você continua logado.</p><button id="error-retry" class="primary">Tentar novamente</button><button id="error-logout" class="secondary">Sair</button></div>
   </section>
 
   <aside class="sidebar">
@@ -40,7 +43,7 @@
     </nav>
     <div class="sidebar-utilidades">
       <button data-view="trash">Lixeira</button>
-      <button id="access-nav" data-view="access" hidden>Acessos</button>
+      <button id="access-nav" data-view="access" hidden>Central do usuário</button>
     </div>
     <div class="privacy">🔒 Administrador geral e proprietário da empresa. Arquivos protegidos no armazenamento privado.</div>
   </aside>
@@ -172,7 +175,7 @@
     </section>
 
     <section id="access" class="view">
-      <article class="card"><div class="card-head"><div><h2>Acessos dos proprietários</h2><p>Vincule cada proprietário somente à empresa correspondente.</p></div></div><div id="access-list"></div></article>
+      <article class="card"><div class="card-head"><div><h2>Central do usuário</h2><p>Conceda ou retire o papel e a empresa de cada pessoa. Você não pode alterar seu próprio acesso por aqui.</p></div></div><p class="field-message">O cadastro público foi desativado. Para criar um novo acesso: no painel do Supabase, vá em <strong>Authentication → Users → Add user</strong>, informe e-mail e senha e marque "Auto Confirm User". O usuário aparecerá abaixo, aguardando liberação, para você conceder o papel e a empresa.</p><div id="access-list"></div></article>
     </section>
 
     <section id="trash" class="view">

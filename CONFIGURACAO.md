@@ -49,12 +49,13 @@ Em **Authentication → Providers → Email**, mantenha e-mail e senha habilitad
 
 ## 3. Criar o primeiro acesso
 
-1. Acesse o endereço publicado.
-2. Informe seu nome, e-mail e senha.
-3. Clique em **Criar primeiro acesso**.
-4. Confirme o e-mail, se solicitado.
+O cadastro público foi desativado — contas só são criadas por um administrador, direto no painel do Supabase:
 
-A primeira conta criada recebe automaticamente o perfil `admin_geral`. Faça esse cadastro antes de divulgar a URL.
+1. No painel do Supabase, vá em **Authentication → Users → Add user**.
+2. Informe e-mail e senha e marque **Auto Confirm User**.
+3. Acesse o endereço publicado do LiciDoc e entre com esse e-mail/senha.
+
+A primeira conta criada recebe automaticamente o perfil `admin_geral`. Faça isso antes de divulgar a URL. Para os acessos seguintes, repita o passo 1 e 2 no Supabase — o novo usuário aparecerá em **Acessos** dentro do sistema, aguardando liberação, para o administrador geral vincular à empresa correta.
 
 ## 4. Autorizar um proprietário
 
