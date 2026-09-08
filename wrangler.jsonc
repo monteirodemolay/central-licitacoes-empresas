@@ -8,5 +8,13 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
     "run_worker_first": true
+  },
+  // SUPABASE_SERVICE_ROLE_KEY não vai aqui: é segredo, configurado com
+  // `wrangler secret put SUPABASE_SERVICE_ROLE_KEY` (ou pelo painel da
+  // Cloudflare). Só assim o endpoint /api/admin/create-user consegue criar
+  // contas — sem o segredo, a Central do usuário volta a exigir criação
+  // manual pelo painel do Supabase.
+  "vars": {
+    "SUPABASE_URL": "https://yntnmpwovzqgpuzrrnin.supabase.co"
   }
 }
