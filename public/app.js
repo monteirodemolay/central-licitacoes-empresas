@@ -77,7 +77,7 @@ async function loadData(){
   state.trash=trashResults.flatMap((result,index)=>(result.data||[]).map(row=>trashItem(...types[index],row)));
   await purgeExpiredTrash();renderAll()
 }
-function navigate(view){$$('.view').forEach(v=>v.classList.toggle('active',v.id===view));$$('#nav button, .sidebar-utilidades button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));$('#page-title').textContent=({dashboard:'Visão geral',companies:'Empresas',review:'Perfil da empresa',archive:'Acervo documental',notices:'Editais','notice-detail':'Detalhes do edital',agenda:'Agenda de interesse',packages:'Pacotes de participação',trash:'Lixeira',access:'Acessos'})[view]||'LiciDoc'}
+function navigate(view){$$('.view').forEach(v=>v.classList.toggle('active',v.id===view));$$('#nav button, .sidebar-utilidades button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));$('#page-title').textContent=({dashboard:'Visão geral',companies:'Empresas',review:'Perfil da empresa',archive:'Acervo documental',notices:'Editais','notice-detail':'Detalhes do edital',agenda:'Agenda de interesse',packages:'Pacotes de participação',trash:'Lixeira',access:'Central do usuário'})[view]||'LiciDoc'}
 function renderMetrics(){const expired=state.certificates.filter(c=>status(c.validity)==='expired').length,urgent=state.certificates.filter(c=>status(c.validity)==='urgent').length;const hoje=new Date().toISOString().slice(0,10),tarefas=state.agenda.filter(t=>!t.concluida),atrasadas=tarefas.filter(t=>t.prazo&&t.prazo<hoje).length,participar=state.notices.filter(n=>n.interesse==='vamos_participar'&&(!n.opening||n.opening>=hoje)).length;$('#metrics').innerHTML=`<div class="metric"><span>Empresas</span><strong>${state.companies.length}</strong><small>Disponíveis para você</small></div><div class="metric red"><span>Certidões vencidas</span><strong>${expired}</strong><small>Exigem providência</small></div><div class="metric amber"><span>Vencem em até 15 dias</span><strong>${urgent}</strong><small>Atenção imediata</small></div><div class="metric${atrasadas?' red':''}"><span>Vamos participar</span><strong>${participar}</strong><small>${tarefas.length} providência(s), ${atrasadas} atrasada(s)</small></div>`}
 function renderAlerts(){const items=[...state.certificates].sort((a,b)=>(a.validity||'9999').localeCompare(b.validity||'9999')).slice(0,6);$('#alerts').innerHTML=items.length?items.map(c=>{const st=status(c.validity),precisaAcao=st==='expired'||st==='urgent'||st==='missing';return`<div class="list-row"><p><strong>${esc(c.type)}</strong><br><small>${esc(companyName(c.companyId))} · ${fmt(c.validity)}</small></p>${precisaAcao?`<button type="button" class="badge-acao badge ${st}" data-adicionar-regularidade="${esc(chaveAtualDe('certificate',c))}" data-adicionar-empresa="${esc(c.companyId)}" title="Cadastrar a certidão atualizada">${statusLabel(st)}</button>`:`<span class="badge ${st}">${statusLabel(st)}</span>`}</div>`}).join(''):'<div class="empty">Nenhuma certidão cadastrada.</div>'}
 function renderUpcoming(){const items=[...state.notices].filter(n=>!n.opening||new Date(`${n.opening}T23:59:59`)>=new Date()).sort((a,b)=>(a.opening||'9999').localeCompare(b.opening||'9999')).slice(0,5);$('#upcoming').innerHTML=items.length?items.map(n=>{const itens=state.checklist.filter(c=>c.noticeId===n.id&&c.aplicavel!==false),r=window.Regras?Regras.contar(itens):{criticos:0,total:0};return`<div class="list-row"><p><strong>${esc(n.number)}</strong><br><small>${esc(n.agency)} · ${r.total?`${r.prontos}/${r.total} documentos prontos`:'checklist ainda não calculado'}</small></p><span>${fmt(n.opening)}${r.criticos?`<br><small class="pend">${r.criticos} pendência(s)</small>`:''}</span></div>`}).join(''):'<div class="empty">Nenhuma licitação futura cadastrada.</div>'}
@@ -180,7 +180,26 @@ function regularidadeDoDia(company){
 const archiveCategories=['Certidões','Balanços','Societários','Atestados técnicos','Licenças e alvarás','Representação','Declarações','Propostas','Editais e processos','Identificação','Dados bancários','Outros'];
 const STATUS_PROCESSO={rascunho:'Rascunho',em_conferencia:'Em conferência',pronto:'Pronto',enviado:'Enviado',arquivado:'Arquivado'};
 function classificacaoLabel(n){if(!window.Regras)return n.modality||'';const partes=[];if(n.temCertame===false)partes.push(Regras.rotulo(Regras.formasDiretas,n.formaDireta)||'Contratação direta');else if(n.modalidadePadrao)partes.push(Regras.rotulo(Regras.modalidades,n.modalidadePadrao));if(n.fundamentoLegal)partes.push(n.fundamentoLegal);if(n.tipoObjeto)partes.push(Regras.rotulo(Regras.tiposObjeto,n.tipoObjeto));if(n.valorEstimado)partes.push(Regras.moeda(n.valorEstimado));return partes.join(' · ')||n.modality||'Classificação pendente'}
-function renderAccess(){if(!isAdmin())return;$('#access-list').innerHTML=state.profiles.length?state.profiles.map(p=>`<div class="access-row"><p><strong>${esc(p.name||p.email)}</strong><br><small>${esc(p.email)} · ${p.role==='admin_geral'?'Administrador geral':p.role==='proprietario_empresa'?'Proprietário':'Aguardando liberação'}</small></p><label>Empresa<select data-access-company="${p.id}" ${p.role==='admin_geral'?'disabled':''}><option value="">Selecione</option>${state.companies.map(c=>`<option value="${c.id}" ${c.id===p.companyId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><button class="primary" data-authorize="${p.id}" ${p.role==='admin_geral'?'disabled':''}>Autorizar</button></div>`).join(''):'<div class="empty">Nenhum usuário cadastrado.</div>'}
+const ROLE_LABEL={admin_geral:'Administrador geral',proprietario_empresa:'Proprietário',pendente:'Aguardando liberação'};
+function renderAccess(){
+  if(!isAdmin())return;
+  $('#access-list').innerHTML=state.profiles.length?state.profiles.map(p=>{
+    const self=p.id===state.user.id;
+    return`<div class="access-row">
+      <p><strong>${esc(p.name||p.email)}</strong><br><small>${esc(p.email)} · ${ROLE_LABEL[p.role]||p.role}</small></p>
+      <label>Papel<select data-access-role="${p.id}" ${self?'disabled':''}>
+        <option value="pendente" ${p.role==='pendente'?'selected':''}>Aguardando liberação</option>
+        <option value="proprietario_empresa" ${p.role==='proprietario_empresa'?'selected':''}>Proprietário</option>
+        <option value="admin_geral" ${p.role==='admin_geral'?'selected':''}>Administrador geral</option>
+      </select></label>
+      <label>Empresa<select data-access-company="${p.id}" ${self?'disabled':''}><option value="">Selecione</option>${state.companies.map(c=>`<option value="${c.id}" ${c.id===p.companyId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label>
+      <div class="access-actions">
+        <button class="primary" data-save-access="${p.id}" ${self?'disabled':''}>Salvar</button>
+        <button class="link danger-text" type="button" data-revoke-access="${p.id}" ${self?'disabled':''}>Revogar acesso</button>
+      </div>
+    </div>`;
+  }).join(''):'<div class="empty">Nenhum usuário cadastrado.</div>';
+}
 
 function deleteButton(entity,recordId,label='Mover para a lixeira'){return`<button class="link danger-text" type="button" data-trash-entity="${entity}" data-trash-id="${recordId}">${label}</button>`}
 function renderCompanyDashboard(){const selected=$('#dashboard-company')?.value||'',companies=selected?state.companies.filter(c=>c.id===selected):state.companies;$('#company-dashboard').innerHTML=companies.length?companies.map(company=>{const p=prontidaoDe(company.id),cor={apto:'ok',apto_com_ressalva:'pendente',nao_apto:'vencido'}[p.status];return`<article class="company-summary-card"><div class="card-head"><div><h3>${esc(company.name)}</h3><small>${esc(company.cnpj)}</small></div><div class="card-head-acoes"><span class="badge ${cor}">${esc(Regras.ROTULO_PRONTIDAO[p.status])}</span><button class="secondary" data-review-company="${company.id}">Ver perfil</button></div></div>${regularidadeDoDia(company)}</article>`}).join(''):'<div class="empty">Nenhuma empresa disponível.</div>'}
@@ -1383,7 +1402,32 @@ $('#modal-form').addEventListener('submit',async e=>{
   }catch(error){toast(friendlyError(error))}
   finally{setBusy(button,false)}
 });
-$('#access-list').addEventListener('click',async e=>{const button=e.target.closest('[data-authorize]');if(!button)return;const userId=button.dataset.authorize,companyId=$(`[data-access-company="${userId}"]`).value;if(!companyId){toast('Selecione a empresa do proprietário.');return}setBusy(button,true);const {error}=await client.from('perfis').update({perfil:'proprietario_empresa',empresa_id:companyId}).eq('id',userId);if(error)toast(friendlyError(error));else{await loadData();toast('Proprietário autorizado.')}setBusy(button,false)});
+$('#access-list').addEventListener('click',async e=>{
+  const save=e.target.closest('[data-save-access]'),revoke=e.target.closest('[data-revoke-access]');
+  if(save){
+    const userId=save.dataset.saveAccess,role=$(`[data-access-role="${userId}"]`).value,companyId=$(`[data-access-company="${userId}"]`).value;
+    if(role==='proprietario_empresa'&&!companyId){toast('Selecione a empresa do proprietário.');return}
+    const current=state.profiles.find(p=>p.id===userId);
+    const admins=state.profiles.filter(p=>p.role==='admin_geral').length;
+    if(current?.role==='admin_geral'&&role!=='admin_geral'&&admins<=1){toast('Não é possível remover o último administrador geral.');return}
+    setBusy(save,true);
+    const {error}=await client.from('perfis').update({perfil:role,empresa_id:role==='proprietario_empresa'?companyId:null}).eq('id',userId);
+    if(error)toast(friendlyError(error));else{await loadData();toast('Acesso atualizado.')}
+    setBusy(save,false);
+    return;
+  }
+  if(revoke){
+    const userId=revoke.dataset.revokeAccess,current=state.profiles.find(p=>p.id===userId);
+    if(!current)return;
+    const admins=state.profiles.filter(p=>p.role==='admin_geral').length;
+    if(current.role==='admin_geral'&&admins<=1){toast('Não é possível revogar o último administrador geral.');return}
+    if(!confirm(`Revogar o acesso de ${current.name||current.email}? A pessoa perde o acesso aos dados imediatamente, até ser liberada de novo.`))return;
+    setBusy(revoke,true);
+    const {error}=await client.from('perfis').update({perfil:'pendente',empresa_id:null}).eq('id',userId);
+    if(error)toast(friendlyError(error));else{await loadData();toast('Acesso revogado.')}
+    setBusy(revoke,false);
+  }
+});
 document.body.addEventListener('click',async e=>{const path=e.target.closest('[data-document]')?.dataset.document;if(path){const {data,error}=await client.storage.from('documentos').createSignedUrl(path,120);if(error)toast(friendlyError(error));else window.open(data.signedUrl,'_blank','noopener')}const ed=e.target.closest('[data-editar]');if(ed){openEditModal(ed.dataset.editar,ed.dataset.editarId);return}const o=e.target.closest('[data-open]'),g=e.target.closest('[data-go]'),w=e.target.closest('[data-wizard]'),review=e.target.closest('[data-review-company]'),notice=e.target.closest('[data-notice-detail]'),trash=e.target.closest('[data-trash-entity]'),restore=e.target.closest('[data-restore-entity]'),remove=e.target.closest('[data-delete-entity]');if(o)openModal(o.dataset.open);if(g)navigate(g.dataset.go);if(w)abrirWizard(w.dataset.wizard);if(review){$('#review-company').value=review.dataset.reviewCompany;renderCompanyReview();navigate('review')}if(notice){state.selectedNoticeId=notice.dataset.noticeDetail;renderNoticeDetail();navigate('notice-detail')}if(trash)await moveToTrash(trash.dataset.trashEntity,trash.dataset.trashId);if(restore)await restoreFromTrash(restore.dataset.restoreEntity,restore.dataset.restoreId);if(remove)await permanentDelete(remove.dataset.deleteEntity,remove.dataset.deleteId)});
 $('#modal-content').addEventListener('click',e=>{
   if(e.target.closest('#search-cnpj')){searchCnpj();return}
