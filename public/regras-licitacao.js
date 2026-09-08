@@ -186,6 +186,13 @@ function exigeTecnica(p){
   if(p.tipoObjeto==='bens_comuns')return numero(p.valorEstimado)>=LIMIAR_ECONOMICO;
   return true;
 }
+/* Composição de custos (formação de preços) faz sentido em qualquer objeto
+   cujo preço nasça de mão de obra e encargos — não só obras/engenharia, que
+   é onde a matriz pedia antes. Compra de bens comuns, locação de imóvel e
+   alienação de bens não têm essa estrutura de custo. */
+function exigeComposicaoCustos(tipoObjeto){
+  return ['servicos_comuns','servicos_comuns_engenharia','obras','servicos_especiais_engenharia','servicos_especiais_intelectuais'].includes(tipoObjeto);
+}
 
 /* ---------------------------------------------------------------------------
    Vigência do acervo: qual arquivo vale hoje, por tipo.
@@ -365,8 +372,9 @@ function calcularMatrizDocumentos(processo){
   if(p.tipoObjeto==='obras'||p.tipoObjeto==='servicos_especiais_engenharia'){
     add({chave:'planilha_orcamentaria',bloco:'proposta',titulo:'Planilha orçamentária detalhada com BDI',baseLegal:'Art. 6º, XXIV',busca:null});
     add({chave:'cronograma',bloco:'proposta',titulo:'Cronograma físico-financeiro',baseLegal:'Art. 6º, XXV',busca:null});
-    add({chave:'composicao_custos',bloco:'proposta',titulo:'Composição de custos unitários e de encargos sociais',baseLegal:'Art. 6º, XXIV',busca:null});
   }
+  if(exigeComposicaoCustos(p.tipoObjeto))
+    add({chave:'composicao_custos',bloco:'proposta',titulo:'Anexo de composição de custos (formação de preços)',baseLegal:'Art. 6º, XXIV',busca:null});
 
   // Declarações
   add({chave:'decl_menor',bloco:'declaracoes',titulo:'Declaração de cumprimento do art. 7º, XXXIII, da Constituição',baseLegal:'Art. 63, I',busca:null,gerado:true});
@@ -468,6 +476,79 @@ const TIPOS={vigencia:'Vigência',completude:'Completude',consistencia:'Consist�
 const rotuloTipo=t=>TIPOS[t]||t;
 
 /* ---------------------------------------------------------------------------
+   Composição de custos / anexo de formação de preços.
+
+   Padrão para serviços com dedicação de mão de obra (linha IN SEGES/ME nº
+   5/2017: mão de obra, Grupo A e Grupo B de encargos, benefícios, materiais,
+   tributos e lucro). Sem percentual pré-definido: cada contrato tem sua
+   própria estrutura de custo, então cada item começa em branco e o usuário
+   preenche % ou R$ — o outro campo e o total são sempre calculados a partir
+   do mesmo valor mensal do contrato, nunca de um subtotal de grupo, que é
+   como o usuário pensa ("tantos por cento da proposta").
+--------------------------------------------------------------------------- */
+const PADRAO_COMPOSICAO_CUSTOS=[
+  {grupo:'Mão de obra',item:'Salário-base da equipe'},
+  {grupo:'Mão de obra',item:'Adicional de insalubridade/periculosidade'},
+  {grupo:'Mão de obra',item:'Outros adicionais (noturno, função, etc.)'},
+  {grupo:'Encargos sociais — Grupo A',item:'INSS patronal'},
+  {grupo:'Encargos sociais — Grupo A',item:'FGTS'},
+  {grupo:'Encargos sociais — Grupo A',item:'RAT/SAT (seguro acidente de trabalho)'},
+  {grupo:'Encargos sociais — Grupo A',item:'Sistema S, salário-educação e INCRA'},
+  {grupo:'Encargos sociais — Grupo B',item:'Férias e 1/3 constitucional'},
+  {grupo:'Encargos sociais — Grupo B',item:'13º salário'},
+  {grupo:'Encargos sociais — Grupo B',item:'Aviso prévio'},
+  {grupo:'Encargos sociais — Grupo B',item:'Multa do FGTS e provisão para rescisão'},
+  {grupo:'Benefícios',item:'Vale-transporte'},
+  {grupo:'Benefícios',item:'Vale-alimentação/refeição'},
+  {grupo:'Benefícios',item:'Assistência médica e odontológica'},
+  {grupo:'Benefícios',item:'Seguro de vida em grupo'},
+  {grupo:'Materiais e insumos',item:'Materiais de consumo'},
+  {grupo:'Materiais e insumos',item:'Uniformes'},
+  {grupo:'Materiais e insumos',item:'Equipamentos de proteção individual (EPI)'},
+  {grupo:'Equipamentos e ferramentas',item:'Equipamentos e ferramentas de trabalho'},
+  {grupo:'Equipamentos e ferramentas',item:'Manutenção de equipamentos'},
+  {grupo:'Veículos e deslocamentos',item:'Combustível e manutenção de veículos'},
+  {grupo:'Veículos e deslocamentos',item:'Deslocamento e hospedagem da equipe'},
+  {grupo:'Sistema e tecnologia',item:'Sistema, software ou plataforma de gestão do contrato'},
+  {grupo:'Administração e gestão contratual',item:'Supervisão e coordenação do contrato'},
+  {grupo:'Administração e gestão contratual',item:'Despesas administrativas e operacionais'},
+  {grupo:'Seguros e garantias',item:'Seguros exigidos em edital'},
+  {grupo:'Seguros e garantias',item:'Garantia contratual'},
+  {grupo:'Tributos',item:'PIS'},
+  {grupo:'Tributos',item:'COFINS'},
+  {grupo:'Tributos',item:'ISS'},
+  {grupo:'Tributos',item:'Outros tributos incidentes'},
+  {grupo:'Lucro',item:'Margem de lucro'}
+];
+/* Nova composição a partir do Padrão — cada item começa vazio, em modo %. */
+function novaComposicaoCustos(){
+  return {valorMensal:null,meses:12,itens:PADRAO_COMPOSICAO_CUSTOS.map(x=>({...x,modo:'percentual',percentual:null,valor:null}))};
+}
+/* Calcula %/valor de cada item e os totais/subtotais por grupo. `modo`
+   decide qual dos dois campos é a fonte: 'valor' deriva o percentual,
+   'percentual' (padrão) deriva o valor — sempre sobre o valor mensal. */
+function calcularComposicaoCustos(composicao){
+  const base=numero(composicao?.valorMensal),itens=composicao?.itens||[];
+  const linhas=itens.map(it=>{
+    const usaValor=it.modo==='valor';
+    const percentual=usaValor?(base>0?numero(it.valor)/base*100:0):numero(it.percentual);
+    const valor=usaValor?numero(it.valor):(base>0?base*numero(it.percentual)/100:0);
+    return {...it,percentual,valor};
+  });
+  const grupos=[];
+  linhas.forEach(l=>{
+    let g=grupos.find(x=>x.grupo===l.grupo);
+    if(!g){g={grupo:l.grupo,itens:[],percentual:0,valor:0};grupos.push(g)}
+    g.itens.push(l);g.percentual+=l.percentual;g.valor+=l.valor;
+  });
+  const totalPercentual=linhas.reduce((s,l)=>s+l.percentual,0);
+  const totalValor=linhas.reduce((s,l)=>s+l.valor,0);
+  const meses=numero(composicao?.meses)||0;
+  return {linhas,grupos,totalPercentual,totalValor,valorMensal:base,meses,valorGlobal:base*meses,
+    completo:Math.abs(totalPercentual-100)<0.05};
+}
+
+/* ---------------------------------------------------------------------------
    Vínculos de documento por item do checklist.
 
    Compartilhado entre o assistente (wizard.js) e a tela do edital (app.js):
@@ -543,11 +624,12 @@ global.Regras={
   procedimentosAuxiliares,meEpp,blocos,
   calcularMatrizDocumentos,criticarProcesso,contar,
   acervoVigente,prontidaoDaEmpresa,situacaoDoDocumento,ROTULO_PRONTIDAO,DIAS_VENCE_LOGO,
-  exigeEconomicoFinanceiro,exigeTecnica,engenharia,
+  exigeEconomicoFinanceiro,exigeTecnica,exigeComposicaoCustos,engenharia,
   definirParametros,parametro,parametrosPadrao,
   rotulo,rotuloTipo,moeda,numero,diasEntre,hojeIso,br,
   LIMIAR_ECONOMICO,
   itemAcumulativo,vinculosDoItem,statusDoVinculo,statusDosVinculos,aplicarVinculos,
-  documentosDoChecklist,categoriaDoBloco,rotuloChecklist
+  documentosDoChecklist,categoriaDoBloco,rotuloChecklist,
+  PADRAO_COMPOSICAO_CUSTOS,novaComposicaoCustos,calcularComposicaoCustos
 };
 })(window);

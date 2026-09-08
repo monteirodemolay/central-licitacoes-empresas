@@ -1949,3 +1949,67 @@ dialog.revisao-guiada { width: min(980px, 96vw); }
 .regularidade-linha:last-child { border-bottom: 0; }
 .pront-projetada { color: var(--amber); font-weight: 400; }
 .det-item-upload { grid-column: 1 / -1; max-width: none; justify-content: flex-start; }
+
+/* Composição de custos (anexo de formação de preços) ------------------------ */
+dialog.composicao-dialog { width: min(760px, 96vw); }
+.composicao-corpo { display: flex; flex-direction: column; gap: 14px; }
+.composicao-base output {
+  display: block;
+  font: 600 13.5px Inter, Segoe UI, Arial, sans-serif;
+  padding: 9px 0;
+  color: var(--text);
+}
+.composicao-total-barra { display: flex; align-items: center; gap: 12px; }
+.composicao-total-barra .ag-barra { flex: 1; margin-bottom: 0; }
+.composicao-fill { height: 100%; background: var(--red); border-radius: 999px; }
+.composicao-fill.full { background: var(--green); }
+.composicao-tabela { display: flex; flex-direction: column; }
+.composicao-grupo-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 14px 4px 6px;
+  border-bottom: 1px solid var(--line);
+}
+.composicao-grupo-head h4 { margin: 0; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.02em; color: var(--muted); }
+.composicao-grupo-head span { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.composicao-linha {
+  display: grid;
+  grid-template-columns: 1fr 130px 150px auto;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--line);
+}
+.composicao-linha:last-child { border-bottom: 0; }
+.composicao-item-nome input {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  font: 400 13px Inter, Segoe UI, Arial, sans-serif;
+  color: var(--text);
+  padding: 6px 7px;
+  border-radius: 6px;
+}
+.composicao-item-nome input:hover,
+.composicao-item-nome input:focus { border-color: var(--line); background: var(--white); }
+.composicao-campo {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.composicao-campo input {
+  width: 100%;
+  font: 400 13px Inter, Segoe UI, Arial, sans-serif;
+  padding: 6px 7px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text);
+}
+@media (max-width: 640px) {
+  .composicao-linha { grid-template-columns: 1fr; }
+}
