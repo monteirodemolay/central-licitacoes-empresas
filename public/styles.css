@@ -1697,6 +1697,9 @@ dialog.wizard::backdrop {
 .acervo-upload-inline button {
   flex: 0 0 auto;
 }
+.acervo-upload-sugestao {
+  flex: 1 1 100%;
+}
 .acervo-vincular {
   grid-column: 1 / -1;
   background: #f8f9fb;

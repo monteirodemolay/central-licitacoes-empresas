@@ -91,7 +91,7 @@ function acervoDaEmpresa(companyId){
   const docs=state.documents.filter(d=>d.companyId===companyId).map(d=>({
     origem:'documentos_empresa',id:d.id,chave:chaveDe(d,{categoria:d.category,tipo:d.type,nome:d.name}),
     rotulo:d.type||d.name,arquivo:d.name,path:d.filePath,data:d.documentDate||(d.createdAt||'').slice(0,10),
-    validade:d.validity||null,categoriaAntiga:d.category,fonte:d.source,responsavel:d.responsavelTecnico||null,arquivado:!!d.arquivado,socios:d.socios||[]}));
+    validade:d.validity||null,categoriaAntiga:d.category,fonte:d.source,responsavel:d.responsavelTecnico||null,arquivado:!!d.arquivado,socios:d.socios||[],ordinal:d.metadata?.ordinal||null}));
   const certs=state.certificates.filter(c=>c.companyId===companyId).map(c=>({
     origem:'certidoes',id:c.id,chave:chaveDe(c,{categoria:'Certidões',tipo:c.type,nome:c.type}),
     rotulo:c.type,arquivo:c.type,path:c.filePath,data:c.issued||null,validade:c.validity||null,
@@ -360,11 +360,14 @@ function formEnvioAcervo(v,companyId){
   const precisaValidade=v.tipo.vigencia==='validade';
   return `<form class="acervo-upload-inline" data-upload-tipo="${esc(v.chave)}" data-upload-empresa="${esc(companyId)}">
     <label>Arquivo<input type="file" name="file" required accept=".pdf,.png,.jpg,.jpeg"></label>
+    <label>Data do documento<input type="date" name="documentDate"></label>
     ${precisaValidade?'<label>Validade<input type="date" name="validity" required></label>':''}
     <label>Nome da pessoa (se for de alguém específico)<input type="text" name="responsavelTecnico" placeholder="Opcional"></label>
     <button class="primary" type="submit">Enviar arquivo</button>
+    <small class="full field-message acervo-upload-sugestao" hidden></small>
   </form>`;
 }
+const rotuloComOrdinal=item=>item.ordinal?`${ordinalTexto(item.ordinal)} Alteração`:item.rotulo;
 function linhaDoAcervo(v,companyId){
   const d=v.vigente;
   const regra={validade:'vale até a validade',substituivel:'o mais recente substitui os anteriores',acumulativo:'todos somam'}[v.tipo.vigencia];
@@ -373,7 +376,7 @@ function linhaDoAcervo(v,companyId){
   return `<article class="acervo-item ${v.situacao}">
     <div class="acervo-item-main">
       <strong>${esc(v.tipo.nome)}${v.tipo.base?'<span class="tag-base" title="Exigido em praticamente todo edital">base</span>':''}</strong>
-      ${d?`<small>${esc(d.rotulo)}${d.validade?` · válido até ${fmt(d.validade)}`:d.data?` · ${fmt(d.data)}`:''}${d.fonte?` · ${esc(d.fonte)}`:''}${d.responsavel?` · ${esc(d.responsavel)}`:''}</small>`
+      ${d?`<small>${esc(rotuloComOrdinal(d))}${d.validade?` · válido até ${fmt(d.validade)}`:d.data?` · ${fmt(d.data)}`:''}${d.fonte?` · ${esc(d.fonte)}`:''}${d.responsavel?` · ${esc(d.responsavel)}`:''}</small>`
         :'<small>Nenhum arquivo deste tipo no acervo.</small>'}
       <small class="acervo-regra">${esc(regra)}${v.total>1?` · ${v.total} arquivo(s)`:''}</small>
       ${afetados.length?`<small class="acervo-afeta">⚠ Afeta ${afetados.length} licitação(ões) em andamento: ${afetados.map(n=>esc(n.number)).join(', ')}</small>`:''}
@@ -397,7 +400,7 @@ function linhaDoAcervo(v,companyId){
     <details class="acervo-versoes">
       <summary>${v.anteriores.length?(v.acumulativo?`Outros ${v.anteriores.length} arquivo(s) deste tipo`:`${v.anteriores.length} versão(ões) anterior(es)`)+' · enviar novo arquivo':v.total?'Enviar um arquivo atualizado':'Enviar o primeiro arquivo'}</summary>
       ${v.anteriores.map(a=>`<div class="acervo-versao">
-        <span>${esc(a.rotulo)}${a.arquivado?' <em>(arquivado)</em>':''}<small>${a.validade?`validade ${fmt(a.validade)}`:a.data?fmt(a.data):'sem data'}${a.arquivo&&a.arquivo!==a.rotulo?` · ${esc(a.arquivo)}`:''}${a.responsavel?` · ${esc(a.responsavel)}`:''}</small></span>
+        <span>${esc(rotuloComOrdinal(a))}${!v.acumulativo?' <span class="badge vencido">Superado</span>':''}${a.arquivado?' <em>(arquivado)</em>':''}<small>${a.validade?`validade ${fmt(a.validade)}`:a.data?fmt(a.data):'sem data'}${a.arquivo&&a.arquivo!==a.rotulo?` · ${esc(a.arquivo)}`:''}${a.responsavel?` · ${esc(a.responsavel)}`:''}</small></span>
         <span>${a.path?`<button class="link" data-document="${esc(a.path)}">Abrir</button>`:''}
         <button class="link" data-editar="${({documentos_empresa:'document',certidoes:'certificate',balancos:'balance'})[a.origem]}" data-editar-id="${a.id}">Editar</button>
         ${v.acumulativo?`<button type="button" class="link" data-arquivar="${a.origem}:${a.id}" data-arquivar-valor="${a.arquivado?'false':'true'}">${a.arquivado?'Reativar':'Arquivar'}</button>`:''}</span>
@@ -1018,6 +1021,39 @@ function classifyCertificate(text,fileName){
   ];
   const found=rules.find(([,nameRegex,textRegex])=>nameRegex.test(name)||textRegex.test(source));return found?.[0]||'Outra certidão'
 }
+/* Data por extenso, comum em contrato social/alteração contratual ("aos 10
+   dias do mês de março de 2024") — o padrão dd/mm/aaaa de certificateDates()
+   não pega isso, e é justamente esse tipo de documento que mais precisa. */
+const MESES_EXTENSO={janeiro:'01',fevereiro:'02','março':'03',marco:'03',abril:'04',maio:'05',junho:'06',julho:'07',agosto:'08',setembro:'09',outubro:'10',novembro:'11',dezembro:'12'};
+function dataExtensoParaIso(text){
+  const m=String(text||'').match(/(\d{1,2})\s*(?:\([^)]*\))?\s*dias?\s+do\s+m[eê]s\s+de\s+([a-zç]+)\s+de\s+(\d{4})/i);
+  if(!m)return'';
+  const mes=MESES_EXTENSO[m[2].normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()];
+  if(!mes)return'';
+  const dia=String(m[1]).padStart(2,'0'),date=new Date(`${m[3]}-${mes}-${dia}T12:00:00`);
+  return Number.isNaN(date.getTime())?'':`${m[3]}-${mes}-${dia}`;
+}
+/* "1ª alteração", "primeira alteração contratual", "2a alteração"... —
+   identifica qual alteração é esta, pra não depender só da data de upload
+   pra saber a ordem (o.usuário pode enviar fora de ordem). */
+const ORDINAIS_EXTENSO={primeira:1,segunda:2,terceira:3,quarta:4,quinta:5,sexta:6,setima:7,'sétima':7,oitava:8,nona:9,decima:10,'décima':10};
+function detectarOrdinalAlteracao(text){
+  const normalizado=String(text||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  const numerico=normalizado.match(/(\d{1,2})\s*[ºªoa]?\.?\s*altera[cç][aã]o/);
+  if(numerico)return Number(numerico[1]);
+  const extenso=normalizado.match(/(primeira|segunda|terceira|quarta|quinta|sexta|setima|oitava|nona|decima)\s+altera[cç][aã]o/);
+  return extenso?ORDINAIS_EXTENSO[extenso[1]]||null:null;
+}
+const ordinalTexto=n=>n?`${n}ª`:'';
+/* Leitor sagaz do Acervo: a mesma extração de data já usada nas certidões,
+   mais a data por extenso e o número da alteração — roda em cima do texto
+   do PDF assim que o arquivo é escolhido, só para sugerir; quem cadastra
+   sempre confere e pode corrigir antes de enviar. */
+function sugerirDadosDocumento(text,tipoChave){
+  const datas=certificateDates(text),documentDate=datas.issued||dataExtensoParaIso(text)||'';
+  const ordinal=tipoChave==='alteracao_contratual'?detectarOrdinalAlteracao(text):null;
+  return{documentDate,validity:datas.validity,ordinal};
+}
 function certificateDates(text){const clean=text.replace(/\s+/g,' '),range=clean.match(/validade\s*:?\s*(?:de\s*)?(\d{2}[\/.-]\d{2}[\/.-]\d{4})\s*(?:a|ate|até)\s*(\d{2}[\/.-]\d{2}[\/.-]\d{4})/i),validity=range?.[2]||clean.match(/(?:valida|válida)\s+at[eé]\s+(\d{2}[\/.-]\d{2}[\/.-]\d{4})/i)?.[1]||clean.match(/validade\s*:?[^\d]{0,30}(\d{2}[\/.-]\d{2}[\/.-]\d{4})/i)?.[1],issued=clean.match(/(?:data\s+de\s+)?(?:emiss[aã]o|expedi[cç][aã]o)\s*:?[^\d]{0,20}(\d{2}[\/.-]\d{2}[\/.-]\d{4})/i)?.[1]||range?.[1];return{issued:dateToIso(issued),validity:dateToIso(validity)}}
 function renderPendingCertificates(){const root=$('#batch-result');if(!pendingCertificates.length){root.innerHTML='';return}root.innerHTML=`<div class="batch-review"><div class="card-head"><div><h3>Conferir antes de importar</h3><p>Corrija os campos marcados antes de salvar.</p></div><button id="import-certificates" class="primary" type="button">Importar ${pendingCertificates.length} arquivo(s)</button></div>${pendingCertificates.map((item,index)=>`<div class="batch-row" data-batch-index="${index}"><div class="batch-file"><strong>${esc(item.file.name)}</strong><small>${item.scanned?'Pouco texto: pode ser PDF digitalizado. Revise os dados.':'Classificação sugerida pela leitura do PDF.'}</small>${item.type==='Outra certidão'?`<input data-batch-field="customType" value="${esc(item.customType||'')}" placeholder="Informe o nome desta nova certidão">`:''}</div><label>Tipo<select data-batch-field="type">${certificateOptions(item.type)}</select></label><label>Emissão<input data-batch-field="issued" type="date" value="${item.issued}"></label><label>Validade<input data-batch-field="validity" type="date" value="${item.validity}" class="${item.validity?'':'needs-review'}"></label></div>`).join('')}</div>`}
 async function analyzeCertificateBatch(){const companyId=$('#batch-company').value,files=[...$('#batch-files').files];if(!companyId){toast('Selecione a empresa.');return}if(!files.length){toast('Selecione um ou mais PDFs.');return}if(files.length>30){toast('Importe no máximo 30 arquivos por vez.');return}const button=$('#analyze-certificates'),progress=$('#batch-progress');setBusy(button,true,'Lendo...');progress.hidden=false;pendingCertificates=[];for(let i=0;i<files.length;i++){const file=files[i];progress.textContent=`Lendo ${i+1} de ${files.length}: ${file.name}`;try{const result=await extractPdfText(file,(page,pages)=>progress.textContent=`${file.name}: página ${page} de ${pages}`),dates=certificateDates(result.text);pendingCertificates.push({file,type:classifyCertificate(result.text,file.name),issued:dates.issued,validity:dates.validity,scanned:result.text.trim().length<Math.max(200,result.pages*50)})}catch(error){pendingCertificates.push({file,type:'Outra certidão',issued:'',validity:'',scanned:true,error:friendlyError(error)})}}renderPendingCertificates();progress.textContent='Leitura concluída. Confira a classificação e as datas.';setBusy(button,false)}
@@ -1408,7 +1444,7 @@ async function cadastrarDocumento(data,file){
   if(tipo.certidao){
     const nome=tipo.certidao,folder=`certidoes/${safeFolder(nome)}/${(data.validity||Regras.hojeIso()).slice(0,4)}`,path=await uploadDocument(file,data.companyId,folder);
     const {error}=await client.from('certidoes').insert({empresa_id:data.companyId,tipo:nome,orgao_emissor:nome,
-      validade:data.validity||null,tipo_chave:tipo.chave,responsavel_tecnico:data.responsavelTecnico||null,
+      emissao:data.documentDate||null,validade:data.validity||null,tipo_chave:tipo.chave,responsavel_tecnico:data.responsavelTecnico||null,
       link_emissao:issuerLinks[nome]||null,arquivo_path:path,criado_por:state.user.id});
     if(error)throw error;
     return null;
@@ -1416,8 +1452,8 @@ async function cadastrarDocumento(data,file){
   const path=await uploadDocument(file,data.companyId,`acervo/${safeFolder(tipo.nome)}`);
   const {data:inserido,error}=await client.from('documentos_empresa').insert({empresa_id:data.companyId,tipo:tipo.nome,
     categoria:CATEGORIA_DO_BLOCO[tipo.bloco]||'Outros',tipo_chave:tipo.chave,validade:data.validity||null,
-    responsavel_tecnico:data.responsavelTecnico||null,
-    nome_original:file.name,data_documento:Regras.hojeIso(),arquivo_path:path,criado_por:state.user.id}).select('id').single();
+    responsavel_tecnico:data.responsavelTecnico||null,metadados:data.metadados||{},
+    nome_original:file.name,data_documento:data.documentDate||Regras.hojeIso(),arquivo_path:path,criado_por:state.user.id}).select('id').single();
   if(error)throw error;
   return inserido.id;
 }
@@ -1737,10 +1773,29 @@ $('#archive-list').addEventListener('click',e=>{
   const balanco=e.target.closest('[data-abrir-balanco]');
   if(balanco)openModal('balance',{companyId:balanco.dataset.abrirBalanco});
 });
-$('#archive-list').addEventListener('change',e=>{
-  if(!e.target.matches('[data-vincular-select]'))return;
-  vincularSelecionado=e.target.value||null;
-  renderArchive();
+$('#archive-list').addEventListener('change',async e=>{
+  if(e.target.matches('[data-vincular-select]')){
+    vincularSelecionado=e.target.value||null;
+    renderArchive();
+    return;
+  }
+  const form=e.target.closest('.acervo-upload-inline');
+  if(!form||e.target.name!=='file')return;
+  const file=e.target.files[0],msg=form.querySelector('.acervo-upload-sugestao');
+  delete form.dataset.ordinal;
+  if(!file||!/\.pdf$/i.test(file.name)){if(msg)msg.hidden=true;return}
+  msg.hidden=false;msg.textContent='Lendo o PDF para sugerir data e validade...';
+  try{
+    const {text}=await extractPdfText(file);
+    const sugestao=sugerirDadosDocumento(text,form.dataset.uploadTipo);
+    const campoData=form.querySelector('[name="documentDate"]'),campoValidade=form.querySelector('[name="validity"]');
+    if(sugestao.documentDate&&campoData&&!campoData.value)campoData.value=sugestao.documentDate;
+    if(sugestao.validity&&campoValidade&&!campoValidade.value)campoValidade.value=sugestao.validity;
+    if(sugestao.ordinal)form.dataset.ordinal=String(sugestao.ordinal);
+    msg.textContent=(sugestao.documentDate||sugestao.validity||sugestao.ordinal)
+      ?`Sugestão da leitura do PDF — confira os campos preenchidos${sugestao.ordinal?` (identificamos a ${ordinalTexto(sugestao.ordinal)} alteração)`:''}.`
+      :'Não encontramos data no texto do PDF — preencha manualmente.';
+  }catch(error){msg.textContent='Não foi possível ler o PDF automaticamente — preencha manualmente.'}
 });
 $('#archive-list').addEventListener('submit',async e=>{
   const form=e.target.closest('.acervo-upload-inline');
@@ -1749,8 +1804,10 @@ $('#archive-list').addEventListener('submit',async e=>{
   const file=form.querySelector('[name="file"]').files[0];
   if(!file){toast('Selecione um arquivo.');return}
   const data={tipoChave:form.dataset.uploadTipo,companyId:form.dataset.uploadEmpresa,
+    documentDate:form.querySelector('[name="documentDate"]')?.value||'',
     validity:form.querySelector('[name="validity"]')?.value||'',
-    responsavelTecnico:form.querySelector('[name="responsavelTecnico"]')?.value.trim()||''};
+    responsavelTecnico:form.querySelector('[name="responsavelTecnico"]')?.value.trim()||'',
+    metadados:form.dataset.ordinal?{ordinal:Number(form.dataset.ordinal)}:{}};
   const button=form.querySelector('button[type="submit"]');
   setBusy(button,true,'Enviando...');
   try{
