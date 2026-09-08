@@ -12,8 +12,8 @@ const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fmt=d=>d?new Date(`${d}T12:00:00`).toLocaleDateString('pt-BR'):'—';
 const companyName=cid=>state.companies.find(c=>c.id===cid)?.name||'Empresa não localizada';
 const isAdmin=()=>state.profile?.role==='admin_geral';
-function status(date){if(!date)return'missing';const days=Math.ceil((new Date(`${date}T23:59:59`)-new Date())/86400000);if(days<0)return'expired';if(days<=15)return'urgent';return'ok'}
-const statusLabel=s=>({expired:'Vencida',urgent:'Urgente',ok:'Regular',missing:'Pendente'}[s]);
+function status(date){if(!date)return'missing';const days=Math.ceil((new Date(`${date}T23:59:59`)-new Date())/86400000);if(days<0)return'expired';if(days<=3)return'critical';if(days<=5)return'urgent';return'ok'}
+const statusLabel=s=>({expired:'Vencida',critical:'Crítico',urgent:'Urgente',ok:'Regular',missing:'Pendente'}[s]);
 function toast(text){const t=$('#toast');t.textContent=text;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
 function setBusy(button,busy,label='Salvando...'){if(!button)return;button.disabled=busy;if(busy){button.dataset.original=button.textContent;button.textContent=label}else button.textContent=button.dataset.original||button.textContent}
 function showAuthMessage(message,success=false){const el=$('#auth-message');el.textContent=message;el.style.color=success?'var(--green)':'var(--red)'}
@@ -60,7 +60,7 @@ async function loadData(){
   if(failure){toast(friendlyError(failure.error));return}
   state.companies=(results[0].data||[]).map(x=>({id:x.id,name:x.razao_social,trade:x.nome_fantasia,cnpj:x.cnpj,city:x.municipio,state:x.uf,activities:x.atividades,openingDate:x.data_abertura,legalNature:x.natureza_juridica,size:x.porte}));
   state.certificates=(results[1].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,type:x.tipo,tipoChave:x.tipo_chave,issuer:x.orgao_emissor,issued:x.emissao,validity:x.validade,link:x.link_emissao,filePath:x.arquivo_path,responsavelTecnico:x.responsavel_tecnico,arquivado:!!x.arquivado}));
-  state.balances=(results[2].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,year:x.exercicio,tipoChave:x.tipo_chave,documentType:x.tipo_documento,periodStart:x.periodo_inicio,periodEnd:x.periodo_fim,registrationDate:x.data_registro,registrationOffice:x.orgao_registro,filePath:x.arquivo_path,notes:x.observacoes}));
+  state.balances=(results[2].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,year:x.exercicio,tipoChave:x.tipo_chave,documentType:x.tipo_documento,periodStart:x.periodo_inicio,periodEnd:x.periodo_fim,registrationDate:x.data_registro,registrationOffice:x.orgao_registro,filePath:x.arquivo_path,notes:x.observacoes,validity:x.validade||null}));
   state.notices=(results[3].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,number:x.numero,agency:x.orgao,object:x.objeto,opening:x.abertura,horaSessao:x.hora_sessao,modality:x.modalidade,linkPortal:x.link_portal,requirements:x.requisitos||[],proposalRequirements:x.requisitos_proposta||[],declarations:x.declaracoes||[],items:x.itens||[],filePath:x.edital_path,extractedText:x.texto_extraido,temCertame:x.tem_certame!==false,modalidadePadrao:x.modalidade_padrao,formaDireta:x.forma_contratacao_direta,fundamentoLegal:x.fundamento_legal,tipoObjeto:x.tipo_objeto,criterio:x.criterio_julgamento,modoDisputa:x.modo_disputa,regime:x.regime_execucao,meEpp:x.exclusividade_me_epp||'nao',valorEstimado:x.valor_estimado,procedimentoAuxiliar:x.procedimento_auxiliar,statusProcesso:x.status_processo||'rascunho',interesse:x.interesse||'em_analise',prioridade:x.prioridade||'media',responsavel:x.responsavel,anotacoes:x.anotacoes,decidirAte:x.decidir_ate,resultado:x.resultado||'em_andamento',valorContratado:x.valor_contratado,dataResultado:x.data_resultado,observacaoResultado:x.observacao_resultado,composicaoCustos:x.composicao_custos||null,propostaValidadeDias:x.proposta_validade_dias,propostaCondicoes:x.proposta_condicoes}));
   state.packages=(results[4].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,noticeId:x.licitacao_id,name:x.nome,status:x.status,documents:x.documentos||[],proposal:x.proposta||{},declarations:x.declaracoes||[],items:x.itens||[],createdAt:x.criado_em}));
   state.documents=(results[5]?.data||[]).map(x=>({id:x.id,companyId:x.empresa_id,category:x.categoria,type:x.tipo,tipoChave:x.tipo_chave,name:x.nome_original,filePath:x.arquivo_path,source:x.origem,sourceFolder:x.pasta_origem,documentDate:x.data_documento,validity:x.validade,hash:x.sha256,metadata:x.metadados||{},createdAt:x.criado_em,responsavelTecnico:x.responsavel_tecnico,arquivado:!!x.arquivado,socios:x.socios||[]}));
@@ -78,8 +78,8 @@ async function loadData(){
   await purgeExpiredTrash();renderAll()
 }
 function navigate(view){$$('.view').forEach(v=>v.classList.toggle('active',v.id===view));$$('#nav button, .sidebar-utilidades button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));$('#page-title').textContent=({dashboard:'Visão geral',companies:'Empresas',review:'Perfil da empresa',archive:'Acervo documental',notices:'Editais','notice-detail':'Detalhes do edital',agenda:'Agenda de interesse',packages:'Pacotes de participação',trash:'Lixeira',access:'Central do usuário'})[view]||'LiciDoc'}
-function renderMetrics(){const expired=state.certificates.filter(c=>status(c.validity)==='expired').length,urgent=state.certificates.filter(c=>status(c.validity)==='urgent').length;const hoje=new Date().toISOString().slice(0,10),tarefas=state.agenda.filter(t=>!t.concluida),atrasadas=tarefas.filter(t=>t.prazo&&t.prazo<hoje).length,participar=state.notices.filter(n=>n.interesse==='vamos_participar'&&(!n.opening||n.opening>=hoje)).length;$('#metrics').innerHTML=`<div class="metric"><span>Empresas</span><strong>${state.companies.length}</strong><small>Disponíveis para você</small></div><div class="metric red"><span>Certidões vencidas</span><strong>${expired}</strong><small>Exigem providência</small></div><div class="metric amber"><span>Vencem em até 15 dias</span><strong>${urgent}</strong><small>Atenção imediata</small></div><div class="metric${atrasadas?' red':''}"><span>Vamos participar</span><strong>${participar}</strong><small>${tarefas.length} providência(s), ${atrasadas} atrasada(s)</small></div>`}
-function renderAlerts(){const items=[...state.certificates].sort((a,b)=>(a.validity||'9999').localeCompare(b.validity||'9999')).slice(0,6);$('#alerts').innerHTML=items.length?items.map(c=>{const st=status(c.validity),precisaAcao=st==='expired'||st==='urgent'||st==='missing';return`<div class="list-row"><p><strong>${esc(c.type)}</strong><br><small>${esc(companyName(c.companyId))} · ${fmt(c.validity)}</small></p>${precisaAcao?`<button type="button" class="badge-acao badge ${st}" data-adicionar-regularidade="${esc(chaveAtualDe('certificate',c))}" data-adicionar-empresa="${esc(c.companyId)}" title="Cadastrar a certidão atualizada">${statusLabel(st)}</button>`:`<span class="badge ${st}">${statusLabel(st)}</span>`}</div>`}).join(''):'<div class="empty">Nenhuma certidão cadastrada.</div>'}
+function renderMetrics(){const expired=state.certificates.filter(c=>status(c.validity)==='expired').length,urgent=state.certificates.filter(c=>['urgent','critical'].includes(status(c.validity))).length;const hoje=new Date().toISOString().slice(0,10),tarefas=state.agenda.filter(t=>!t.concluida),atrasadas=tarefas.filter(t=>t.prazo&&t.prazo<hoje).length,participar=state.notices.filter(n=>n.interesse==='vamos_participar'&&(!n.opening||n.opening>=hoje)).length;$('#metrics').innerHTML=`<div class="metric"><span>Empresas</span><strong>${state.companies.length}</strong><small>Disponíveis para você</small></div><div class="metric red"><span>Certidões vencidas</span><strong>${expired}</strong><small>Exigem providência</small></div><div class="metric amber"><span>Vencem em até 5 dias</span><strong>${urgent}</strong><small>Atenção imediata</small></div><div class="metric${atrasadas?' red':''}"><span>Vamos participar</span><strong>${participar}</strong><small>${tarefas.length} providência(s), ${atrasadas} atrasada(s)</small></div>`}
+function renderAlerts(){const items=[...state.certificates].sort((a,b)=>(a.validity||'9999').localeCompare(b.validity||'9999')).slice(0,6);$('#alerts').innerHTML=items.length?items.map(c=>{const st=status(c.validity),precisaAcao=st==='expired'||st==='critical'||st==='urgent'||st==='missing';return`<div class="list-row"><p><strong>${esc(c.type)}</strong><br><small>${esc(companyName(c.companyId))} · ${fmt(c.validity)}</small></p>${precisaAcao?`<button type="button" class="badge-acao badge ${st}" data-adicionar-regularidade="${esc(chaveAtualDe('certificate',c))}" data-adicionar-empresa="${esc(c.companyId)}" title="Cadastrar a certidão atualizada">${statusLabel(st)}</button>`:`<span class="badge ${st}">${statusLabel(st)}</span>`}</div>`}).join(''):'<div class="empty">Nenhuma certidão cadastrada.</div>'}
 function renderUpcoming(){const items=[...state.notices].filter(n=>!n.opening||new Date(`${n.opening}T23:59:59`)>=new Date()).sort((a,b)=>(a.opening||'9999').localeCompare(b.opening||'9999')).slice(0,5);$('#upcoming').innerHTML=items.length?items.map(n=>{const itens=state.checklist.filter(c=>c.noticeId===n.id&&c.aplicavel!==false),r=window.Regras?Regras.contar(itens):{criticos:0,total:0};return`<div class="list-row"><p><strong>${esc(n.number)}</strong><br><small>${esc(n.agency)} · ${r.total?`${r.prontos}/${r.total} documentos prontos`:'checklist ainda não calculado'}</small></p><span>${fmt(n.opening)}${r.criticos?`<br><small class="pend">${r.criticos} pendência(s)</small>`:''}</span></div>`}).join(''):'<div class="empty">Nenhuma licitação futura cadastrada.</div>'}
 /* ---------------------------------------------------------------------------
    Acervo unificado: certidões, balanços e documentos gerais são a mesma coisa
@@ -99,8 +99,26 @@ function acervoDaEmpresa(companyId){
   const bals=state.balances.filter(b=>b.companyId===companyId).map(b=>({
     origem:'balancos',id:b.id,chave:b.tipoChave||'balanco',
     rotulo:`Balanço ${b.year}`,arquivo:b.documentType||'Balanço anual',path:b.filePath,
-    data:b.periodEnd||`${b.year}-12-31`,validade:null,categoriaAntiga:'Balanços',fonte:b.registrationOffice}));
+    data:b.periodEnd||`${b.year}-12-31`,validade:b.validity||null,categoriaAntiga:'Balanços',fonte:b.registrationOffice}));
   return [...certs,...bals,...docs];
+}
+/* Em quais licitações em andamento este arquivo específico já está vinculado
+   no checklist — é o que transforma "essa certidão vai vencer" em "essa
+   certidão vai vencer E vai travar o processo tal", sem precisar abrir cada
+   edital pra descobrir. Só considera processos ainda não enviados/arquivados:
+   depois disso, a validade na data do envio já é história. */
+function licitacoesAfetadas(documentoId,companyId){
+  if(!documentoId)return[];
+  const abertos=state.notices.filter(n=>n.companyId===companyId&&!['enviado','arquivado'].includes(n.statusProcesso));
+  if(!abertos.length)return[];
+  const idsAbertos=new Set(abertos.map(n=>n.id));
+  const afetados=new Set();
+  state.checklist.forEach(item=>{
+    if(!idsAbertos.has(item.noticeId))return;
+    const vinculados=[item.documentoRefId,...(item.documentosVinculados||[]).map(x=>x.id)].filter(Boolean);
+    if(vinculados.includes(documentoId))afetados.add(item.noticeId);
+  });
+  return abertos.filter(n=>afetados.has(n.id));
 }
 
 const prontidaoDe=(companyId,dataAlvo)=>Regras.prontidaoDaEmpresa(acervoDaEmpresa(companyId),dataAlvo);
@@ -153,6 +171,7 @@ function painelProntidao(company,{compacto=false,dataAlvo}={}){
     <div class="ag-barra"><div class="ag-barra-fill${p.percentual>=100?' full':p.percentual>=60?' meio':''}" style="width:${p.percentual}%"></div></div>
     ${problema(p.faltando,'Falta','ausente')}
     ${problema(p.vencidos,projetado?'Vai estar vencido':'Vencido','vencido')}
+    ${problema(p.vencendoUrgente,`Vence em até ${Regras.DIAS_VENCE_URGENTE} dias`,'vencido')}
     ${problema(p.vencendo,`Vence em até ${Regras.DIAS_VENCE_LOGO} dias`,'pendente')}
     ${p.status==='apto'?`<p class="pront-ok">Base documental completa e em dia${projetado?` para ${fmt(dataAlvo)}`:''}. Confira sempre as exigências específicas do edital.</p>`:''}
   </div>`;
@@ -167,7 +186,7 @@ function regularidadeDoDia(company){
   const tipos=Regras.catalogoDocumentos.filter(t=>t.bloco==='fiscal_trabalhista'&&t.base);
   return `<div class="regularidade-dia">${tipos.map(t=>{
     const v=porChave.get(t.chave),d=v?.vigente,situacao=v?.situacao||'ausente';
-    const rotulo=situacao==='ausente'?'Ausente':situacao==='vencido'?'Vencida':situacao==='vence_logo'?`Vence em breve · ${fmt(d.validade)}`:`Válida até ${fmt(d.validade)}`;
+    const rotulo=situacao==='ausente'?'Ausente':situacao==='vencido'?'Vencida':situacao==='vence_urgente'?`Vence em poucos dias · ${fmt(d.validade)}`:situacao==='vence_logo'?`Vence em breve · ${fmt(d.validade)}`:`Válida até ${fmt(d.validade)}`;
     const precisaAcao=situacao==='ausente'||situacao==='vencido';
     return `<div class="regularidade-linha">
       <span>${esc(t.nome)}</span>
@@ -206,8 +225,8 @@ function renderCompanyDashboard(){const selected=$('#dashboard-company')?.value|
 function renderCompanies(){const q=$('#company-search')?.value.toLowerCase()||'',list=state.companies.filter(c=>(c.name+c.cnpj).toLowerCase().includes(q));$('#company-list').innerHTML=list.length?list.map(c=>{const certs=state.certificates.filter(x=>x.companyId===c.id),bad=certs.filter(x=>status(x.validity)!=='ok').length;return`<article class="card company-card"><div class="card-head"><div><h3>${esc(c.name)}</h3><div class="meta">${esc(c.trade||'Sem nome fantasia')} · ${esc(c.cnpj)}</div></div><button class="secondary" data-review-company="${c.id}">Ver perfil</button></div><p>${esc(c.city||'Município não informado')} ${c.state?'— '+esc(c.state):''}</p><div class="stats"><span><strong>${certs.length}</strong>certidões</span><span><strong>${bad}</strong>pendências</span></div>${isAdmin()?`<div class="record-actions">${deleteButton('company',c.id)}</div>`:''}</article>`}).join(''):'<div class="empty">Nenhuma empresa encontrada.</div>';renderSelects()}
 function reviewRows(items,empty){return items.length?items.join(''):`<p class="empty">${empty}</p>`}
 function renderCompanyReview(){const root=$('#review-content'),companyId=$('#review-company')?.value||'';if(!companyId){root.innerHTML='<div class="empty">Selecione uma empresa para revisar todo o conjunto documental.</div>';return}const company=state.companies.find(c=>c.id===companyId);if(!company){root.innerHTML='<div class="empty">Empresa não localizada.</div>';return}const certs=[...state.certificates.filter(x=>x.companyId===companyId)].sort((a,b)=>(a.validity||'9999').localeCompare(b.validity||'9999')),docs=state.documents.filter(x=>x.companyId===companyId),balances=state.balances.filter(x=>x.companyId===companyId),notices=state.notices.filter(x=>x.companyId===companyId),packages=state.packages.filter(x=>x.companyId===companyId),pending=certs.filter(x=>status(x.validity)!=='ok').length;root.innerHTML=`${painelProntidao(company)}<div class="review-hero card"><div><span class="eyebrow">EMPRESA SELECIONADA</span><h2>${esc(company.name)}</h2><p>${esc(company.cnpj)} · ${esc(company.city||'Município não informado')}${company.state?' / '+esc(company.state):''}</p></div><div class="summary-numbers"><span><strong>${docs.length}</strong>Documentos</span><span><strong>${certs.length}</strong>Certidões</span><span class="${pending?'red-text':''}"><strong>${pending}</strong>Pendências</span><span><strong>${notices.length}</strong>Editais</span></div></div><div class="review-sections"><article class="card review-section"><h3>Certidões</h3>${reviewRows(certs.map(c=>`<div class="review-row"><span><strong>${esc(c.type)}</strong><small>${esc(c.issuer||'Órgão não informado')} · validade ${fmt(c.validity)}</small></span><span><span class="badge ${status(c.validity)}">${statusLabel(status(c.validity))}</span>${c.filePath?`<button class="link" data-document="${esc(c.filePath)}">Abrir</button>`:''}${deleteButton('certificate',c.id)}</span></div>`),'Nenhuma certidão cadastrada.')}</article><article class="card review-section"><h3>Acervo documental</h3>${reviewRows(docs.slice(0,20).map(d=>`<div class="review-row"><span><strong>${esc(d.type||d.name)}</strong><small>${esc(d.category)} · ${fmt(d.documentDate)}</small></span><span>${d.filePath?`<button class="link" data-document="${esc(d.filePath)}">Abrir</button>`:''}${deleteButton('document',d.id)}</span></div>`),'Nenhum documento arquivado.')}</article><article class="card review-section"><h3>Balanços patrimoniais</h3>${reviewRows(balances.map(b=>`<div class="review-row"><span><strong>Exercício ${esc(b.year)}</strong><small>${esc(b.documentType||'Balanço anual')}</small></span><span>${b.filePath?`<button class="link" data-document="${esc(b.filePath)}">Abrir</button>`:''}${deleteButton('balance',b.id)}</span></div>`),'Nenhum balanço arquivado.')}</article><article class="card review-section"><h3>Editais e processos</h3>${reviewRows(notices.map(n=>`<div class="review-row"><span><strong>${esc(n.number)}</strong><small>${esc(n.agency)} · abertura ${fmt(n.opening)}</small></span><span><button class="link" data-notice-detail="${n.id}">Ver tela</button>${deleteButton('notice',n.id)}</span></div>`),'Nenhum edital cadastrado.')}</article><article class="card review-section"><h3>Pacotes preparados</h3>${reviewRows(packages.map(p=>`<div class="review-row"><span><strong>${esc(p.name)}</strong><small>${p.documents.length} documento(s)</small></span><span><button class="link" data-download-package="${p.id}">Baixar</button>${deleteButton('package',p.id)}</span></div>`),'Nenhum pacote preparado.')}</article></div>`}
-const SIT_ACERVO={vigente:'Vigente',vence_logo:'Vence em breve',vencido:'Vencido',sem_validade:'Em dia',ausente:'Ausente'};
-const SIT_CLASSE={vigente:'ok',vence_logo:'pendente',vencido:'vencido',sem_validade:'ok',ausente:'ausente'};
+const SIT_ACERVO={vigente:'Vigente',vence_logo:'Vence em breve',vence_urgente:'Vence em poucos dias',vencido:'Vencido',sem_validade:'Em dia',ausente:'Ausente'};
+const SIT_CLASSE={vigente:'ok',vence_logo:'pendente',vence_urgente:'vencido',vencido:'vencido',sem_validade:'ok',ausente:'ausente'};
 
 /* O acervo deixa de ser uma pilha de arquivos e passa a ser uma lista de tipos:
    um por linha, com o que vale hoje em destaque e o histórico recolhido. */
@@ -330,15 +349,34 @@ async function alternarArquivado(chaveRegistro,valor){
   toast(valor?'Arquivado — não conta mais como vigente.':'Reativado.');
 }
 
+/* Enviar um arquivo novo sem sair do card: o mesmo cadastrarDocumento() do
+   modal grande, só que já sabendo o tipo (é a linha em que está) — não
+   precisa perguntar de novo o que já está óbvio pelo lugar onde a pessoa
+   clicou. Balanço entra na mesma vitrine (validade, alerta, história), mas
+   o cadastro em si continua no modal próprio: tem exercício e período, que
+   não cabem num formulário curto — só a empresa já vem preenchida. */
+function formEnvioAcervo(v,companyId){
+  if(v.chave==='balanco')return`<button type="button" class="link" data-abrir-balanco="${esc(companyId)}">Adicionar balanço</button>`;
+  const precisaValidade=v.tipo.vigencia==='validade';
+  return `<form class="acervo-upload-inline" data-upload-tipo="${esc(v.chave)}" data-upload-empresa="${esc(companyId)}">
+    <label>Arquivo<input type="file" name="file" required accept=".pdf,.png,.jpg,.jpeg"></label>
+    ${precisaValidade?'<label>Validade<input type="date" name="validity" required></label>':''}
+    <label>Nome da pessoa (se for de alguém específico)<input type="text" name="responsavelTecnico" placeholder="Opcional"></label>
+    <button class="primary" type="submit">Enviar arquivo</button>
+  </form>`;
+}
 function linhaDoAcervo(v,companyId){
   const d=v.vigente;
   const regra={validade:'vale até a validade',substituivel:'o mais recente substitui os anteriores',acumulativo:'todos somam'}[v.tipo.vigencia];
+  const precisaAvisar=['vencido','vence_urgente','vence_logo'].includes(v.situacao);
+  const afetados=precisaAvisar&&d?licitacoesAfetadas(d.id,companyId):[];
   return `<article class="acervo-item ${v.situacao}">
     <div class="acervo-item-main">
       <strong>${esc(v.tipo.nome)}${v.tipo.base?'<span class="tag-base" title="Exigido em praticamente todo edital">base</span>':''}</strong>
       ${d?`<small>${esc(d.rotulo)}${d.validade?` · válido até ${fmt(d.validade)}`:d.data?` · ${fmt(d.data)}`:''}${d.fonte?` · ${esc(d.fonte)}`:''}${d.responsavel?` · ${esc(d.responsavel)}`:''}</small>`
         :'<small>Nenhum arquivo deste tipo no acervo.</small>'}
       <small class="acervo-regra">${esc(regra)}${v.total>1?` · ${v.total} arquivo(s)`:''}</small>
+      ${afetados.length?`<small class="acervo-afeta">⚠ Afeta ${afetados.length} licitação(ões) em andamento: ${afetados.map(n=>esc(n.number)).join(', ')}</small>`:''}
       ${v.chave==='ato_constitutivo'&&d?.socios?.length?`<div class="acervo-socios">
         <strong>Sócios</strong>
         <ul>${d.socios.map(s=>`<li>${esc(s.nome)}${s.path?` <button type="button" class="link" data-document="${esc(s.path)}">Abrir documento</button>`:' <em>sem documento anexado</em>'}</li>`).join('')}</ul>
@@ -356,15 +394,16 @@ function linhaDoAcervo(v,companyId){
     </div>
     <span class="badge ${SIT_CLASSE[v.situacao]}">${SIT_ACERVO[v.situacao]}</span>
     ${painelVincular(v,companyId)}
-    ${v.anteriores.length?`<details class="acervo-versoes">
-      <summary>${v.acumulativo?`Outros ${v.anteriores.length} arquivo(s) deste tipo`:`${v.anteriores.length} versão(ões) anterior(es)`}</summary>
+    <details class="acervo-versoes">
+      <summary>${v.anteriores.length?(v.acumulativo?`Outros ${v.anteriores.length} arquivo(s) deste tipo`:`${v.anteriores.length} versão(ões) anterior(es)`)+' · enviar novo arquivo':v.total?'Enviar um arquivo atualizado':'Enviar o primeiro arquivo'}</summary>
       ${v.anteriores.map(a=>`<div class="acervo-versao">
         <span>${esc(a.rotulo)}${a.arquivado?' <em>(arquivado)</em>':''}<small>${a.validade?`validade ${fmt(a.validade)}`:a.data?fmt(a.data):'sem data'}${a.arquivo&&a.arquivo!==a.rotulo?` · ${esc(a.arquivo)}`:''}${a.responsavel?` · ${esc(a.responsavel)}`:''}</small></span>
         <span>${a.path?`<button class="link" data-document="${esc(a.path)}">Abrir</button>`:''}
         <button class="link" data-editar="${({documentos_empresa:'document',certidoes:'certificate',balancos:'balance'})[a.origem]}" data-editar-id="${a.id}">Editar</button>
         ${v.acumulativo?`<button type="button" class="link" data-arquivar="${a.origem}:${a.id}" data-arquivar-valor="${a.arquivado?'false':'true'}">${a.arquivado?'Reativar':'Arquivar'}</button>`:''}</span>
       </div>`).join('')}
-    </details>`:''}
+      ${formEnvioAcervo(v,companyId)}
+    </details>
   </article>`;
 }
 
@@ -1049,7 +1088,7 @@ function normalizeHeader(value){return String(value||'').normalize('NFD').replac
 function findColumn(headers,patterns){return headers.findIndex(h=>patterns.some(p=>p.test(normalizeHeader(h))))}
 async function importItemsSpreadsheet(){const noticeId=$('#items-notice').value,file=$('#items-file').files[0],button=$('#import-items'),root=$('#items-result');if(!noticeId||!file){toast('Selecione o processo e a planilha.');return}if(!window.XLSX){toast('Leitor de planilhas indisponível.');return}setBusy(button,true,'Importando...');try{const workbook=XLSX.read(await file.arrayBuffer(),{type:'array'}),sheet=workbook.Sheets[workbook.SheetNames[0]],rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false}).filter(row=>row.some(value=>String(value).trim()));if(rows.length<2)throw new Error('A planilha não possui linhas de itens.');const headerIndex=rows.findIndex(row=>row.some(value=>/(item|descri|produto|servi[cç]o|quantidade)/i.test(String(value))));if(headerIndex<0)throw new Error('Não foi possível localizar o cabeçalho da planilha.');const headers=rows[headerIndex],columns={item:findColumn(headers,[/^item$/,/^(n|numero|nro)$/]),descricao:findColumn(headers,[/descri/,/objeto/,/produto/,/servico/]),unidade:findColumn(headers,[/unidade/,/^und$/]),quantidade:findColumn(headers,[/quant/]),valor_unitario:findColumn(headers,[/valorunit/,/precounit/]),valor_total:findColumn(headers,[/valortotal/,/precototal/])},items=rows.slice(headerIndex+1).filter(row=>row.some(value=>String(value).trim())).map((row,index)=>({item:columns.item>=0?row[columns.item]:index+1,descricao:columns.descricao>=0?row[columns.descricao]:row.filter(Boolean).join(' | '),unidade:columns.unidade>=0?row[columns.unidade]:'',quantidade:columns.quantidade>=0?row[columns.quantidade]:'',valor_unitario:columns.valor_unitario>=0?row[columns.valor_unitario]:'',valor_total:columns.valor_total>=0?row[columns.valor_total]:''}));const {error}=await client.from('licitacoes').update({itens:items}).eq('id',noticeId);if(error)throw error;await loadData();root.innerHTML=`<div class="success-box"><strong>${items.length} item(ns) importado(s).</strong> Confira as descrições e quantidades antes de gerar a proposta.</div>`;toast('Planilha vinculada ao processo.')}catch(error){root.innerHTML=`<div class="warning">${esc(friendlyError(error))}</div>`}finally{setBusy(button,false)}}
 function balanceGuidance(){const company=state.companies.find(c=>c.id===$('#balance-company').value),scenario=$('#balance-scenario').value,root=$('#balance-rule');if(!company){toast('Selecione a empresa.');return}const currentYear=new Date().getFullYear(),opened=company.openingDate?new Date(`${company.openingDate}T12:00:00`):null,ageYears=opened?(new Date()-opened)/31557600000:null,size=(company.size||'').toUpperCase(),isSmall=/MICRO|PEQUENO|\bME\b|\bEPP\b/.test(size),special=isSmall&&['pronta_entrega','locacao_materiais'].includes(scenario);let years=[],headline='Conferir os dois últimos exercícios sociais';if(opened&&opened.getFullYear()===currentYear){headline='Empresa constituída no exercício atual';years=[]}else if(ageYears!==null&&ageYears<2){headline='Empresa constituída há menos de dois anos';years=[currentYear-1].filter(y=>!opened||y>=opened.getFullYear())}else years=[currentYear-1,currentYear-2];const checks=years.map(year=>({year,found:state.balances.some(b=>b.companyId===company.id&&Number(b.year)===year)}));root.innerHTML=`<div class="result"><h3>${esc(headline)}</h3>${!company.openingDate?'<div class="warning">Cadastre a data de abertura para uma orientação mais precisa.</div>':''}${opened&&opened.getFullYear()===currentYear?'<p>Providencie balanço de abertura e demonstrações do período, conforme o edital e a forma legal de escrituração.</p>':`<p>Exercício(s) normalmente pertinente(s): <strong>${years.join(' e ')||'verificar balanço de abertura'}</strong>.</p>`}${checks.map(x=>`<div class="check"><span>Balanço do exercício ${x.year}</span><span class="badge ${x.found?'ok':'missing'}">${x.found?'Arquivado':'Pendente'}</span></div>`).join('')}${special?'<div class="warning"><strong>Possível dispensa específica:</strong> para ME/EPP, o Decreto nº 8.538/2015 prevê dispensa no fornecimento de bens para pronta entrega ou locação de materiais, no âmbito de sua aplicação. Confirme o edital e o regulamento do órgão.</div>':''}<p><small>ME, EPP ou MEI não são considerados dispensados automaticamente. Quando o edital exigir qualificação econômico-financeira, mantenha balanço, DRE e demais peças legalmente autenticadas ou transmitidas.</small></p></div>`}
-function openBalanceModal(){const options=state.companies.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');if(!state.companies.length){toast('Cadastre uma empresa primeiro.');return false}$('#modal-title').textContent='Adicionar balanço patrimonial';$('#modal-content').innerHTML=`<div class="form-grid"><label class="full">Empresa<select name="companyId" required><option value="">Selecione</option>${options}</select></label><label>Exercício<input name="year" type="number" min="2000" max="${new Date().getFullYear()}" required value="${new Date().getFullYear()-1}"></label><label>Tipo<select name="documentType"><option>Balanço anual</option><option>Balanço de abertura</option><option>Balanço intermediário</option></select></label><label>Início do período<input name="periodStart" type="date"></label><label>Fim do período<input name="periodEnd" type="date" required></label><label>Data do registro/autenticação<input name="registrationDate" type="date"></label><label>Órgão ou forma de registro<input name="registrationOffice" placeholder="SPED/ECD, Junta Comercial..."></label><label class="full">Arquivo PDF<input name="file" type="file" accept="application/pdf,.pdf" required></label><label class="full">Observações<textarea name="notes" placeholder="Ex.: balanço, DRE, índices e termos de abertura/encerramento"></textarea></label></div>`;const formB=$('#modal-form');formB.dataset.type='balance';delete formB.dataset.modo;delete formB.dataset.registro;$('#modal').showModal();return true}
+function openBalanceModal(prefill={}){const options=state.companies.map(c=>`<option value="${c.id}" ${c.id===prefill.companyId?'selected':''}>${esc(c.name)}</option>`).join('');if(!state.companies.length){toast('Cadastre uma empresa primeiro.');return false}$('#modal-title').textContent='Adicionar balanço patrimonial';$('#modal-content').innerHTML=`<div class="form-grid"><label class="full">Empresa<select name="companyId" required><option value="">Selecione</option>${options}</select></label><label>Exercício<input name="year" type="number" min="2000" max="${new Date().getFullYear()}" required value="${new Date().getFullYear()-1}"></label><label>Tipo<select name="documentType"><option>Balanço anual</option><option>Balanço de abertura</option><option>Balanço intermediário</option></select></label><label>Início do período<input name="periodStart" type="date"></label><label>Fim do período<input name="periodEnd" type="date" required></label><label>Validade<input name="validity" type="date" required></label><small class="full field-message">Até quando o balanço vale depende da forma de apresentação da empresa (regime tributário, se é auditado, exigência do órgão) — preencha você mesmo.</small><label>Data do registro/autenticação<input name="registrationDate" type="date"></label><label>Órgão ou forma de registro<input name="registrationOffice" placeholder="SPED/ECD, Junta Comercial..."></label><label class="full">Arquivo PDF<input name="file" type="file" accept="application/pdf,.pdf" required></label><label class="full">Observações<textarea name="notes" placeholder="Ex.: balanço, DRE, índices e termos de abertura/encerramento"></textarea></label></div>`;const formB=$('#modal-form');formB.dataset.type='balance';delete formB.dataset.modo;delete formB.dataset.registro;$('#modal').showModal();return true}
 async function createProcessPackage(){
   const companyId=$('#package-company').value,notice=state.notices.find(n=>n.id===$('#package-notice').value),button=$('#build-package');
   if(!companyId||!notice){toast('Selecione empresa e edital.');return}
@@ -1335,7 +1374,7 @@ function checklistCompleto(company,notice,documentos){
   return linhas.join('\n');
 }
 
-function openModal(type,prefill={}){if(type==='balance')return openBalanceModal();if(type==='notice')return abrirWizard();const companyOptions=state.companies.map(c=>`<option value="${c.id}" ${c.id===state.profile?.companyId?'selected':''}>${esc(c.name)}</option>`).join(''),forms={company:{title:'Cadastrar empresa',html:`<div class="form-grid"><label class="full">CNPJ<div class="input-action"><input name="cnpj" required inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00"><button id="search-cnpj" class="secondary" type="button">Buscar dados</button></div><small id="cnpj-message" class="field-message">Consulta cadastral pela BrasilAPI. Confira os dados retornados.</small></label><label class="full">Razão social<input name="name" required></label><label>Nome fantasia<input name="trade"></label><label>Município<input name="city"></label><label>UF<input name="state" maxlength="2"></label><label>Data de abertura<input name="openingDate" type="date"></label><label>Porte<input name="size"></label><label class="full">Natureza jurídica<input name="legalNature"></label><label class="full">Linhas de fornecimento<textarea name="activities"></textarea></label></div>`},certificate:{title:'Adicionar certidão',html:`<div class="form-grid"><label class="full">Empresa<select name="companyId" required><option value="">Selecione</option>${companyOptions}</select></label><label>Tipo<select name="type" required>${certificateOptions()}</select></label><label>Órgão emissor<input name="issuer"></label><label>Emissão<input name="issued" type="date"></label><label>Validade<input name="validity" type="date" required></label><label class="full">Nome da pessoa (responsável técnico, representante legal...)<input name="responsavelTecnico" placeholder="Quando a certidão for de alguém específico, não da empresa"></label><label class="full">Arquivo original<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg"></label></div>`},document:{title:'Cadastrar documento',html:`<div class="form-grid"><label class="full">Empresa<select name="companyId" required><option value="">Selecione</option>${companyOptions}</select></label><label class="full">Tipo no catálogo<select name="tipoChave" required>${opcoesCatalogo('',['balanco'])}</select><small class="field-message">É o tipo que decide se pede validade e como entra no acervo. Para balanço, use "Adicionar balanço".</small></label><label>Validade (quando houver)<input name="validity" type="date"></label><label class="full">Nome da pessoa (responsável técnico, representante legal...)<input name="responsavelTecnico" placeholder="Nome do profissional, quando o documento for dele"></label><label class="full">Arquivo<input name="file" type="file" required accept=".pdf,.png,.jpg,.jpeg"></label></div>${sociosSecaoHtml(prefill.tipoChave==='ato_constitutivo')}`}};if(type==='company'&&!isAdmin()){toast('Somente o administrador pode cadastrar empresas.');return false}if((type==='certificate'||type==='document')&&!state.companies.length){toast('Cadastre uma empresa primeiro.');return false}const f=forms[type];$('#modal-title').textContent=f.title;$('#modal-content').innerHTML=f.html;$('#modal').classList.remove('wide');if(prefill.companyId&&$('[name="companyId"]'))$('[name="companyId"]').value=prefill.companyId;if(prefill.tipoChave&&$('[name="tipoChave"]'))$('[name="tipoChave"]').value=prefill.tipoChave;if(type==='document'){sociosPendentes=[];renderSociosSecao()}const form=$('#modal-form');form.dataset.type=type;delete form.dataset.modo;delete form.dataset.registro;$('#modal').showModal();return true}
+function openModal(type,prefill={}){if(type==='balance')return openBalanceModal(prefill);if(type==='notice')return abrirWizard();const companyOptions=state.companies.map(c=>`<option value="${c.id}" ${c.id===state.profile?.companyId?'selected':''}>${esc(c.name)}</option>`).join(''),forms={company:{title:'Cadastrar empresa',html:`<div class="form-grid"><label class="full">CNPJ<div class="input-action"><input name="cnpj" required inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00"><button id="search-cnpj" class="secondary" type="button">Buscar dados</button></div><small id="cnpj-message" class="field-message">Consulta cadastral pela BrasilAPI. Confira os dados retornados.</small></label><label class="full">Razão social<input name="name" required></label><label>Nome fantasia<input name="trade"></label><label>Município<input name="city"></label><label>UF<input name="state" maxlength="2"></label><label>Data de abertura<input name="openingDate" type="date"></label><label>Porte<input name="size"></label><label class="full">Natureza jurídica<input name="legalNature"></label><label class="full">Linhas de fornecimento<textarea name="activities"></textarea></label></div>`},certificate:{title:'Adicionar certidão',html:`<div class="form-grid"><label class="full">Empresa<select name="companyId" required><option value="">Selecione</option>${companyOptions}</select></label><label>Tipo<select name="type" required>${certificateOptions()}</select></label><label>Órgão emissor<input name="issuer"></label><label>Emissão<input name="issued" type="date"></label><label>Validade<input name="validity" type="date" required></label><label class="full">Nome da pessoa (responsável técnico, representante legal...)<input name="responsavelTecnico" placeholder="Quando a certidão for de alguém específico, não da empresa"></label><label class="full">Arquivo original<input name="file" type="file" accept=".pdf,.png,.jpg,.jpeg"></label></div>`},document:{title:'Cadastrar documento',html:`<div class="form-grid"><label class="full">Empresa<select name="companyId" required><option value="">Selecione</option>${companyOptions}</select></label><label class="full">Tipo no catálogo<select name="tipoChave" required>${opcoesCatalogo('',['balanco'])}</select><small class="field-message">É o tipo que decide se pede validade e como entra no acervo. Para balanço, use "Adicionar balanço".</small></label><label>Validade (quando houver)<input name="validity" type="date"></label><label class="full">Nome da pessoa (responsável técnico, representante legal...)<input name="responsavelTecnico" placeholder="Nome do profissional, quando o documento for dele"></label><label class="full">Arquivo<input name="file" type="file" required accept=".pdf,.png,.jpg,.jpeg"></label></div>${sociosSecaoHtml(prefill.tipoChave==='ato_constitutivo')}`}};if(type==='company'&&!isAdmin()){toast('Somente o administrador pode cadastrar empresas.');return false}if((type==='certificate'||type==='document')&&!state.companies.length){toast('Cadastre uma empresa primeiro.');return false}const f=forms[type];$('#modal-title').textContent=f.title;$('#modal-content').innerHTML=f.html;$('#modal').classList.remove('wide');if(prefill.companyId&&$('[name="companyId"]'))$('[name="companyId"]').value=prefill.companyId;if(prefill.tipoChave&&$('[name="tipoChave"]'))$('[name="tipoChave"]').value=prefill.tipoChave;if(type==='document'){sociosPendentes=[];renderSociosSecao()}const form=$('#modal-form');form.dataset.type=type;delete form.dataset.modo;delete form.dataset.registro;$('#modal').showModal();return true}
 /* ---------------------------------------------------------------------------
    Edição do que já está cadastrado.
 
@@ -1484,6 +1523,7 @@ function openEditModal(entidade,id){
       <label>Tipo<select name="documentType">${['Balanço anual','Balanço de abertura','Balanço intermediário'].map(t=>`<option${t===r.documentType?' selected':''}>${t}</option>`).join('')}</select></label>
       <label>Início do período<input name="periodStart" type="date" value="${esc(r.periodStart||'')}"></label>
       <label>Fim do período<input name="periodEnd" type="date" value="${esc(r.periodEnd||'')}" required></label>
+      <label>Validade<input name="validity" type="date" value="${esc(r.validity||'')}" required></label>
       <label>Data do registro<input name="registrationDate" type="date" value="${esc(r.registrationDate||'')}"></label>
       <label>Órgão de registro<input name="registrationOffice" value="${esc(r.registrationOffice||'')}"></label>
       ${troca}</div>`}
@@ -1532,7 +1572,7 @@ async function salvarEdicao(entidade,id,data,file){
     document:{tipo:data.type,categoria:data.category,data_documento:data.documentDate||null,
       validade:data.validity||null,tipo_chave:data.tipoChave||null,responsavel_tecnico:data.responsavelTecnico||null},
     balance:{exercicio:Number(data.year),tipo_documento:data.documentType,
-      periodo_inicio:data.periodStart||null,periodo_fim:data.periodEnd,
+      periodo_inicio:data.periodStart||null,periodo_fim:data.periodEnd,validade:data.validity,
       data_registro:data.registrationDate||null,orgao_registro:data.registrationOffice||null}
   };
   const payload={...payloads[entidade]};
@@ -1571,7 +1611,7 @@ $('#modal-form').addEventListener('submit',async e=>{
     }
     if(type==='company'){const {error}=await client.from('empresas').insert({razao_social:data.name,nome_fantasia:data.trade||null,cnpj:data.cnpj,municipio:data.city||null,uf:data.state?.toUpperCase()||null,data_abertura:data.openingDate||null,natureza_juridica:data.legalNature||null,porte:data.size||null,atividades:data.activities||null});if(error)throw error}
     if(type==='certificate'){const folder=`certidoes/${safeFolder(data.type)}/${(data.issued||data.validity).slice(0,4)}`,path=await uploadDocument(file,data.companyId,folder),{error}=await client.from('certidoes').insert({empresa_id:data.companyId,tipo:data.type,orgao_emissor:data.issuer||null,emissao:data.issued||null,validade:data.validity,responsavel_tecnico:data.responsavelTecnico||null,link_emissao:issuerLinks[data.type]||null,arquivo_path:path,criado_por:state.user.id});if(error)throw error}
-    if(type==='balance'){const path=await uploadDocument(file,data.companyId,`balancos/${data.year}`),{error}=await client.from('balancos').insert({empresa_id:data.companyId,exercicio:Number(data.year),tipo_documento:data.documentType,periodo_inicio:data.periodStart||null,periodo_fim:data.periodEnd,data_registro:data.registrationDate||null,orgao_registro:data.registrationOffice||null,arquivo_path:path,observacoes:data.notes||null,criado_por:state.user.id});if(error)throw error}
+    if(type==='balance'){const path=await uploadDocument(file,data.companyId,`balancos/${data.year}`),{error}=await client.from('balancos').insert({empresa_id:data.companyId,exercicio:Number(data.year),tipo_documento:data.documentType,periodo_inicio:data.periodStart||null,periodo_fim:data.periodEnd,validade:data.validity,data_registro:data.registrationDate||null,orgao_registro:data.registrationOffice||null,arquivo_path:path,observacoes:data.notes||null,criado_por:state.user.id});if(error)throw error}
     if(type==='document'){
       const documentoId=await cadastrarDocumento(data,file);
       if(documentoId&&data.tipoChave==='ato_constitutivo'&&sociosPendentes.length)
@@ -1670,12 +1710,32 @@ $('#archive-list').addEventListener('click',e=>{
   const confirmar=e.target.closest('[data-vincular-confirmar]');
   if(confirmar){confirmarVinculo(confirmar.dataset.vincularConfirmar);return}
   const arquivar=e.target.closest('[data-arquivar]');
-  if(arquivar)alternarArquivado(arquivar.dataset.arquivar,arquivar.dataset.arquivarValor==='true');
+  if(arquivar){alternarArquivado(arquivar.dataset.arquivar,arquivar.dataset.arquivarValor==='true');return}
+  const balanco=e.target.closest('[data-abrir-balanco]');
+  if(balanco)openModal('balance',{companyId:balanco.dataset.abrirBalanco});
 });
 $('#archive-list').addEventListener('change',e=>{
   if(!e.target.matches('[data-vincular-select]'))return;
   vincularSelecionado=e.target.value||null;
   renderArchive();
+});
+$('#archive-list').addEventListener('submit',async e=>{
+  const form=e.target.closest('.acervo-upload-inline');
+  if(!form)return;
+  e.preventDefault();
+  const file=form.querySelector('[name="file"]').files[0];
+  if(!file){toast('Selecione um arquivo.');return}
+  const data={tipoChave:form.dataset.uploadTipo,companyId:form.dataset.uploadEmpresa,
+    validity:form.querySelector('[name="validity"]')?.value||'',
+    responsavelTecnico:form.querySelector('[name="responsavelTecnico"]')?.value.trim()||''};
+  const button=form.querySelector('button[type="submit"]');
+  setBusy(button,true,'Enviando...');
+  try{
+    await cadastrarDocumento(data,file);
+    await loadData();
+    toast('Arquivo enviado.');
+  }catch(error){toast(friendlyError(error))}
+  finally{setBusy(button,false)}
 });
 $('#revisao-lote-empresa').addEventListener('change',renderRevisaoLote);
 $('#revisao-lote-mostrar').addEventListener('change',renderRevisaoLote);

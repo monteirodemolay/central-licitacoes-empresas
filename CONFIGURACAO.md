@@ -17,9 +17,11 @@ atualização, na ordem, sem apagar os dados existentes:
    campos de análise do edital, pacotes vinculados aos processos e, agora, a
    Central por Empresa e a lixeira de 30 dias;
 2. `supabase/atualizacao_wizard_licitacoes.sql` — taxonomia da Lei 14.133/2021,
-   checklist por processo, agenda de interesse e a tabela de parâmetros legais.
+   checklist por processo, agenda de interesse e a tabela de parâmetros legais;
+3. `supabase/atualizacao_validade_balanco.sql` — adiciona a validade do balanço,
+   preenchida por quem cadastra (depende da forma de apresentação da empresa).
 
-Os dois são idempotentes e podem ser executados novamente com segurança para
+Todos são idempotentes e podem ser executados novamente com segurança para
 ativar atualizações posteriores. Sem o segundo arquivo, o assistente de
 habilitação e a agenda avisam na tela que a migração ainda não foi aplicada.
 

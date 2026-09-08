@@ -102,7 +102,7 @@ const catalogoDocumentos=[
   {chave:'cnd_municipal',nome:'Regularidade com a Fazenda Municipal',bloco:'fiscal_trabalhista',vigencia:'validade',base:true,certidao:'Municipal',atende:['cnd_municipal']},
   {chave:'sicaf',nome:'Registro no SICAF',bloco:'fiscal_trabalhista',vigencia:'validade',certidao:'SICAF',atende:[]},
 
-  {chave:'balanco',nome:'Balanço patrimonial e demonstrações contábeis',bloco:'economico_financeira',vigencia:'substituivel',atende:['balanco'],
+  {chave:'balanco',nome:'Balanço patrimonial e demonstrações contábeis',bloco:'economico_financeira',vigencia:'validade',atende:['balanco'],
    detecta:/balan[cç]o|balancete|demonstra[cç][aã]o.*cont[aá]bil|\bdre\b|\becd\b|sped.*cont[aá]bil/i},
   {chave:'cnd_falencia',nome:'Certidão de falência e recuperação judicial',bloco:'economico_financeira',vigencia:'validade',certidao:'Falência e recuperação',atende:['cnd_falencia']},
   {chave:'certidao_junta',nome:'Certidão simplificada da Junta Comercial',bloco:'economico_financeira',vigencia:'validade',certidao:'Certidão simplificada da Junta Comercial',atende:[]},
@@ -201,11 +201,14 @@ function exigeComposicaoCustos(tipoObjeto){
    uma entrada por tipo com o vigente separado das versões anteriores. É o que
    permite responder "qual é o contrato social atual?" sem abrir dez arquivos.
 --------------------------------------------------------------------------- */
-const DIAS_VENCE_LOGO=30;
+const DIAS_VENCE_LOGO=5;
+const DIAS_VENCE_URGENTE=3;
 function situacaoDoDocumento(doc,hoje){
   if(!doc.validade)return'sem_validade';
   if(doc.validade<hoje)return'vencido';
-  return diasEntre(hoje,doc.validade)<=DIAS_VENCE_LOGO?'vence_logo':'vigente';
+  const dias=diasEntre(hoje,doc.validade);
+  if(dias<=DIAS_VENCE_URGENTE)return'vence_urgente';
+  return dias<=DIAS_VENCE_LOGO?'vence_logo':'vigente';
 }
 function acervoVigente(documentos,dataAlvo){
   const hoje=dataAlvo||hojeIso();
@@ -261,20 +264,22 @@ function prontidaoDaEmpresa(documentos,dataAlvo){
   const hoje=dataAlvo||hojeIso();
   const vigencias=acervoVigente(documentos,hoje);
   const porChave=new Map(vigencias.map(v=>[v.chave,v]));
-  const faltando=[],vencidos=[],vencendo=[],emDia=[];
+  const faltando=[],vencidos=[],vencendo=[],vencendoUrgente=[],emDia=[];
   tiposBase().forEach(tipo=>{
     const v=porChave.get(tipo.chave);
     if(!v||!v.vigente){faltando.push(tipo);return}
     if(v.situacao==='vencido')vencidos.push({tipo,doc:v.vigente});
+    else if(v.situacao==='vence_urgente')vencendoUrgente.push({tipo,doc:v.vigente});
     else if(v.situacao==='vence_logo')vencendo.push({tipo,doc:v.vigente});
     else emDia.push({tipo,doc:v.vigente});
   });
   const base=tiposBase().length;
   const bloqueios=faltando.length+vencidos.length;
-  const status=bloqueios?'nao_apto':vencendo.length?'apto_com_ressalva':'apto';
-  return {status,faltando,vencidos,vencendo,emDia,base,
-    prontos:emDia.length+vencendo.length,
-    percentual:base?Math.round((emDia.length+vencendo.length)/base*100):0};
+  const ressalva=vencendo.length+vencendoUrgente.length;
+  const status=bloqueios?'nao_apto':ressalva?'apto_com_ressalva':'apto';
+  return {status,faltando,vencidos,vencendo,vencendoUrgente,emDia,base,
+    prontos:emDia.length+ressalva,
+    percentual:base?Math.round((emDia.length+ressalva)/base*100):0};
 }
 const ROTULO_PRONTIDAO={apto:'Apto a disputar',apto_com_ressalva:'Apto, com documento vencendo',nao_apto:'Não apto hoje'};
 
@@ -623,7 +628,7 @@ global.Regras={
   modalidades,formasDiretas,tiposObjeto,criterios,modosDisputa,regimesExecucao,
   procedimentosAuxiliares,meEpp,blocos,
   calcularMatrizDocumentos,criticarProcesso,contar,
-  acervoVigente,prontidaoDaEmpresa,situacaoDoDocumento,ROTULO_PRONTIDAO,DIAS_VENCE_LOGO,
+  acervoVigente,prontidaoDaEmpresa,situacaoDoDocumento,ROTULO_PRONTIDAO,DIAS_VENCE_LOGO,DIAS_VENCE_URGENTE,
   exigeEconomicoFinanceiro,exigeTecnica,exigeComposicaoCustos,engenharia,
   definirParametros,parametro,parametrosPadrao,
   rotulo,rotuloTipo,moeda,numero,diasEntre,hojeIso,br,
