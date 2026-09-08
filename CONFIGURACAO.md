@@ -49,26 +49,71 @@ Em **Authentication → URL Configuration**:
 
 Em **Authentication → Providers → Email**, mantenha e-mail e senha habilitados. A confirmação de e-mail pode permanecer ativa.
 
-## 3. Criar o primeiro acesso
+## 3. Liberar a criação de acesso pela própria página
 
-O cadastro público foi desativado — contas só são criadas por um administrador, direto no painel do Supabase:
+O cadastro público foi desativado. Em vez dele, a tela **Central do usuário**
+(visível só para quem é `admin_geral`) tem um formulário que cria a conta
+direto pelo sistema — sem precisar abrir o painel do Supabase toda vez. Isso
+funciona através de um endpoint do próprio Worker (`/api/admin/create-user`,
+em `worker.js`), que usa a **service role key** do Supabase para criar o
+usuário e confirma antes que quem está chamando é mesmo um `admin_geral`
+autenticado.
+
+Para habilitar:
+
+1. No painel do Supabase, vá em **Project Settings → API** e copie a chave
+   **service_role** (nunca a `anon`/publishable — essa é a que já está em
+   `public/config.js`).
+2. No terminal, na raiz do projeto, rode:
+   ```
+   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+   ```
+   e cole a chave quando solicitado. (Alternativa: **Workers & Pages → seu
+   projeto → Settings → Variables and Secrets**, adicionar como *Secret*.)
+3. `SUPABASE_URL` já vem definida em `wrangler.jsonc` (`vars`); não precisa
+   de segredo, é a mesma URL pública do projeto.
+
+Essa chave nunca deve ir para o repositório nem para `public/config.js` — ela
+dá acesso total ao banco, ignorando RLS. Sem ela configurada, o formulário de
+criação de acesso mostra um erro e a criação volta a ser feita manualmente
+pelo painel do Supabase (passo 4 abaixo).
+
+## 4. Criar o primeiro acesso
+
+O formulário da Central do usuário só aparece para quem já está logado como
+`admin_geral` — então a primeiríssima conta precisa nascer no painel do
+Supabase:
 
 1. No painel do Supabase, vá em **Authentication → Users → Add user**.
 2. Informe e-mail e senha e marque **Auto Confirm User**.
 3. Acesse o endereço publicado do LiciDoc e entre com esse e-mail/senha.
 
-A primeira conta criada recebe automaticamente o perfil `admin_geral`. Faça isso antes de divulgar a URL. Para os acessos seguintes, repita o passo 1 e 2 no Supabase — o novo usuário aparecerá em **Acessos** dentro do sistema, aguardando liberação, para o administrador geral vincular à empresa correta.
+A primeira conta criada recebe automaticamente o perfil `admin_geral`. Faça
+isso antes de divulgar a URL.
 
-## 4. Autorizar um proprietário
+## 5. Criar e autorizar os acessos seguintes
 
-1. O proprietário cria o acesso na mesma tela.
-2. O acesso fica como `pendente` e não visualiza dados.
-3. Cadastre a empresa no sistema.
-4. Abra **Acessos**, selecione a empresa correta e clique em **Autorizar**.
+Com o passo 3 configurado, o próprio `admin_geral` cria as contas seguintes
+sem sair do sistema:
 
-O proprietário passa a acessar somente a empresa vinculada.
+1. Abra **Central do usuário**.
+2. Preencha nome, e-mail e uma senha temporária no card "Criar novo acesso" —
+   se já souber o papel da pessoa (Proprietário + empresa, ou Administrador
+   geral), escolha ali mesmo; senão deixe "Aguardando liberação".
+3. Compartilhe a senha temporária com a pessoa por um canal seguro; ela pode
+   trocá-la depois em "Esqueci minha senha", na tela de login.
+4. Para uma conta que ficou "Aguardando liberação" (criada assim ou via
+   Supabase), volte à lista abaixo do formulário, escolha o papel e a
+   empresa e clique em **Salvar**.
+5. Para tirar o acesso de alguém, clique em **Revogar acesso** na linha da
+   pessoa — ela volta para "Aguardando liberação" e perde o acesso aos dados
+   na hora.
 
-## 5. Publicar pelo Cloudflare Pages
+Sem o segredo do passo 3, pule a criação pelo formulário e cadastre a conta
+direto no Supabase (passo 4) — o resto do fluxo (autorizar, revogar) continua
+igual.
+
+## 6. Publicar pelo Cloudflare Pages
 
 1. Abra **Workers & Pages** no Cloudflare.
 2. Selecione **Create application → Pages → Connect to Git**.
@@ -83,4 +128,4 @@ O arquivo `wrangler.jsonc` já define a pasta `public`, o comportamento de aplic
 
 ## Segurança
 
-A chave presente em `public/config.js` é a chave publicável do navegador e trabalha em conjunto com RLS. Nunca coloque no repositório a chave `sb_secret`, `service_role`, senha do banco ou token pessoal.
+A chave presente em `public/config.js` é a chave publicável do navegador e trabalha em conjunto com RLS. Nunca coloque no repositório a chave `sb_secret`, `service_role`, senha do banco ou token pessoal. A `service_role` usada pela criação de acesso (passo 3) só existe como *secret* do Worker — não fica em nenhum arquivo do projeto, não é enviada ao navegador, e o endpoint que a usa (`/api/admin/create-user`) confere a sessão de quem chama e recusa qualquer um que não seja `admin_geral`.

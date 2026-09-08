@@ -991,7 +991,7 @@ function renderNoticeDetail(){
 }
 function renderTrash(){const labels={company:'Empresa',certificate:'Certidão',document:'Documento',balance:'Balanço',notice:'Edital',package:'Pacote'},now=Date.now();$('#trash-list').innerHTML=state.trash.length?state.trash.sort((a,b)=>(b.deletedAt||'').localeCompare(a.deletedAt||'')).map(item=>{const elapsed=Math.floor((now-new Date(item.deletedAt).getTime())/86400000),remaining=Math.max(0,30-elapsed),owner=item.entity==='company'?item.title:(state.companies.find(c=>c.id===item.companyId)?.name||state.trash.find(x=>x.entity==='company'&&x.id===item.companyId)?.title||'Empresa não localizada');return`<article class="card trash-card"><div><span class="badge missing">${labels[item.entity]}</span><h3>${esc(item.title)}</h3><p>${esc(item.subtitle||'')} · ${esc(owner)}</p><small>Excluído em ${fmt(item.deletedAt?.slice(0,10))} · ${remaining} dia(s) até a limpeza automática</small></div><div class="trash-actions"><button class="secondary" data-restore-entity="${item.entity}" data-restore-id="${item.id}">Restaurar</button><button class="secondary danger" data-delete-entity="${item.entity}" data-delete-id="${item.id}">Apagar agora</button></div></article>`}).join(''):'<div class="empty">A lixeira está vazia.</div>'}
 function keepSelectValue(selector,placeholder,options){const element=$(selector);if(!element)return;const previous=element.value;element.innerHTML=`<option value="">${placeholder}</option>`+options;if([...element.options].some(option=>option.value===previous))element.value=previous}
-function renderSelects(){const opts=state.companies.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join(''),noticeOptions=state.notices.map(n=>`<option value="${n.id}">${esc(n.number)} — ${esc(n.agency)}</option>`).join('');keepSelectValue('#package-company','Selecione',opts);keepSelectValue('#batch-company','Selecione',opts);keepSelectValue('#archive-company','Selecione',opts);keepSelectValue('#archive-view-company','Selecione a empresa',opts);keepSelectValue('#balance-company','Selecione',opts);keepSelectValue('#dashboard-company','Todas as empresas',opts);keepSelectValue('#review-company','Selecione a empresa',opts);keepSelectValue('#package-notice','Selecione',noticeOptions);keepSelectValue('#items-notice','Selecione',noticeOptions)}
+function renderSelects(){const opts=state.companies.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join(''),noticeOptions=state.notices.map(n=>`<option value="${n.id}">${esc(n.number)} — ${esc(n.agency)}</option>`).join('');keepSelectValue('#package-company','Selecione',opts);keepSelectValue('#batch-company','Selecione',opts);keepSelectValue('#archive-company','Selecione',opts);keepSelectValue('#archive-view-company','Selecione a empresa',opts);keepSelectValue('#balance-company','Selecione',opts);keepSelectValue('#dashboard-company','Todas as empresas',opts);keepSelectValue('#review-company','Selecione a empresa',opts);keepSelectValue('#package-notice','Selecione',noticeOptions);keepSelectValue('#items-notice','Selecione',noticeOptions);keepSelectValue('#new-access-company','Selecione',opts)}
 /* O proprietário da empresa é o cliente final: vê status e cadastra
    documento avulso, mas as ferramentas de arrumação em massa do acervo
    (importação em lote, reclassificação, balanço) são coisa de back-office. */
@@ -1647,6 +1647,29 @@ $('#access-list').addEventListener('click',async e=>{
     if(error)toast(friendlyError(error));else{await loadData();toast('Acesso revogado.')}
     setBusy(revoke,false);
   }
+});
+$('#new-access-role').addEventListener('change',()=>{$('#new-access-company-wrap').hidden=$('#new-access-role').value!=='proprietario_empresa'});
+$('#new-access-form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const message=$('#new-access-message'),nome=$('#new-access-name').value.trim(),email=$('#new-access-email').value.trim(),password=$('#new-access-password').value,role=$('#new-access-role').value,companyId=$('#new-access-company').value,button=$('#new-access-submit');
+  message.textContent='';
+  if(!nome||!email||password.length<6){message.textContent='Informe nome, e-mail e senha com pelo menos 6 caracteres.';message.style.color='var(--red)';return}
+  if(role==='proprietario_empresa'&&!companyId){message.textContent='Selecione a empresa do proprietário.';message.style.color='var(--red)';return}
+  setBusy(button,true,'Criando...');
+  try{
+    const {data:{session}}=await client.auth.getSession();
+    const response=await fetch('/api/admin/create-user',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({nome,email,password})});
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Não foi possível criar o usuário.');
+    if(role!=='pendente'){
+      const {error}=await client.from('perfis').update({perfil:role,empresa_id:role==='proprietario_empresa'?companyId:null}).eq('id',data.id);
+      if(error)throw error;
+    }
+    $('#new-access-form').reset();$('#new-access-company-wrap').hidden=true;
+    await loadData();
+    message.textContent='';toast('Acesso criado com sucesso.');
+  }catch(error){message.textContent=friendlyError(error);message.style.color='var(--red)'}
+  finally{setBusy(button,false)}
 });
 document.body.addEventListener('click',async e=>{const path=e.target.closest('[data-document]')?.dataset.document;if(path){const {data,error}=await client.storage.from('documentos').createSignedUrl(path,120);if(error)toast(friendlyError(error));else window.open(data.signedUrl,'_blank','noopener')}const ed=e.target.closest('[data-editar]');if(ed){openEditModal(ed.dataset.editar,ed.dataset.editarId);return}const o=e.target.closest('[data-open]'),g=e.target.closest('[data-go]'),w=e.target.closest('[data-wizard]'),review=e.target.closest('[data-review-company]'),notice=e.target.closest('[data-notice-detail]'),trash=e.target.closest('[data-trash-entity]'),restore=e.target.closest('[data-restore-entity]'),remove=e.target.closest('[data-delete-entity]');if(o)openModal(o.dataset.open);if(g)navigate(g.dataset.go);if(w)abrirWizard(w.dataset.wizard);if(review){$('#review-company').value=review.dataset.reviewCompany;renderCompanyReview();navigate('review')}if(notice){state.selectedNoticeId=notice.dataset.noticeDetail;renderNoticeDetail();navigate('notice-detail')}if(trash)await moveToTrash(trash.dataset.trashEntity,trash.dataset.trashId);if(restore)await restoreFromTrash(restore.dataset.restoreEntity,restore.dataset.restoreId);if(remove)await permanentDelete(remove.dataset.deleteEntity,remove.dataset.deleteId)});
 $('#modal-content').addEventListener('click',e=>{

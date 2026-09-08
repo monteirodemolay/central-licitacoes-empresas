@@ -176,7 +176,24 @@
     </section>
 
     <section id="access" class="view">
-      <article class="card"><div class="card-head"><div><h2>Central do usuário</h2><p>Conceda ou retire o papel e a empresa de cada pessoa. Você não pode alterar seu próprio acesso por aqui.</p></div></div><p class="field-message">O cadastro público foi desativado. Para criar um novo acesso: no painel do Supabase, vá em <strong>Authentication → Users → Add user</strong>, informe e-mail e senha e marque "Auto Confirm User". O usuário aparecerá abaixo, aguardando liberação, para você conceder o papel e a empresa.</p><div id="access-list"></div></article>
+      <article class="card">
+        <div class="card-head"><div><h2>Criar novo acesso</h2><p>Cria a conta e, se quiser, já define o papel e a empresa dela.</p></div></div>
+        <form id="new-access-form" class="form-row">
+          <label>Nome completo<input id="new-access-name" required></label>
+          <label>E-mail<input id="new-access-email" type="email" required></label>
+          <label>Senha temporária<input id="new-access-password" type="password" minlength="6" required placeholder="Mínimo 6 caracteres"></label>
+          <label>Papel<select id="new-access-role">
+            <option value="pendente">Aguardando liberação</option>
+            <option value="proprietario_empresa">Proprietário</option>
+            <option value="admin_geral">Administrador geral</option>
+          </select></label>
+          <label id="new-access-company-wrap" hidden>Empresa<select id="new-access-company"><option value="">Selecione</option></select></label>
+          <div id="new-access-message" class="full"></div>
+          <button id="new-access-submit" class="primary full" type="submit">Criar acesso</button>
+        </form>
+        <p class="field-message">Combine a senha temporária com a pessoa por um canal seguro (não fica salva em lugar nenhum). Ela pode trocá-la depois em "Esqueci minha senha", na tela de login.</p>
+      </article>
+      <article class="card"><div class="card-head"><div><h2>Central do usuário</h2><p>Conceda ou retire o papel e a empresa de cada pessoa. Você não pode alterar seu próprio acesso por aqui.</p></div></div><div id="access-list"></div></article>
     </section>
 
     <section id="trash" class="view">
