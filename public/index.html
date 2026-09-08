@@ -286,6 +286,36 @@
     </div>
   </dialog>
 
+  <dialog id="composicao-dialog" class="wizard composicao-dialog">
+    <div class="wz-head">
+      <div>
+        <p class="eyebrow">PROPOSTA · COMPOSIÇÃO DE CUSTOS</p>
+        <h2>Anexo de composição de custos</h2>
+      </div>
+      <button id="composicao-fechar" class="icon" type="button" title="Fechar">×</button>
+    </div>
+    <div class="wz-body composicao-corpo">
+      <div class="form-grid composicao-base">
+        <label>Valor mensal do contrato (R$)<input id="composicao-valor-mensal" inputmode="decimal" placeholder="0,00"></label>
+        <label>Quantidade de meses<input id="composicao-meses" type="number" min="1" placeholder="12"></label>
+        <label>Valor global do contrato<output id="composicao-valor-global">R$ 0,00</output></label>
+      </div>
+      <div class="composicao-total-barra">
+        <div class="ag-barra"><div id="composicao-total-fill" class="composicao-fill" style="width:0%"></div></div>
+        <span id="composicao-total-badge" class="badge pendente">0,00% preenchido</span>
+      </div>
+      <div id="composicao-tabela" class="composicao-tabela"></div>
+      <div class="record-actions"><button type="button" id="composicao-add-item" class="secondary">+ Adicionar item</button></div>
+    </div>
+    <div class="wz-foot">
+      <div id="composicao-rodape">Preencha o % ou o R$ de cada item — o outro campo e o total são calculados automaticamente, até fechar 100%.</div>
+      <div class="wz-foot-acoes">
+        <button type="button" id="composicao-baixar-planilha" class="secondary">Baixar planilha (.xlsx)</button>
+        <button type="button" id="composicao-salvar" class="primary">Salvar</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="modal"><form method="dialog" id="modal-form"><div class="modal-head"><h2 id="modal-title"></h2><button value="cancel" formnovalidate class="icon">×</button></div><div id="modal-content"></div><div class="modal-actions"><button value="cancel" formnovalidate class="secondary">Cancelar</button><button id="save-modal" value="default" class="primary">Salvar</button></div></form></dialog>
   <div id="toast" role="status"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

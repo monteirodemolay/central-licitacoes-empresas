@@ -201,6 +201,16 @@ alter table public.licitacoes drop constraint if exists licitacoes_resultado_che
 alter table public.licitacoes add constraint licitacoes_resultado_check
   check (resultado in ('em_andamento','vencemos','perdemos','desclassificados','revogado','anulado'));
 
+-- 5h. Proposta e composição de custos ------------------------------------------
+-- Anexo de composição de custos (formação de preços) e dados complementares da
+-- proposta. `composicao_custos` guarda {valorMensal, meses, itens:[{grupo,item,
+-- modo,percentual,valor}]} — um JSON só, porque a lista de itens é reutilizável
+-- e não precisa de tabela própria com RLS separada.
+
+alter table public.licitacoes add column if not exists composicao_custos jsonb;
+alter table public.licitacoes add column if not exists proposta_validade_dias integer;
+alter table public.licitacoes add column if not exists proposta_condicoes text;
+
 -- 6. RLS ----------------------------------------------------------------------
 
 alter table public.licitacao_checklist_itens enable row level security;

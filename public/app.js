@@ -61,7 +61,7 @@ async function loadData(){
   state.companies=(results[0].data||[]).map(x=>({id:x.id,name:x.razao_social,trade:x.nome_fantasia,cnpj:x.cnpj,city:x.municipio,state:x.uf,activities:x.atividades,openingDate:x.data_abertura,legalNature:x.natureza_juridica,size:x.porte}));
   state.certificates=(results[1].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,type:x.tipo,tipoChave:x.tipo_chave,issuer:x.orgao_emissor,issued:x.emissao,validity:x.validade,link:x.link_emissao,filePath:x.arquivo_path,responsavelTecnico:x.responsavel_tecnico,arquivado:!!x.arquivado}));
   state.balances=(results[2].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,year:x.exercicio,tipoChave:x.tipo_chave,documentType:x.tipo_documento,periodStart:x.periodo_inicio,periodEnd:x.periodo_fim,registrationDate:x.data_registro,registrationOffice:x.orgao_registro,filePath:x.arquivo_path,notes:x.observacoes}));
-  state.notices=(results[3].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,number:x.numero,agency:x.orgao,object:x.objeto,opening:x.abertura,horaSessao:x.hora_sessao,modality:x.modalidade,linkPortal:x.link_portal,requirements:x.requisitos||[],proposalRequirements:x.requisitos_proposta||[],declarations:x.declaracoes||[],items:x.itens||[],filePath:x.edital_path,extractedText:x.texto_extraido,temCertame:x.tem_certame!==false,modalidadePadrao:x.modalidade_padrao,formaDireta:x.forma_contratacao_direta,fundamentoLegal:x.fundamento_legal,tipoObjeto:x.tipo_objeto,criterio:x.criterio_julgamento,modoDisputa:x.modo_disputa,regime:x.regime_execucao,meEpp:x.exclusividade_me_epp||'nao',valorEstimado:x.valor_estimado,procedimentoAuxiliar:x.procedimento_auxiliar,statusProcesso:x.status_processo||'rascunho',interesse:x.interesse||'em_analise',prioridade:x.prioridade||'media',responsavel:x.responsavel,anotacoes:x.anotacoes,decidirAte:x.decidir_ate,resultado:x.resultado||'em_andamento',valorContratado:x.valor_contratado,dataResultado:x.data_resultado,observacaoResultado:x.observacao_resultado}));
+  state.notices=(results[3].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,number:x.numero,agency:x.orgao,object:x.objeto,opening:x.abertura,horaSessao:x.hora_sessao,modality:x.modalidade,linkPortal:x.link_portal,requirements:x.requisitos||[],proposalRequirements:x.requisitos_proposta||[],declarations:x.declaracoes||[],items:x.itens||[],filePath:x.edital_path,extractedText:x.texto_extraido,temCertame:x.tem_certame!==false,modalidadePadrao:x.modalidade_padrao,formaDireta:x.forma_contratacao_direta,fundamentoLegal:x.fundamento_legal,tipoObjeto:x.tipo_objeto,criterio:x.criterio_julgamento,modoDisputa:x.modo_disputa,regime:x.regime_execucao,meEpp:x.exclusividade_me_epp||'nao',valorEstimado:x.valor_estimado,procedimentoAuxiliar:x.procedimento_auxiliar,statusProcesso:x.status_processo||'rascunho',interesse:x.interesse||'em_analise',prioridade:x.prioridade||'media',responsavel:x.responsavel,anotacoes:x.anotacoes,decidirAte:x.decidir_ate,resultado:x.resultado||'em_andamento',valorContratado:x.valor_contratado,dataResultado:x.data_resultado,observacaoResultado:x.observacao_resultado,composicaoCustos:x.composicao_custos||null,propostaValidadeDias:x.proposta_validade_dias,propostaCondicoes:x.proposta_condicoes}));
   state.packages=(results[4].data||[]).map(x=>({id:x.id,companyId:x.empresa_id,noticeId:x.licitacao_id,name:x.nome,status:x.status,documents:x.documentos||[],proposal:x.proposta||{},declarations:x.declaracoes||[],items:x.itens||[],createdAt:x.criado_em}));
   state.documents=(results[5]?.data||[]).map(x=>({id:x.id,companyId:x.empresa_id,category:x.categoria,type:x.tipo,tipoChave:x.tipo_chave,name:x.nome_original,filePath:x.arquivo_path,source:x.origem,sourceFolder:x.pasta_origem,documentDate:x.data_documento,validity:x.validade,hash:x.sha256,metadata:x.metadados||{},createdAt:x.criado_em,responsavelTecnico:x.responsavel_tecnico,arquivado:!!x.arquivado,socios:x.socios||[]}));
   const activeCompanyIds=new Set(state.companies.map(company=>company.id));
@@ -627,6 +627,7 @@ function renderPackages(){$('#saved-packages').innerHTML=state.packages.length?s
    avulso direto na linha, sem precisar abrir o assistente inteiro pra isso. */
 const ROTULO_CHECKLIST=Regras.rotuloChecklist;
 let itemUploadAberto=null; // id do item do checklist com o painel de envio aberto, na tela do edital
+let composicaoAtual=null; // {noticeId,valorMensal,meses,itens:[...]} em edição no diálogo de composição de custos
 // Mesma lógica do assistente (wizard.js): itens cujo tipo do catálogo é
 // "acumulativo" (representante legal, responsável técnico, atestados...)
 // aceitam mais de um documento vinculado ao mesmo tempo. Vive em Regras para
@@ -707,6 +708,176 @@ async function salvarUploadItem(itemId){
   finally{setBusy(botao,false)}
 }
 
+/* Proposta e composição de custos: dados complementares da proposta (validade,
+   condições) e o anexo de formação de preços, calculado a partir do valor
+   mensal do contrato — ver abrirComposicaoCustos e composicaoCustosXlsx. */
+function temComposicaoPreenchida(composicaoCustos){
+  return (composicaoCustos?.itens||[]).some(it=>Regras.numero(it.percentual)||Regras.numero(it.valor));
+}
+function propostaDoEdital(n){
+  const temItens=temComposicaoPreenchida(n.composicaoCustos);
+  const calc=window.Regras&&temItens?Regras.calcularComposicaoCustos(n.composicaoCustos):null;
+  const status=!calc?{texto:'Composição não iniciada',classe:'nao_aplicavel'}
+    :calc.completo?{texto:'Composição em 100%',classe:'ok'}
+    :{texto:`Composição em ${calc.totalPercentual.toLocaleString('pt-BR',{maximumFractionDigits:1})}%`,classe:'pendente'};
+  return `<article class="card detail-section"><div class="card-head"><div><h3>Proposta e composição de custos</h3>
+    <p>Modelo de proposta e o anexo de composição de custos (formação de preços), prontos para conferir e enviar.</p></div>
+    <span class="badge ${status.classe}">${esc(status.texto)}</span></div>
+    <div class="form-grid" id="proposta-form" data-notice="${n.id}">
+      <label>Validade da proposta (dias)<input name="propostaValidadeDias" type="number" min="1" value="${esc(n.propostaValidadeDias||'')}" placeholder="60"></label>
+      <label class="full">Condições adicionais da proposta<textarea name="propostaCondicoes" placeholder="Forma de pagamento, prazo de execução ou entrega, garantia, dados bancários...">${esc(n.propostaCondicoes||'')}</textarea></label>
+    </div>
+    <div class="record-actions">
+      <button type="button" class="secondary" id="salvar-proposta">Salvar dados da proposta</button>
+      <button type="button" class="secondary" data-abrir-composicao="${n.id}">Composição de custos</button>
+      <button type="button" class="secondary" data-baixar-proposta="${n.id}">Baixar modelo de proposta (.doc)</button>
+      ${temItens?`<button type="button" class="secondary" data-baixar-composicao="${n.id}">Baixar planilha da composição (.xlsx)</button>`:''}
+    </div>
+  </article>`;
+}
+async function salvarPropostaEdital(noticeId,data){
+  // propostaValidadeDias vem de um <input type="number">: o .value já usa
+  // "." como separador decimal (padrão canônico do HTML5), então não passa
+  // por Regras.numero() — essa função trata "." como separador de milhar do
+  // formato pt-BR e cortaria a casa decimal (ex.: "60.5" viraria 605).
+  const payload={proposta_validade_dias:data.propostaValidadeDias?Number(data.propostaValidadeDias):null,
+    proposta_condicoes:data.propostaCondicoes||null};
+  const {error}=await client.from('licitacoes').update(payload).eq('id',noticeId);
+  if(error)throw error;
+}
+
+/* ---------------------------------------------------------------------------
+   Diálogo da composição de custos: preenche % ou R$ por item e os dois lados
+   ficam sempre em sincronia com o valor mensal do contrato. Recalcula em
+   cada tecla digitada sem redesenhar a tabela toda (perderia o foco/cursor)
+   — só a tabela é reconstruída quando o conjunto de itens muda (abrir,
+   adicionar, remover).
+--------------------------------------------------------------------------- */
+const fmtComp=v=>v?v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
+function abrirComposicaoCustos(noticeId){
+  const n=state.notices.find(x=>x.id===noticeId);
+  if(!n){toast('Processo não localizado.');return}
+  const salva=n.composicaoCustos&&Array.isArray(n.composicaoCustos.itens)&&n.composicaoCustos.itens.length;
+  composicaoAtual={noticeId,...(salva?JSON.parse(JSON.stringify(n.composicaoCustos)):Regras.novaComposicaoCustos())};
+  renderComposicaoCustos();
+  $('#composicao-dialog').showModal();
+}
+function renderComposicaoCustos(){
+  if(!composicaoAtual)return;
+  const calc=Regras.calcularComposicaoCustos(composicaoAtual);
+  $('#composicao-valor-mensal').value=fmtComp(calc.valorMensal);
+  $('#composicao-meses').value=composicaoAtual.meses||'';
+  let grupoAnterior=null,linhas='';
+  calc.linhas.forEach((l,idx)=>{
+    if(l.grupo!==grupoAnterior){
+      grupoAnterior=l.grupo;
+      const g=calc.grupos.find(x=>x.grupo===l.grupo);
+      linhas+=`<div class="composicao-grupo-head"><h4>${esc(l.grupo)}</h4><span data-grupo-total="${esc(l.grupo)}">${fmtComp(g.percentual)}% · ${Regras.moeda(g.valor)}</span></div>`;
+    }
+    linhas+=`<div class="composicao-linha" data-idx="${idx}">
+      <span class="composicao-item-nome"><input data-comp="item" data-idx="${idx}" value="${esc(l.item)}" placeholder="Descrição do item"></span>
+      <label class="composicao-campo">%<input data-comp="pct" data-idx="${idx}" inputmode="decimal" value="${fmtComp(l.percentual)}" placeholder="0,00"></label>
+      <label class="composicao-campo">R$<input data-comp="valor" data-idx="${idx}" inputmode="decimal" value="${fmtComp(l.valor)}" placeholder="0,00"></label>
+      <button type="button" class="icon" data-comp-remover="${idx}" title="Remover item">×</button>
+    </div>`;
+  });
+  $('#composicao-tabela').innerHTML=linhas||'<p class="empty">Nenhum item. Adicione itens para montar a composição.</p>';
+  atualizarComposicaoTotais(calc);
+}
+/* Recalcula e atualiza só os números na tela (barra, badge, subtotal de
+   grupo e o campo espelho de cada linha) — nunca o campo com foco, para não
+   sobrescrever o que a pessoa está digitando. Aceita um `calc` já calculado
+   (renderComposicaoCustos já tem um) para não recalcular a mesma composição
+   duas vezes a cada abertura/inclusão/remoção de item. */
+function atualizarComposicaoTotais(calc){
+  if(!composicaoAtual)return;
+  calc=calc||Regras.calcularComposicaoCustos(composicaoAtual);
+  const ativo=document.activeElement;
+  $('#composicao-valor-global').textContent=Regras.moeda(calc.valorGlobal);
+  const pctBarra=Math.max(0,Math.min(100,calc.totalPercentual)),fill=$('#composicao-total-fill');
+  fill.style.width=`${pctBarra}%`;
+  fill.classList.toggle('full',calc.completo);
+  const badge=$('#composicao-total-badge'),acima=calc.totalPercentual>100.05;
+  badge.textContent=`${fmtComp(calc.totalPercentual)||'0,00'}% preenchido${acima?' — acima de 100%':''}`;
+  badge.className=`badge ${calc.completo?'ok':acima?'vencido':'pendente'}`;
+  calc.grupos.forEach(g=>{
+    const el=document.querySelector(`[data-grupo-total="${CSS.escape(g.grupo)}"]`);
+    if(el)el.textContent=`${fmtComp(g.percentual)}% · ${Regras.moeda(g.valor)}`;
+  });
+  calc.linhas.forEach((l,idx)=>{
+    const pctEl=document.querySelector(`[data-comp="pct"][data-idx="${idx}"]`),valorEl=document.querySelector(`[data-comp="valor"][data-idx="${idx}"]`);
+    if(pctEl&&pctEl!==ativo)pctEl.value=fmtComp(l.percentual);
+    if(valorEl&&valorEl!==ativo)valorEl.value=fmtComp(l.valor);
+  });
+}
+function composicaoOnInput(e){
+  const el=e.target.closest('[data-comp]');
+  if(!el||!composicaoAtual)return;
+  const idx=Number(el.dataset.idx),item=composicaoAtual.itens[idx];
+  if(!item)return;
+  if(el.dataset.comp==='item')item.item=el.value;
+  else if(el.dataset.comp==='pct'){item.modo='percentual';item.percentual=Regras.numero(el.value)}
+  else if(el.dataset.comp==='valor'){item.modo='valor';item.valor=Regras.numero(el.value)}
+  atualizarComposicaoTotais();
+}
+function composicaoBaseOnInput(){
+  if(!composicaoAtual)return;
+  composicaoAtual.valorMensal=Regras.numero($('#composicao-valor-mensal').value);
+  // #composicao-meses é <input type="number">: o .value já vem no formato
+  // canônico com "." decimal, então não passa por Regras.numero() (que
+  // trataria o "." como separador de milhar do formato pt-BR).
+  composicaoAtual.meses=Number($('#composicao-meses').value)||0;
+  atualizarComposicaoTotais();
+}
+async function salvarComposicaoCustos(){
+  if(!composicaoAtual)return;
+  const botao=$('#composicao-salvar');
+  setBusy(botao,true);
+  try{
+    const {noticeId,...composicao}=composicaoAtual;
+    const {error}=await client.from('licitacoes').update({composicao_custos:composicao}).eq('id',noticeId);
+    if(error)throw error;
+    await loadData();
+    renderNoticeDetail();
+    toast('Composição de custos salva.');
+    $('#composicao-dialog').close();
+    composicaoAtual=null;
+  }catch(error){toast(friendlyError(error))}
+  finally{setBusy(botao,false)}
+}
+/* Planilha da composição de custos: cabeçalho com os dados do processo,
+   depois grupo/item/%/R$ e a linha de total — mesmo layout do modelo em
+   papel, só que calculado. */
+function composicaoCustosXlsx(company,notice,composicao){
+  const calc=Regras.calcularComposicaoCustos(composicao);
+  const linhas=[
+    ['ANEXO — COMPOSIÇÃO DE CUSTOS (FORMAÇÃO DE PREÇOS)'],
+    [`Empresa: ${company.name}`],[`CNPJ: ${company.cnpj}`],[`Processo: ${notice.number}`],[`Órgão: ${notice.agency}`],
+    [`Valor mensal do contrato: ${Regras.moeda(calc.valorMensal)}`],[`Meses de contrato: ${calc.meses}`],[`Valor global do contrato: ${Regras.moeda(calc.valorGlobal)}`],
+    [],['Grupo','Item','% sobre o valor mensal','Valor mensal (R$)']
+  ];
+  let grupoAnterior=null;
+  calc.linhas.forEach(l=>{linhas.push([l.grupo!==grupoAnterior?(grupoAnterior=l.grupo,l.grupo):'',l.item,Number(l.percentual.toFixed(2)),Number(l.valor.toFixed(2))])});
+  linhas.push([],['TOTAL','',Number(calc.totalPercentual.toFixed(2)),Number(calc.totalValor.toFixed(2))]);
+  const workbook=XLSX.utils.book_new(),sheet=XLSX.utils.aoa_to_sheet(linhas);
+  sheet['!cols']=[{wch:32},{wch:44},{wch:14},{wch:16}];
+  XLSX.utils.book_append_sheet(workbook,sheet,'Composição de Custos');
+  return XLSX.write(workbook,{bookType:'xlsx',type:'array'});
+}
+function baixarComposicaoCustos(noticeId){
+  const n=state.notices.find(x=>x.id===noticeId),company=state.companies.find(c=>c.id===n?.companyId);
+  if(!n||!company||!window.XLSX){toast('Não foi possível gerar a planilha.');return}
+  saveBlob(new Blob([composicaoCustosXlsx(company,n,n.composicaoCustos)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`composicao-de-custos-${safeFolder(n.number)}.xlsx`);
+}
+/* Modelo de proposta avulso, direto da tela do edital — sem precisar montar
+   um pacote só para conferir o documento. */
+function baixarModeloProposta(noticeId){
+  const n=state.notices.find(x=>x.id===noticeId),company=state.companies.find(c=>c.id===n?.companyId);
+  if(!n||!company){toast('Processo não localizado.');return}
+  const pkg={items:n.items||[],proposal:{requisitos:n.proposalRequirements||[]}};
+  saveBlob(new Blob([proposalDocument(company,n,pkg)],{type:'application/msword'}),`proposta-de-precos-${safeFolder(n.number)}.doc`);
+}
+
 /* Resultado do certame: o acompanhamento ia até gerar o pacote, sem registrar
    o que aconteceu depois. Sem isso não existe histórico de taxa de sucesso. */
 const ROTULO_RESULTADO={em_andamento:'Em andamento',vencemos:'Vencemos',perdemos:'Perdemos',desclassificados:'Desclassificados',revogado:'Revogado',anulado:'Anulado'};
@@ -768,6 +939,7 @@ function renderNoticeDetail(){
     <p>Base documental projetada para ${fmt(n.opening)}, não para hoje — responde "a empresa vai ter documento apto naquele dia?".</p>
     ${painelProntidao(company,{compacto:true,dataAlvo:n.opening})}</article>`:''}
   ${checklistDoEdital(n)}
+  ${propostaDoEdital(n)}
   ${resultadoDoCertame(n)}
   ${providenciasDoEdital(n)}
   <div class="notice-detail-grid">
@@ -1076,7 +1248,13 @@ async function criarPacoteDoChecklist(notice,itens){
 }
 
 function documentShell(title,body){return`<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;font-size:12pt;line-height:1.5;margin:2.5cm}h1{text-align:center;font-size:16pt}h2{font-size:13pt;margin-top:28px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #333;padding:6px}th{background:#eee}.signature{margin-top:60px;text-align:center}</style></head><body><h1>${esc(title)}</h1>${body}</body></html>`}
-function proposalDocument(company,notice,pkg){const rows=(pkg.items||[]).map(item=>`<tr><td>${esc(item.item)}</td><td>${esc(item.descricao)}</td><td>${esc(item.unidade)}</td><td>${esc(item.quantidade)}</td><td>${esc(item.valor_unitario||'')}</td><td>${esc(item.valor_total||'')}</td></tr>`).join('');return documentShell(`PROPOSTA DE PREÇOS — ${notice.number}`,`<p><strong>Ao(À) ${esc(notice.agency)}</strong></p><p><strong>Proponente:</strong> ${esc(company.name)}<br><strong>CNPJ:</strong> ${esc(company.cnpj)}<br><strong>Objeto:</strong> ${esc(notice.object)}</p><table><thead><tr><th>Item</th><th>Descrição</th><th>Unidade</th><th>Quantidade</th><th>Valor unitário</th><th>Valor total</th></tr></thead><tbody>${rows||'<tr><td colspan="6">[CONFERIR E PREENCHER OS ITENS DO EDITAL]</td></tr>'}</tbody></table><h2>Condições da proposta</h2><ul>${(pkg.proposal?.requisitos||[]).map(x=>`<li>${esc(x)}</li>`).join('')||'<li>[CONFERIR PRAZO DE VALIDADE, ENTREGA, GARANTIA E DEMAIS CONDIÇÕES DO EDITAL]</li>'}</ul><p class="signature">________________________________________<br>Representante legal</p>`)}
+function proposalDocument(company,notice,pkg){
+  const rows=(pkg.items||[]).map(item=>`<tr><td>${esc(item.item)}</td><td>${esc(item.descricao)}</td><td>${esc(item.unidade)}</td><td>${esc(item.quantidade)}</td><td>${esc(item.valor_unitario||'')}</td><td>${esc(item.valor_total||'')}</td></tr>`).join('');
+  const calc=window.Regras&&notice.composicaoCustos?Regras.calcularComposicaoCustos(notice.composicaoCustos):null;
+  const valorGlobal=calc&&calc.valorGlobal?`<p><strong>Valor mensal proposto:</strong> ${Regras.moeda(calc.valorMensal)}<br><strong>Prazo do contrato:</strong> ${calc.meses} mês(es)<br><strong>Valor global da proposta:</strong> ${Regras.moeda(calc.valorGlobal)}</p>`:'';
+  const validade=notice.propostaValidadeDias?`<li>Proposta válida por ${esc(notice.propostaValidadeDias)} dias corridos, contados da data de abertura da sessão pública.</li>`:'';
+  const condicoes=notice.propostaCondicoes?`<li>${esc(notice.propostaCondicoes).replace(/\n/g,'<br>')}</li>`:'';
+  return documentShell(`PROPOSTA DE PREÇOS — ${notice.number}`,`<p><strong>Ao(À) ${esc(notice.agency)}</strong></p><p><strong>Proponente:</strong> ${esc(company.name)}<br><strong>CNPJ:</strong> ${esc(company.cnpj)}<br><strong>Objeto:</strong> ${esc(notice.object)}</p>${valorGlobal}<table><thead><tr><th>Item</th><th>Descrição</th><th>Unidade</th><th>Quantidade</th><th>Valor unitário</th><th>Valor total</th></tr></thead><tbody>${rows||'<tr><td colspan="6">[CONFERIR E PREENCHER OS ITENS DO EDITAL]</td></tr>'}</tbody></table><h2>Condições da proposta</h2><ul>${validade}${condicoes}${(pkg.proposal?.requisitos||[]).map(x=>`<li>${esc(x)}</li>`).join('')||(validade||condicoes?'':'<li>[CONFERIR PRAZO DE VALIDADE, ENTREGA, GARANTIA E DEMAIS CONDIÇÕES DO EDITAL]</li>')}<li>Nos preços propostos estão inclusos todos os tributos, encargos sociais e trabalhistas, fretes, seguros e quaisquer outras despesas necessárias ao cumprimento integral do objeto.</li></ul><p class="signature">________________________________________<br>Representante legal</p>`)}
 function declarationText(title,company,notice){const lower=title.toLowerCase();let body='declara, sob as penas da lei, que atende integralmente à exigência indicada no edital, conforme a documentação e as condições aplicáveis.';if(/7º|menor/.test(lower))body='declara que não emprega menor de dezoito anos em trabalho noturno, perigoso ou insalubre e não emprega menor de dezesseis anos, salvo na condição de aprendiz a partir de quatorze anos.';else if(/impeditivo/.test(lower))body='declara que não existem fatos impeditivos à sua habilitação e que comunicará qualquer ocorrência superveniente.';else if(/reserva/.test(lower))body='declara que cumpre as exigências legais de reserva de cargos para pessoa com deficiência e para reabilitado da Previdência Social, quando aplicáveis.';else if(/independente/.test(lower))body='declara que a proposta foi elaborada de maneira independente, nos termos e limites previstos no edital.';else if(/conhecimento|aceita[cç][aã]o/.test(lower))body='declara que conhece e aceita as condições do edital, seus anexos e as características necessárias à execução do objeto.';return`<h2>${esc(title)}</h2><p>${esc(company.name)}, inscrita no CNPJ sob nº ${esc(company.cnpj)}, por seu representante legal, ${body}</p>`}
 function declarationsDocument(company,notice,pkg){const declarations=pkg.declarations.length?pkg.declarations:['Declaração de inexistência de fatos impeditivos','Declaração de cumprimento do art. 7º, XXXIII, da Constituição','Declaração de pleno conhecimento e aceitação do edital'];return documentShell(`DECLARAÇÕES — ${notice.number}`,`${declarations.map(x=>declarationText(x,company,notice)).join('')}<p class="signature">________________________________________<br>Representante legal</p>`)}
 function saveBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
@@ -1113,6 +1291,8 @@ async function downloadProcessPackage(packageId){
     XLSX.utils.book_append_sheet(workbook,sheet,'Itens');
     root.file(`${pastaProposta}/planilha-de-itens.xlsx`,XLSX.write(workbook,{bookType:'xlsx',type:'array'}));
   }
+  if(window.XLSX&&temComposicaoPreenchida(notice.composicaoCustos))
+    root.file(`${pastaProposta}/anexo-composicao-de-custos.xlsx`,composicaoCustosXlsx(company,notice,notice.composicaoCustos));
   const checklistBytes=checklistPdf(company,notice,pkg.documents);
   if(checklistBytes)root.file('00-checklist-completo.pdf',checklistBytes);
   else root.file('00-checklist-completo.txt',checklistCompleto(company,notice,pkg.documents));
@@ -1607,6 +1787,53 @@ $('#notice-detail-content').addEventListener('click',async e=>{
     try{await salvarResultadoCertame(form.dataset.notice,campos);await loadData();toast('Resultado salvo.')}
     catch(error){toast(friendlyError(error))}
     finally{setBusy(salvarResultado,false)}
+    return;
   }
+  const salvarProposta=e.target.closest('#salvar-proposta');
+  if(salvarProposta){
+    const form=$('#proposta-form'),campos={};
+    ['propostaValidadeDias','propostaCondicoes'].forEach(nome=>{campos[nome]=form.querySelector(`[name="${nome}"]`)?.value||''});
+    setBusy(salvarProposta,true);
+    try{await salvarPropostaEdital(form.dataset.notice,campos);await loadData();renderNoticeDetail();toast('Dados da proposta salvos.')}
+    catch(error){toast(friendlyError(error))}
+    finally{setBusy(salvarProposta,false)}
+    return;
+  }
+  const abrirComposicao=e.target.closest('[data-abrir-composicao]');
+  if(abrirComposicao){abrirComposicaoCustos(abrirComposicao.dataset.abrirComposicao);return}
+  const baixarProposta=e.target.closest('[data-baixar-proposta]');
+  if(baixarProposta){baixarModeloProposta(baixarProposta.dataset.baixarProposta);return}
+  const baixarComposicao=e.target.closest('[data-baixar-composicao]');
+  if(baixarComposicao){baixarComposicaoCustos(baixarComposicao.dataset.baixarComposicao);return}
 });
+$('#composicao-dialog').addEventListener('input',e=>{
+  if(e.target.id==='composicao-valor-mensal'||e.target.id==='composicao-meses'){composicaoBaseOnInput();return}
+  composicaoOnInput(e);
+});
+$('#composicao-dialog').addEventListener('click',e=>{
+  if(e.target.closest('#composicao-fechar')){$('#composicao-dialog').close();composicaoAtual=null;return}
+  if(e.target.closest('#composicao-add-item')){
+    if(!composicaoAtual)return;
+    composicaoAtual.itens.push({grupo:'Outros',item:'',modo:'percentual',percentual:null,valor:null});
+    renderComposicaoCustos();
+    return;
+  }
+  const remover=e.target.closest('[data-comp-remover]');
+  if(remover){
+    if(!composicaoAtual)return;
+    composicaoAtual.itens.splice(Number(remover.dataset.compRemover),1);
+    renderComposicaoCustos();
+    return;
+  }
+  if(e.target.closest('#composicao-baixar-planilha')){
+    if(!composicaoAtual||!window.XLSX){toast('Não foi possível gerar a planilha.');return}
+    const n=state.notices.find(x=>x.id===composicaoAtual.noticeId),company=state.companies.find(c=>c.id===n?.companyId);
+    if(!n||!company){toast('Processo não localizado.');return}
+    const {noticeId,...composicao}=composicaoAtual;
+    saveBlob(new Blob([composicaoCustosXlsx(company,n,composicao)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`composicao-de-custos-${safeFolder(n.number)}.xlsx`);
+    return;
+  }
+  if(e.target.closest('#composicao-salvar')){salvarComposicaoCustos();return}
+});
+$('#composicao-dialog').addEventListener('close',()=>{composicaoAtual=null});
 init();
