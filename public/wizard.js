@@ -350,6 +350,7 @@ function renderLinhaItem(item,indice){
         ${outros.length?`<optgroup label="Outros documentos da empresa">${outros.map(c=>`<option value="${c.tabela}:${c.id}"${item.documentoRefId===c.id?' selected':''}>${esc(c.nome)}</option>`).join('')}</optgroup>`:''}
       </select>
       <div class="wz-item-links">
+        ${item.chave==='composicao_custos'?`<button type="button" class="link" data-abrir-composicao-item="${wiz.notice.id}">Abrir composição de custos</button>`:''}
         ${doc?`<button type="button" class="link" data-document="${esc(doc)}">Abrir</button>`:''}
         ${doc?`<button type="button" class="link" data-desvincular="${indice}">Desvincular</button>`:`<button type="button" class="link" data-enviar="${indice}">Enviar agora ↑</button>`}
         <button type="button" class="link" data-agendar="${indice}">Agendar</button>
@@ -657,6 +658,13 @@ function ligarEventos(){
         toast(criadas?`${criadas} providência(s) na agenda.`:'Todas as pendências já estavam na agenda.');
       }catch(error){toast(friendlyError(error))}
       finally{setBusy(alvo,false)}
+      return;
+    }
+
+    const abrirComposicaoItem=alvo.dataset.abrirComposicaoItem;
+    if(abrirComposicaoItem){
+      if(!wiz.notice.id){toast('Avance um passo para salvar o rascunho antes de abrir a composição.');return}
+      abrirComposicaoCustos(abrirComposicaoItem);
       return;
     }
 
